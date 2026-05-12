@@ -1,6 +1,6 @@
 <!--
-Thanks for opening a PR!
-If this fixes an issue, link it below (e.g. `Closes #123`).
+Thanks for opening a PR 🤘
+If this fixes an issue, link it below (e.g. `Closes #123`)
 -->
 
 ## What this PR does

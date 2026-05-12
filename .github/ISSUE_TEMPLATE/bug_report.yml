@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to report a bug! Fill in what you can - more info makes things easier to track down, but don't worry if some fields don't apply.
+        Thanks for taking the time to report a bug ! Fill in what you can, more info makes things easier to track down but don't stress if some fields don't apply 🤘
 
   - type: textarea
     id: what-happened

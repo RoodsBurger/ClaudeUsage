@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for sharing an idea! The more clearly you can describe the *problem* you want to solve, the better. Implementation ideas are welcome but optional.
+        Thanks for sharing an idea ! The more clearly you can describe the *problem* you want to solve, the better. Implementation ideas are welcome but totally optional 🤘
 
   - type: textarea
     id: problem
