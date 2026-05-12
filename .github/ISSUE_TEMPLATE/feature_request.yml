@@ -1,0 +1,66 @@
+name: Feature request
+description: Suggest a new feature or improvement for TokenEater
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for sharing an idea! A few things to keep in mind:
+
+        - TokenEater is opinionated about scope. Not every feature fits, and that's OK.
+        - The more clearly you describe the *problem* you want to solve, the better. Implementation ideas are welcome but optional.
+        - Please check for existing requests first: https://github.com/AThevon/TokenEater/issues?q=is%3Aissue+label%3Aenhancement
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: Describe the use case or pain point, not the solution.
+      placeholder: When I'm pair-programming with two Claude accounts, I can't tell which one is currently in use.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed solution (optional)
+      description: How would you imagine TokenEater solving this?
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you've considered (optional)
+      description: Other workarounds or tools you've tried.
+
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Which surface does this affect?
+      multiple: true
+      options:
+        - Menu bar
+        - Popover / dashboard
+        - Widget
+        - Agent watchers overlay
+        - Notifications
+        - Settings
+        - Other / cross-cutting
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Screenshots, mockups, references to other apps doing this, etc.
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and didn't find a duplicate.
+          required: true
+        - label: I'm proposing a feature, not reporting a bug.
+          required: true

@@ -1,0 +1,112 @@
+name: Bug report
+description: Something in TokenEater is broken or behaving unexpectedly
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill in as much as you can - the more info you give, the faster I can fix it.
+
+        Before submitting, please check that no existing issue covers your bug: https://github.com/AThevon/TokenEater/issues?q=is%3Aissue
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear, concise description of the bug.
+      placeholder: When I click X, the widget shows Y instead of Z.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+      placeholder: I expected the widget to refresh and show the new value.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Minimal numbered steps so I can reproduce the bug.
+      placeholder: |
+        1. Open TokenEater
+        2. Click the menu bar icon
+        3. ...
+    validations:
+      required: true
+
+  - type: input
+    id: tokeneater-version
+    attributes:
+      label: TokenEater version
+      description: Found in Settings -> About, or the menu bar tooltip.
+      placeholder: e.g. 5.1.1
+    validations:
+      required: true
+
+  - type: input
+    id: macos-version
+    attributes:
+      label: macOS version
+      placeholder: e.g. 14.5 (Sonoma) / 15.1 (Sequoia)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: How did you install TokenEater?
+      options:
+        - DMG from GitHub Releases
+        - Homebrew cask
+        - Built from source
+        - Other (specify in additional context)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: claude-plan
+    attributes:
+      label: Claude plan
+      options:
+        - Pro
+        - Max
+        - Team
+        - Free (note - TokenEater does not support this)
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or console output (optional)
+      description: |
+        Optional but very helpful. Open `Console.app`, filter by `TokenEater`, reproduce the bug, copy/paste any error lines here.
+      render: shell
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots / screen recording (optional)
+      description: Drag-and-drop images or videos directly into this field.
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Anything else you think is relevant - other tools running, multiple Claude accounts, etc.
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and didn't find a duplicate.
+          required: true
+        - label: I'm on TokenEater 5.0 or later (older versions are no longer supported).
+          required: true
