@@ -50,7 +50,7 @@ struct ThemesSectionView: View {
                         Spacer()
                         Toggle("", isOn: $settingsStore.smartColorEnabled)
                             .toggleStyle(.switch)
-                            .tint(.blue)
+                            .tint(DS.Palette.accentSettings)
                             .labelsHidden()
                     }
 
@@ -534,8 +534,7 @@ struct ThemesSectionView: View {
                 .font(.system(size: 12))
                 .foregroundStyle(.white.opacity(0.7))
                 .frame(width: 60, alignment: .leading)
-            Slider(value: value, in: range, step: 5)
-                .tint(.blue)
+            TokenEaterSlider(value: value, in: range, step: 5, showsTicks: true)
             Text("\(Int(value.wrappedValue))%")
                 .font(.system(size: 12, design: .monospaced))
                 .foregroundStyle(.white.opacity(0.5))
