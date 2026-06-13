@@ -84,38 +84,28 @@ struct MenuBarRendererTests {
 @Suite("MenuBarRenderer.periodLabelColor")
 struct MenuBarPeriodLabelColorTests {
 
-    @Test("default (no custom hex) is the legible secondary colour")
-    func defaultIsSecondary() {
-        // Regression guard for issue #196: the "5h" / "7d" period label used
-        // to default to tertiary (~26%), which is nearly invisible on a light
-        // menu bar. It now defaults to secondary (~55%).
-        let resolved = MenuBarRenderer.periodLabelColor(hex: "", monochrome: false)
+    @Test("default (no custom hex) is the legible secondary colour, not the faint tertiary")
+    func defaultIsLegible() {
+        let resolved = MenuBarRenderer.periodLabelColor(hex: "")
         #expect(resolved == MenuBarRenderer.defaultPeriodLabelColor)
-        // The default is `.secondaryLabelColor`; the load-bearing guard is that
-        // it is no longer the faint `.tertiaryLabelColor` that issue #196 hit.
-        // (Compared by name to avoid relying on dynamic-colour reflexivity.)
-        #expect(MenuBarRenderer.defaultPeriodLabelColor != NSColor.tertiaryLabelColor,
-                "default must not regress back to the faint tertiary grey")
+        // Regression guard for #196: the "5h" / "7d" label used to default to
+        // tertiary (~26%), nearly invisible on a light menu bar. It must not
+        // revert to that faint grey.
+        #expect(MenuBarRenderer.defaultPeriodLabelColor != NSColor.tertiaryLabelColor)
     }
 
-    @Test("monochrome falls back to the same legible default")
-    func monochromeIsSecondary() {
-        // Monochrome ignores any picked hex; it should still be legible.
-        let resolved = MenuBarRenderer.periodLabelColor(hex: "#FF0000", monochrome: true)
-        #expect(resolved == MenuBarRenderer.defaultPeriodLabelColor)
-    }
-
+    /// A user-picked hex wins. The resolver is mode-agnostic, so the same colour
+    /// applies in monochrome too (the #196 promise: tweakable in monochrome).
     @Test("a valid custom hex overrides the default")
     func customHexWins() {
-        let resolved = MenuBarRenderer.periodLabelColor(hex: "#3366FF", monochrome: false)
-        #expect(resolved.hexString() == "#3366FF")
+        let resolved = MenuBarRenderer.periodLabelColor(hex: "#3366FF")
+        #expect(resolved == MenuBarTextColorResolver.resolve(hex: "#3366FF", fallback: .clear))
+        #expect(resolved != MenuBarRenderer.defaultPeriodLabelColor)
     }
 
-    @Test("an empty / malformed hex falls back to the default")
+    @Test("empty or malformed hex falls back to the legible default")
     func malformedHexFallsBack() {
-        #expect(MenuBarRenderer.periodLabelColor(hex: "   ", monochrome: false)
-                == MenuBarRenderer.defaultPeriodLabelColor)
-        #expect(MenuBarRenderer.periodLabelColor(hex: "not-a-color", monochrome: false)
-                == MenuBarRenderer.defaultPeriodLabelColor)
+        #expect(MenuBarRenderer.periodLabelColor(hex: "   ") == MenuBarRenderer.defaultPeriodLabelColor)
+        #expect(MenuBarRenderer.periodLabelColor(hex: "not-a-color") == MenuBarRenderer.defaultPeriodLabelColor)
     }
 }

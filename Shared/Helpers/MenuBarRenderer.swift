@@ -108,24 +108,25 @@ enum MenuBarRenderer {
         return data.themeColors.pacingNSColor(for: zone)
     }
 
-    /// Default colour for the period label ("5h" / "7d") when the user hasn't
+    /// Default colour for the period label ("5h" / "7d") when the user has not
     /// picked a custom hex. Secondary (~55%) rather than tertiary (~26%) so the
-    /// label stays legible on a *light* menu bar - on a light background the old
-    /// tertiary grey was nearly invisible while the bold, colour-coded value
-    /// remained readable. See issue #196. The value still outranks the label
-    /// (bold `.labelColor` / gauge colour vs. secondary), so the hierarchy holds.
+    /// label stays legible on a *light* menu bar (the old tertiary grey was
+    /// nearly invisible there) while still ranking below the bold, colour-coded
+    /// value. The secondary default is @pulkitxm's fix from #197; #201 builds on
+    /// it so a custom hex is also honored in monochrome (#196).
     static let defaultPeriodLabelColor: NSColor = .secondaryLabelColor
 
-    /// Resolves the period-label colour. Monochrome and "no custom hex" both
-    /// fall back to `defaultPeriodLabelColor`; a valid custom hex wins. Kept
-    /// internal (and free of `RenderData`) so it is unit-testable in isolation.
-    static func periodLabelColor(hex: String, monochrome: Bool) -> NSColor {
-        if monochrome { return defaultPeriodLabelColor }
-        return MenuBarTextColorResolver.resolve(hex: hex, fallback: defaultPeriodLabelColor)
+    /// Resolves the period-label colour. The user's custom hex wins in BOTH
+    /// modes, including monochrome, so a monochrome user on a light menu bar can
+    /// still tune the "5h" / "7d" label colour (#196). With no custom hex it
+    /// falls back to the legible `defaultPeriodLabelColor`. Kept internal and
+    /// `RenderData`-free so it is unit-testable in isolation.
+    static func periodLabelColor(hex: String) -> NSColor {
+        MenuBarTextColorResolver.resolve(hex: hex, fallback: defaultPeriodLabelColor)
     }
 
     private static func periodColor(_ data: RenderData) -> NSColor {
-        periodLabelColor(hex: data.sessionPeriodColorHex, monochrome: data.menuBarMonochrome)
+        periodLabelColor(hex: data.sessionPeriodColorHex)
     }
 
     /// Reset countdown text color. Honors the Themes setting priority:

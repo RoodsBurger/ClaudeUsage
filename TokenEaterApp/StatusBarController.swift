@@ -48,8 +48,16 @@ final class StatusBarController: NSObject {
             observeOnboardingForRefresh()
         }
 
-        DispatchQueue.main.async { [weak self] in
-            self?.showDashboard()
+        // Auto-open the dashboard at launch unless the user opted into a
+        // background (menu-bar-only) launch. Onboarding ALWAYS opens: the
+        // window hosts the onboarding flow and, being an LSUIElement app with
+        // no Dock icon, suppressing it on a fresh install would strand the user
+        // with no reachable UI (#198). The window stays reachable from the menu
+        // bar's right-click "Open" item afterwards.
+        if !settingsStore.hasCompletedOnboarding || !settingsStore.launchInBackground {
+            DispatchQueue.main.async { [weak self] in
+                self?.showDashboard()
+            }
         }
     }
 
@@ -477,6 +485,12 @@ final class StatusBarController: NSObject {
         popover.contentViewController = nil
         stopEventMonitor()
 
+        // Promote to a regular app (Dock icon + app menu) while the dashboard
+        // is open so it feels like a real window; windowShouldClose drops back
+        // to .accessory (menu-bar-only) when the window is closed, so the Dock
+        // icon is only present while the window actually is.
+        NSApp.setActivationPolicy(.regular)
+
         if let window = dashboardWindow {
             window.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
@@ -618,14 +632,17 @@ extension StatusBarController: NSWindowDelegate {
     nonisolated func windowShouldClose(_ sender: NSWindow) -> Bool {
         MainActor.assumeIsolated {
             if !self.settingsStore.hasCompletedOnboarding {
-                // User closed during onboarding - quit the app so they're not stuck
-                // (LSUIElement app has no Dock icon, no Force Quit entry)
+                // User closed during onboarding: quit rather than sit
+                // half-onboarded and unconnected in the menu bar.
                 NSApp.terminate(nil)
                 return
             }
             sender.contentViewController = nil
             sender.orderOut(nil)
             self.dashboardWindow = nil
+            // Closing the dashboard (not quitting) returns the app to
+            // menu-bar-only: drop the Dock icon + app menu.
+            NSApp.setActivationPolicy(.accessory)
         }
         return false
     }
