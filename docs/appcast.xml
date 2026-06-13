@@ -221,5 +221,11 @@
             <sparkle:version>5.5.1</sparkle:version>
             <enclosure url="https://github.com/AThevon/TokenEater/releases/download/v5.5.1/TokenEater.dmg" sparkle:edSignature="ER7VwGwgUDJNRWhlUPEh2aRNyDsWBbJ9cnHx9kdw6PYLUCwhwDUuAR/NGtCXa1YNpK1WaSV5tLD1Jn73Jld8DQ==" length="4951937" type="application/octet-stream" />
         </item>
+        <item>
+            <title>5.6.0</title>
+            <pubDate>Sat, 13 Jun 2026 12:07:59 +0000</pubDate>
+            <sparkle:version>5.6.0</sparkle:version>
+            <enclosure url="https://github.com/AThevon/TokenEater/releases/download/v5.6.0/TokenEater.dmg" sparkle:edSignature="FbRR/WxityrRd1ZgMYd6/6x3vhmpz0P3eJi9RxrETJhdPBUtO21D9bCfWits0o2tqsZkhgXYCm/jk15mtHJIBA==" length="4957289" type="application/octet-stream" />
+        </item>
     </channel>
 </rss>
