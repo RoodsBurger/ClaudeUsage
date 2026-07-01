@@ -9,6 +9,7 @@
 /* Metrics */
 "metric.session" = "5h";
 "metric.design" = "Design";
+"metric.serviceStatus" = "Service status";
 "settings.group.design" = "Claude Design";
 
 /* Extra usage (paid credits pool) */
@@ -311,6 +312,14 @@
 "notif.body.extra.orange" = "%d%% of your credits used";
 "notif.body.extra.red" = "%d%% used, time to top up?";
 "notif.body.extra.green" = "Pool back in the green";
+
+/* Notifications - Vendor status */
+"notif.title.status.claude.degraded" = "Claude is degraded";
+"notif.body.status.claude.degraded" = "Anthropic reports a service issue";
+"notif.title.status.claude.down" = "Claude is down";
+"notif.body.status.claude.down" = "Anthropic reports a major outage";
+"notif.title.status.claude.restored" = "Claude is back";
+"notif.body.status.claude.restored" = "Service restored";
 "settings.notifications.title" = "Notifications";
 "settings.notifications.status" = "Status";
 "settings.notifications.on" = "Enabled";
@@ -347,6 +356,20 @@
 "settings.notifications.group.health" = "Health";
 "settings.notifications.group.health.hint" = "Connection issues that might block tracking.";
 "settings.notifications.token" = "Token expired";
+"settings.notifications.status.degraded" = "Service degraded";
+"settings.notifications.status.restored" = "Service restored";
+
+/* Service Status */
+"sidebar.serviceStatus" = "Service Status";
+"sidebar.serviceStatus.subtitle" = "Outage monitoring for Claude";
+"settings.status.master" = "Monitoring";
+"settings.status.group.polling" = "Polling";
+"settings.status.group.polling.hint" = "How often to check Claude's status. Checks speed up automatically during an outage.";
+"settings.status.interval.label" = "Check every";
+"settings.status.interval.minutes" = "%d min";
+"settings.status.group.display" = "Display";
+"settings.status.badge" = "Show outage badge in menu bar during outage";
+"settings.status.reset.confirm" = "Reset Service Status settings?";
 
 /* Relative Time */
 "relative.now" = "now";
@@ -751,3 +774,13 @@
 "onboarding.card.connect.authorize" = "Authorize";
 "onboarding.card.connect.retry" = "Retry";
 "onboarding.card.connect.idle.scene" = "macOS will ask once.\nTap Always Allow when it does.";
+
+/* Vendor Status Banner */
+"status.banner.degraded" = "Claude is degraded";
+"status.banner.down" = "Claude is down";
+"status.banner.view" = "Status page";
+
+/* Vendor Status Dashboard Card */
+"dashboard.status.degraded" = "Claude is degraded";
+"dashboard.status.down" = "Claude is down";
+"dashboard.status.affected" = "Affected: %@";

@@ -42,6 +42,12 @@ enum MenuBarRenderer {
         let pacingShape: PacingShape
         let designPct: Int
         let hasDesign: Bool
+        // Outage badge (Service Status). Set by StatusBarController from
+        // VendorStatusStore; kept `let` like every other RenderData field so
+        // the Equatable render cache stays correct.
+        let outageActive: Bool
+        let outageHealth: VendorHealth
+        let nextPollSeconds: Int?
         let extraCreditsPct: Int
         let hasExtraCredits: Bool
     }
@@ -64,6 +70,9 @@ enum MenuBarRenderer {
     /// the static cache. Useful for live previews that may differ from the
     /// status bar's current state and shouldn't poison it.
     static func renderUncached(_ data: RenderData) -> NSImage {
+        if data.outageActive {
+            return renderWithOutageBadge(data)
+        }
         if !data.hasConfig || data.hasError {
             return renderLogoTemplate()
         }
@@ -212,6 +221,69 @@ enum MenuBarRenderer {
         )
     }
 
+    // MARK: - Outage badge
+
+    /// Composite an outage glyph + mm:ss countdown ahead of the normal content.
+    /// When usage data isn't usable (no config / usage error), show the badge
+    /// alone — avoids compositing a template logo into a coloured image.
+    private static func renderWithOutageBadge(_ data: RenderData) -> NSImage {
+        let badge = renderOutageBadgeImage(data)
+        let hasMetrics = data.hasConfig && !data.hasError
+        guard hasMetrics else { return badge }
+        let base = renderPinnedMetrics(data)
+        return horizontallyCompose(left: badge, right: base, gap: 5)
+    }
+
+    private static func renderOutageBadgeImage(_ data: RenderData) -> NSImage {
+        let height: CGFloat = 22
+        let tint: NSColor = data.outageHealth == .down ? .systemRed : .systemOrange
+
+        let symbolConfig = NSImage.SymbolConfiguration(pointSize: 11, weight: .bold)
+            .applying(NSImage.SymbolConfiguration(paletteColors: [tint]))
+        let glyph = NSImage(systemSymbolName: "exclamationmark.triangle.fill", accessibilityDescription: nil)?
+            .withSymbolConfiguration(symbolConfig)
+        let glyphSize = glyph?.size ?? NSSize(width: 12, height: 12)
+
+        var countdown: NSAttributedString?
+        if let secs = data.nextPollSeconds {
+            let clamped = max(0, secs)
+            let text = String(format: "%d:%02d", clamped / 60, clamped % 60)
+            countdown = NSAttributedString(string: text, attributes: [
+                .font: NSFont.monospacedDigitSystemFont(ofSize: 11, weight: .semibold),
+                .foregroundColor: tint,
+            ])
+        }
+
+        let gap: CGFloat = 3
+        let textWidth = countdown?.size().width ?? 0
+        let width = glyphSize.width + (countdown != nil ? gap + textWidth : 0)
+        let img = NSImage(size: NSSize(width: ceil(width) + 2, height: height), flipped: false) { _ in
+            glyph?.draw(at: NSPoint(x: 1, y: (height - glyphSize.height) / 2),
+                        from: .zero, operation: .sourceOver, fraction: 1)
+            if let countdown {
+                let ts = countdown.size()
+                countdown.draw(at: NSPoint(x: 1 + glyphSize.width + gap, y: (height - ts.height) / 2))
+            }
+            return true
+        }
+        img.isTemplate = false
+        return img
+    }
+
+    private static func horizontallyCompose(left: NSImage, right: NSImage, gap: CGFloat) -> NSImage {
+        let height: CGFloat = 22
+        let width = left.size.width + gap + right.size.width
+        let img = NSImage(size: NSSize(width: ceil(width), height: height), flipped: false) { _ in
+            left.draw(at: NSPoint(x: 0, y: (height - left.size.height) / 2),
+                      from: .zero, operation: .sourceOver, fraction: 1)
+            right.draw(at: NSPoint(x: left.size.width + gap, y: (height - right.size.height) / 2),
+                       from: .zero, operation: .sourceOver, fraction: 1)
+            return true
+        }
+        img.isTemplate = false
+        return img
+    }
+
     // MARK: - Rendering
 
     private static func renderPinnedMetrics(_ data: RenderData) -> NSImage {
@@ -238,7 +310,7 @@ enum MenuBarRenderer {
         }()
 
         let ordered: [MetricID] = [
-            .sessionReset, .fiveHour, .sessionPacing, .sevenDay, .weeklyPacing, .sonnet, .design, .extraCredits
+            .serviceStatus, .sessionReset, .fiveHour, .sessionPacing, .sevenDay, .weeklyPacing, .sonnet, .design, .extraCredits
         ].filter {
             guard data.pinnedMetrics.contains($0) else { return false }
             // Sonnet / Design / Extra Credits visibility in the menu bar is
@@ -253,6 +325,7 @@ enum MenuBarRenderer {
             case .sessionReset, .sessionPacing: return data.hasFiveHourBucket
             case .weeklyPacing: return data.hasWeeklyPacing
             case .design: return data.hasDesign
+            case .serviceStatus: return true
             // Extra Credits only renders when the paid pool is provisioned and
             // enabled. Hidden otherwise so non-overage users never see "EC 0%".
             case .extraCredits: return data.hasExtraCredits
@@ -272,6 +345,8 @@ enum MenuBarRenderer {
                 str.append(NSAttributedString(string: separator, attributes: sepAttrs))
             }
             switch metric {
+            case .serviceStatus:
+                appendServiceStatus(to: str, data: data)
             case .sessionReset:
                 appendSessionReset(to: str, data: data)
             case .sessionPacing:
@@ -327,6 +402,33 @@ enum MenuBarRenderer {
         }
         img.isTemplate = false
         return img
+    }
+
+    private static func appendServiceStatus(to str: NSMutableAttributedString, data: RenderData) {
+        let mono = data.menuBarMonochrome
+        let symbolName: String
+        let color: NSColor
+        switch data.outageHealth {
+        case .healthy:  symbolName = "checkmark.circle.fill";        color = mono ? .labelColor : .systemGreen
+        case .degraded: symbolName = "exclamationmark.triangle.fill"; color = mono ? .labelColor : .systemOrange
+        case .down:     symbolName = "exclamationmark.triangle.fill"; color = mono ? .labelColor : .systemRed
+        }
+        let config = NSImage.SymbolConfiguration(pointSize: 11, weight: .semibold)
+            .applying(NSImage.SymbolConfiguration(paletteColors: [color]))
+        if let glyph = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil)?.withSymbolConfiguration(config) {
+            let attachment = NSTextAttachment()
+            attachment.image = glyph
+            attachment.bounds = CGRect(x: 0, y: (11 - glyph.size.height) / 2, width: glyph.size.width, height: glyph.size.height)
+            str.append(NSAttributedString(attachment: attachment))
+        }
+        if data.outageHealth == .down, let secs = data.nextPollSeconds {
+            let clamped = max(0, secs)
+            let text = String(format: " %d:%02d", clamped / 60, clamped % 60)
+            str.append(NSAttributedString(string: text, attributes: [
+                .font: styleFont(size: 11, weight: .semibold, style: data.menuBarStyle, monospacedDigits: true),
+                .foregroundColor: color,
+            ]))
+        }
     }
 
     private static func appendSessionReset(to str: NSMutableAttributedString, data: RenderData) {
@@ -418,7 +520,7 @@ enum MenuBarRenderer {
 
     private static func buildBadgePills(_ data: RenderData) -> [BadgePill] {
         let ordered: [MetricID] = [
-            .sessionReset, .fiveHour, .sessionPacing, .sevenDay, .weeklyPacing, .sonnet, .design, .extraCredits
+            .serviceStatus, .sessionReset, .fiveHour, .sessionPacing, .sevenDay, .weeklyPacing, .sonnet, .design, .extraCredits
         ].filter {
             guard data.pinnedMetrics.contains($0) else { return false }
             // Sonnet / Design / Extra Credits visibility in the menu bar is
@@ -429,13 +531,31 @@ enum MenuBarRenderer {
             case .sessionReset, .sessionPacing: return data.hasFiveHourBucket
             case .weeklyPacing: return data.hasWeeklyPacing
             case .design: return data.hasDesign
+            case .serviceStatus: return true
             case .extraCredits: return data.hasExtraCredits
             default: return true
             }
         }
 
         return ordered.compactMap { metric -> BadgePill? in
+            let mono = data.menuBarMonochrome
             switch metric {
+            case .serviceStatus:
+                switch data.outageHealth {
+                case .healthy:
+                    return BadgePill(text: "OK", tint: mono ? .labelColor : .systemGreen)
+                case .degraded:
+                    return BadgePill(text: "!", tint: mono ? .labelColor : .systemOrange)
+                case .down:
+                    let text: String
+                    if let secs = data.nextPollSeconds {
+                        let clamped = max(0, secs)
+                        text = String(format: "%d:%02d", clamped / 60, clamped % 60)
+                    } else {
+                        text = "!"
+                    }
+                    return BadgePill(text: text, tint: mono ? .labelColor : .systemRed)
+                }
             case .sessionReset:
                 let text = resetDisplayText(data: data)
                 return BadgePill(

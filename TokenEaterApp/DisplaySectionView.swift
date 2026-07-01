@@ -16,6 +16,7 @@ struct DisplaySectionView: View {
     @State private var showWeeklyPacing: Bool
     @State private var showSonnet: Bool
     @State private var showDesign: Bool
+    @State private var showServiceStatus: Bool
     @State private var showExtraCredits: Bool
 
     init(initialMetrics: Set<MetricID>) {
@@ -26,6 +27,7 @@ struct DisplaySectionView: View {
         _showWeeklyPacing = State(initialValue: initialMetrics.contains(.weeklyPacing))
         _showSonnet = State(initialValue: initialMetrics.contains(.sonnet))
         _showDesign = State(initialValue: initialMetrics.contains(.design))
+        _showServiceStatus = State(initialValue: initialMetrics.contains(.serviceStatus))
         _showExtraCredits = State(initialValue: initialMetrics.contains(.extraCredits))
     }
 
@@ -83,6 +85,7 @@ struct DisplaySectionView: View {
         }
         .onChange(of: showSonnet) { _, new in syncMetric(.sonnet, on: new, revert: { showSonnet = true }) }
         .onChange(of: showDesign) { _, new in syncMetric(.design, on: new, revert: { showDesign = true }) }
+        .onChange(of: showServiceStatus) { _, new in syncMetric(.serviceStatus, on: new, revert: { showServiceStatus = true }) }
         .onChange(of: showExtraCredits) { _, new in syncMetric(.extraCredits, on: new, revert: { showExtraCredits = true }) }
         // Sync: store -> local toggles (external changes, e.g. pin/unpin from popover)
         .onChange(of: settingsStore.pinnedMetrics) { _, metrics in
@@ -98,6 +101,7 @@ struct DisplaySectionView: View {
                 withAnimation(.easeInOut(duration: 0.2)) { showWeeklyPacing = metrics.contains(.weeklyPacing) }
             }
             if showSonnet != metrics.contains(.sonnet) { showSonnet = metrics.contains(.sonnet) }
+            if showServiceStatus != metrics.contains(.serviceStatus) { showServiceStatus = metrics.contains(.serviceStatus) }
             if showExtraCredits != metrics.contains(.extraCredits) { showExtraCredits = metrics.contains(.extraCredits) }
         }
     }
@@ -161,6 +165,13 @@ struct DisplaySectionView: View {
                             accent: .purple
                         ) { showDesign.toggle() }
                     }
+
+                    MetricPinChip(
+                        label: String(localized: "metric.serviceStatus"),
+                        icon: "dot.radiowaves.left.and.right",
+                        isActive: showServiceStatus,
+                        accent: .teal
+                    ) { showServiceStatus.toggle() }
 
                     if usageStore.hasExtraCredits {
                         MetricPinChip(
@@ -438,6 +449,7 @@ struct DisplaySectionView: View {
         showSonnet = settingsStore.pinnedMetrics.contains(.sonnet)
         showWeeklyPacing = settingsStore.pinnedMetrics.contains(.weeklyPacing)
         showDesign = settingsStore.pinnedMetrics.contains(.design)
+        showServiceStatus = settingsStore.pinnedMetrics.contains(.serviceStatus)
         showExtraCredits = settingsStore.pinnedMetrics.contains(.extraCredits)
     }
 

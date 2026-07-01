@@ -81,6 +81,95 @@ struct MenuBarRendererTests {
     }
 }
 
+@Suite("MenuBarRenderer.outageBadge")
+struct MenuBarOutageBadgeTests {
+
+    static func sampleRenderData(
+        pinnedMetrics: Set<MetricID> = [.fiveHour],
+        outageActive: Bool = false,
+        outageHealth: VendorHealth = .healthy,
+        nextPollSeconds: Int? = nil
+    ) -> MenuBarRenderer.RenderData {
+        MenuBarRenderer.RenderData(
+            pinnedMetrics: pinnedMetrics,
+            displaySonnet: false,
+            fiveHourPct: 10,
+            sevenDayPct: 5,
+            sonnetPct: 0,
+            weeklyPacingDelta: 0,
+            weeklyPacingZone: .onTrack,
+            hasWeeklyPacing: false,
+            sessionPacingDelta: 0,
+            sessionPacingZone: .onTrack,
+            hasSessionPacing: false,
+            sessionPacingDisplayMode: .dotDelta,
+            weeklyPacingDisplayMode: .dotDelta,
+            hasConfig: true,
+            hasError: false,
+            themeColors: .default,
+            thresholds: .default,
+            menuBarMonochrome: false,
+            fiveHourReset: "",
+            fiveHourResetAbsolute: "",
+            fiveHourResetDate: nil,
+            sevenDayResetDate: nil,
+            sonnetResetDate: nil,
+            designResetDate: nil,
+            hasFiveHourBucket: true,
+            resetDisplayFormat: .relative,
+            resetTextColorHex: "",
+            sessionPeriodColorHex: "",
+            smartResetColor: false,
+            smartColorProfile: .balanced,
+            pacingMargin: 10,
+            menuBarStyle: .classic,
+            pacingShape: .circle,
+            designPct: 0,
+            hasDesign: false,
+            outageActive: outageActive,
+            outageHealth: outageHealth,
+            nextPollSeconds: nextPollSeconds,
+            extraCreditsPct: 0,
+            hasExtraCredits: false
+        )
+    }
+
+    @Test("outage badge widens the rendered image vs. no badge")
+    func outageBadgeRenders() {
+        // Build two RenderData values identical except for the outage badge.
+        // Reuse however this suite already builds RenderData; only the three
+        // new fields differ.
+        let base = Self.sampleRenderData(outageActive: false)
+        let badged = Self.sampleRenderData(outageActive: true, outageHealth: .down, nextPollSeconds: 65)
+
+        let baseImg = MenuBarRenderer.renderUncached(base)
+        let badgedImg = MenuBarRenderer.renderUncached(badged)
+
+        #expect(badgedImg.isTemplate == false)
+        #expect(badgedImg.size.width > baseImg.size.width)
+    }
+
+    @Test("pinned serviceStatus with .down is non-template and wider than .healthy")
+    func pinnedServiceStatusDownWiderThanHealthy() {
+        let healthy = Self.sampleRenderData(
+            pinnedMetrics: [.serviceStatus],
+            outageHealth: .healthy,
+            nextPollSeconds: nil
+        )
+        let down = Self.sampleRenderData(
+            pinnedMetrics: [.serviceStatus],
+            outageHealth: .down,
+            nextPollSeconds: 125
+        )
+
+        let healthyImg = MenuBarRenderer.renderUncached(healthy)
+        let downImg = MenuBarRenderer.renderUncached(down)
+
+        #expect(downImg.isTemplate == false)
+        #expect(downImg.size.width > healthyImg.size.width)
+    }
+}
+
 @Suite("MenuBarRenderer.periodLabelColor")
 struct MenuBarPeriodLabelColorTests {
 
@@ -215,6 +304,7 @@ struct MenuBarExtraCreditsRenderTests {
             menuBarStyle: style,
             pacingShape: .circle,
             designPct: 0, hasDesign: false,
+            outageActive: false, outageHealth: .healthy, nextPollSeconds: nil,
             extraCreditsPct: extraCreditsPct, hasExtraCredits: hasExtraCredits
         )
     }
