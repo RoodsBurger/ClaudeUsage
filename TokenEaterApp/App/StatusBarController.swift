@@ -150,7 +150,6 @@ final class StatusBarController: NSObject {
             guard let self else { return }
             self.usageStore.pacingSchedule = self.settingsStore.pacingSchedule
             self.usageStore.recalculatePacing()
-            WidgetReloader.scheduleReload()
         }
         .store(in: &cancellables)
 
@@ -287,7 +286,6 @@ final class StatusBarController: NSObject {
     @objc private func appDidActivate(_ notification: Notification) {
         guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
               app.bundleIdentifier == Bundle.main.bundleIdentifier else { return }
-        WidgetReloader.scheduleReload(delay: 0.1)
     }
 
     @objc private func handleDashboardRequest(_ notification: Notification) {

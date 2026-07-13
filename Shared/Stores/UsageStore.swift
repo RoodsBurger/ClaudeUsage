@@ -256,7 +256,6 @@ final class UsageStore: ObservableObject {
         errorState = token != nil ? .none : .tokenUnavailable
         loadCached()
         notificationService.requestPermission()
-        WidgetReloader.scheduleReload()
         refreshTask?.cancel()
         refreshTask = Task {
             await refresh(thresholds: thresholds, force: true)
@@ -353,7 +352,6 @@ final class UsageStore: ObservableObject {
         }
         retryAfterDate = nil
         consecutiveRateLimits = 0
-        WidgetReloader.scheduleReload()
         evaluateNotifications(usage: usage)
     }
 

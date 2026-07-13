@@ -186,6 +186,5 @@ final class OnboardingViewModel: ObservableObject {
     }
 
     func completeOnboarding() {
-        WidgetReloader.scheduleReload()
     }
 }
