@@ -2,7 +2,6 @@ import SwiftUI
 
 struct MainAppView: View {
     @EnvironmentObject private var usageStore: UsageStore
-    @EnvironmentObject private var themeStore: ThemeStore
     @EnvironmentObject private var settingsStore: SettingsStore
 
     @State private var selectedSpace: AppSpace = .monitoring
@@ -32,7 +31,6 @@ struct MainAppView: View {
                 onboardingContent
             }
         }
-        .environment(\.glowIntensity, settingsStore.glowIntensity)
     }
 
     // MARK: - Main

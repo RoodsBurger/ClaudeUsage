@@ -27,11 +27,10 @@ enum AppSpace: String, CaseIterable {
 }
 
 /// Sub-sections inside the Settings space. Every configuration screen lives
-/// here -> general preferences first, then display / themes / popover /
+/// here -> general preferences first, then display / pacing / popover /
 /// performance. Order drives the sub-sidebar display.
 enum SettingsSection: String, CaseIterable {
     case general
-    case themes
     case pacing
     case display
     case popover
@@ -41,7 +40,6 @@ enum SettingsSection: String, CaseIterable {
         switch self {
         case .general:       "sidebar.general"
         case .display:       "sidebar.display"
-        case .themes:        "sidebar.themes"
         case .pacing:        "sidebar.pacing"
         case .popover:       "sidebar.popover"
         case .notifications: "sidebar.notifications"
@@ -54,7 +52,6 @@ enum SettingsSection: String, CaseIterable {
         switch self {
         case .general:       "slider.horizontal.3"
         case .display:       "menubar.rectangle"
-        case .themes:        "paintpalette.fill"
         case .pacing:        "speedometer"
         case .popover:       "menubar.dock.rectangle"
         case .notifications: "bell.fill"

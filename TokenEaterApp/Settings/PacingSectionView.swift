@@ -2,10 +2,9 @@ import SwiftUI
 
 /// Pacing logic settings: Smart Color (how usage maps to gauge colour and
 /// severity), pacing sensitivity, and the workweek schedule (active days +
-/// hours). Split out of Themes so that section stays purely about the colour
-/// palette and visual style, while this one owns the risk/pace behaviour.
+/// hours). Owns the risk/pace behaviour; the warning/critical thresholds it
+/// exposes live on `SettingsStore.display`.
 struct PacingSectionView: View {
-    @EnvironmentObject private var themeStore: ThemeStore
     @EnvironmentObject private var settingsStore: SettingsStore
 
     @State private var showSmartColorPopover = false
@@ -71,11 +70,11 @@ struct PacingSectionView: View {
             if !settingsStore.smartColorEnabled {
                 glassCard {
                     VStack(alignment: .leading, spacing: 8) {
-                        cardLabel(String(localized: "settings.theme.thresholds"))
-                        thresholdSlider(label: String(localized: "settings.theme.warning"), value: $warningSlider, range: 10...90)
-                        thresholdSlider(label: String(localized: "settings.theme.critical"), value: $criticalSlider, range: 15...95)
+                        cardLabel(String(localized: "settings.thresholds"))
+                        thresholdSlider(label: String(localized: "settings.thresholds.warning"), value: $warningSlider, range: 10...90)
+                        thresholdSlider(label: String(localized: "settings.thresholds.critical"), value: $criticalSlider, range: 15...95)
 
-                        Text(String(localized: "settings.theme.thresholds.hint"))
+                        Text(String(localized: "settings.thresholds.hint"))
                             .font(.system(size: 11))
                             .foregroundStyle(.white.opacity(0.4))
                             .fixedSize(horizontal: false, vertical: true)
@@ -83,9 +82,9 @@ struct PacingSectionView: View {
 
                         HStack(spacing: 24) {
                             Spacer()
-                            themePreviewGauge(pct: Double(max(themeStore.warningThreshold - 15, 5)), label: "Normal")
-                            themePreviewGauge(pct: Double(themeStore.warningThreshold + themeStore.criticalThreshold) / 2.0, label: "Warning")
-                            themePreviewGauge(pct: Double(min(themeStore.criticalThreshold + 5, 100)), label: "Critical")
+                            themePreviewGauge(pct: Double(max(settingsStore.display.warningThreshold - 15, 5)), label: "Normal")
+                            themePreviewGauge(pct: Double(settingsStore.display.warningThreshold + settingsStore.display.criticalThreshold) / 2.0, label: "Warning")
+                            themePreviewGauge(pct: Double(min(settingsStore.display.criticalThreshold + 5, 100)), label: "Critical")
                             Spacer()
                         }
                         .padding(.top, 8)
@@ -114,22 +113,22 @@ struct PacingSectionView: View {
         .padding(24)
         .onChange(of: warningSlider) { _, new in
             let int = Int(new)
-            if themeStore.warningThreshold != int { themeStore.warningThreshold = int }
-            if int >= themeStore.criticalThreshold { themeStore.criticalThreshold = min(int + 5, 95) }
+            if settingsStore.display.warningThreshold != int { settingsStore.display.warningThreshold = int }
+            if int >= settingsStore.display.criticalThreshold { settingsStore.display.criticalThreshold = min(int + 5, 95) }
         }
         .onChange(of: criticalSlider) { _, new in
             let int = Int(new)
-            if themeStore.criticalThreshold != int { themeStore.criticalThreshold = int }
-            if int <= themeStore.warningThreshold { themeStore.warningThreshold = max(int - 5, 10) }
+            if settingsStore.display.criticalThreshold != int { settingsStore.display.criticalThreshold = int }
+            if int <= settingsStore.display.warningThreshold { settingsStore.display.warningThreshold = max(int - 5, 10) }
         }
         .onChange(of: marginSlider) { _, new in
             let int = Int(new)
             if settingsStore.pacingMargin != int { settingsStore.pacingMargin = int }
         }
-        .onChange(of: themeStore.warningThreshold) { _, new in
+        .onChange(of: settingsStore.display.warningThreshold) { _, new in
             let d = Double(new); if warningSlider != d { warningSlider = d }
         }
-        .onChange(of: themeStore.criticalThreshold) { _, new in
+        .onChange(of: settingsStore.display.criticalThreshold) { _, new in
             let d = Double(new); if criticalSlider != d { criticalSlider = d }
         }
         .onChange(of: settingsStore.pacingMargin) { _, new in
@@ -240,7 +239,7 @@ struct PacingSectionView: View {
                     index: 2,
                     title: String(localized: "settings.workweek.popover.point2.title"),
                     desc: String(localized: "settings.workweek.popover.point2.desc"),
-                    tint: Color(hex: themeStore.current.gaugeWarning)
+                    tint: RiskZone.warning.color
                 )
                 signalRow(
                     index: 3,
@@ -424,7 +423,7 @@ struct PacingSectionView: View {
                     pct: 95,
                     resetText: "2 min",
                     zoneLabel: String(localized: "settings.smartcolor.popover.example1.label"),
-                    color: Color(hex: themeStore.current.gaugeNormal),
+                    color: RiskZone.ok.color,
                     explanation: String(localized: "settings.smartcolor.popover.example1")
                 )
                 smartColorExample(
@@ -432,7 +431,7 @@ struct PacingSectionView: View {
                     pct: 50,
                     resetText: "5 h",
                     zoneLabel: String(localized: "settings.smartcolor.popover.example2.label"),
-                    color: Color(hex: themeStore.current.gaugeCritical),
+                    color: RiskZone.critical.color,
                     explanation: String(localized: "settings.smartcolor.popover.example2")
                 )
             }
@@ -449,13 +448,13 @@ struct PacingSectionView: View {
                     index: 1,
                     title: String(localized: "settings.smartcolor.popover.signal.absolute.title"),
                     desc: String(localized: "settings.smartcolor.popover.signal.absolute.desc"),
-                    tint: Color(hex: themeStore.current.gaugeCritical)
+                    tint: RiskZone.critical.color
                 )
                 signalRow(
                     index: 2,
                     title: String(localized: "settings.smartcolor.popover.signal.projection.title"),
                     desc: String(localized: "settings.smartcolor.popover.signal.projection.desc"),
-                    tint: Color(hex: themeStore.current.gaugeWarning)
+                    tint: RiskZone.warning.color
                 )
                 signalRow(
                     index: 3,
@@ -605,7 +604,7 @@ struct PacingSectionView: View {
     }
 
     private func pacingZoneChip(zone: PacingZone, range: String) -> some View {
-        let color = themeStore.current.pacingColor(for: zone)
+        let color = zone.semanticColor
         let label = NSLocalizedString("pacing.zone.\(zone.rawValue.lowercased())", comment: "")
         return VStack(alignment: .leading, spacing: 2) {
             Text(label)
@@ -630,22 +629,19 @@ struct PacingSectionView: View {
     }
 
     private func themePreviewGauge(pct: Double, label: String) -> some View {
-        let color = themeStore.current.gaugeColor(for: pct, thresholds: themeStore.thresholds)
+        let zone = RiskZone.forPercent(Int(pct), thresholds: settingsStore.thresholds)
+        let color = zone.color
+        let gradient = LinearGradient(colors: [color, color.lighter()], startPoint: .leading, endPoint: .trailing)
         return VStack(spacing: 4) {
             RingGauge(
                 percentage: Int(pct),
-                gradient: themeStore.current.gaugeGradient(for: pct, thresholds: themeStore.thresholds, startPoint: .leading, endPoint: .trailing),
-                size: 40,
-                glowColor: color,
-                glowRadius: 3
+                gradient: gradient,
+                size: 40
             )
             .overlay {
-                GlowText(
-                    "\(Int(pct))%",
-                    font: .system(size: 10, weight: .black, design: .rounded),
-                    color: color,
-                    glowRadius: 2
-                )
+                Text("\(Int(pct))%")
+                    .font(.system(size: 10, weight: .black, design: .rounded))
+                    .foregroundStyle(color)
             }
             Text(label)
                 .font(.system(size: 9))

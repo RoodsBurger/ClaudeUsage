@@ -2,7 +2,6 @@ import SwiftUI
 
 struct DisplaySectionView: View {
     @EnvironmentObject private var settingsStore: SettingsStore
-    @EnvironmentObject private var themeStore: ThemeStore
     @EnvironmentObject private var usageStore: UsageStore
 
     // Local @State bindings - stable across body re-evaluations.
@@ -272,25 +271,25 @@ struct DisplaySectionView: View {
                 // Mono / Custom radio pair -> single tap to switch theme.
                 HStack(spacing: 8) {
                     BinaryChoiceChip(
-                        label: String(localized: "settings.theme.color.custom"),
+                        label: String(localized: "settings.menubar.color.custom"),
                         icon: "paintpalette.fill",
-                        isActive: !themeStore.menuBarMonochrome
+                        isActive: !settingsStore.menuBarMonochrome
                     ) {
-                        themeStore.menuBarMonochrome = false
+                        settingsStore.menuBarMonochrome = false
                     }
                     BinaryChoiceChip(
-                        label: String(localized: "settings.theme.color.mono"),
+                        label: String(localized: "settings.menubar.color.mono"),
                         icon: "circle.lefthalf.filled.inverse",
-                        isActive: themeStore.menuBarMonochrome
+                        isActive: settingsStore.menuBarMonochrome
                     ) {
-                        themeStore.menuBarMonochrome = true
+                        settingsStore.menuBarMonochrome = true
                     }
                 }
 
                 Divider().opacity(0.12)
                 // Reset-countdown colour is non-monochrome only (in monochrome
                 // it is driven by the system label / smart colour).
-                if !themeStore.menuBarMonochrome {
+                if !settingsStore.menuBarMonochrome {
                     menuBarColorRow(
                         label: "settings.reset.color",
                         hex: $settingsStore.display.resetTextColorHex,
@@ -309,7 +308,7 @@ struct DisplaySectionView: View {
                     disabled: false
                 )
             }
-            .animation(.spring(response: 0.32, dampingFraction: 0.85), value: themeStore.menuBarMonochrome)
+            .animation(.spring(response: 0.32, dampingFraction: 0.85), value: settingsStore.menuBarMonochrome)
         }
     }
 
@@ -408,7 +407,7 @@ struct DisplaySectionView: View {
                         .foregroundStyle(.white.opacity(0.35))
                 }
                 .buttonStyle(.plain)
-                .help(Text(String(localized: "settings.theme.menubar.resetColor")))
+                .help(Text(String(localized: "settings.menubar.color.resetColor")))
             }
             ColorPicker("", selection: colorBinding, supportsOpacity: false)
                 .labelsHidden()

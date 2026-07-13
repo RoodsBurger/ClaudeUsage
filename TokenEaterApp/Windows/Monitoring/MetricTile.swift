@@ -23,7 +23,7 @@ struct MetricTile: View {
     let smartEnabled: Bool
     let pacingMargin: Double
     let smartProfile: SmartColorProfile
-    let themeStore: ThemeStore
+    let thresholds: UsageThresholds
     /// 7d insights snapshot when the tile family has data. Nil for
     /// design / cowork tiles where the JSONL feed has nothing relevant.
     let insights: TileInsightsSnapshot?
@@ -42,8 +42,7 @@ struct MetricTile: View {
             utilization: pct,
             resetDate: resetDate,
             windowDuration: windowDuration,
-            theme: themeStore.current,
-            thresholds: themeStore.thresholds,
+            thresholds: thresholds,
             pacingMargin: pacingMargin,
             profile: smartProfile
         )
@@ -124,7 +123,6 @@ struct MetricTile: View {
                     RoundedRectangle(cornerRadius: 1.5)
                         .fill(LinearGradient(colors: [color.opacity(0.65), color], startPoint: .leading, endPoint: .trailing))
                         .frame(width: geo.size.width * clamped, height: 3)
-                        .dsGlow(color, radius: 3, opacity: 0.5)
                 }
             }
             .frame(height: 3)

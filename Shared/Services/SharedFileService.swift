@@ -42,34 +42,6 @@ final class SharedFileService: SharedFileServiceProtocol, @unchecked Sendable {
     private struct SharedData: Codable {
         var cachedUsage: CachedUsage?
         var lastSyncDate: Date?
-        var theme: ThemeColors?
-        var thresholds: UsageThresholds?
-        var smartColorEnabled: Bool?
-        /// Persisted as the raw rawValue (e.g. "balanced") so older widget
-        /// builds that don't know about the profile field still decode the
-        /// rest of the JSON cleanly. Decoded back through the enum's
-        /// `init?(rawValue:)` so an unknown future value falls back to nil
-        /// (and the getter returns `.default`).
-        var smartColorProfile: String?
-        /// Last 7 days of token totals (oldest first, today last). Powers the
-        /// History Sparkline widget without forcing the widget process to
-        /// re-parse JSONL files. Updated by MonitoringInsightsStore once a
-        /// day after its 7d bucketing computes.
-        var lastWeekDailyTotals: [Int]?
-        /// Date the lastWeekDailyTotals were last refreshed. Lets the widget
-        /// degrade gracefully if data is older than 36h (label "stale").
-        var lastWeekTotalsRefreshedAt: Date?
-        /// Workweek pacing: whether the feature is on. Optional so older widget
-        /// builds decode the rest of the JSON cleanly (getter falls back).
-        var pacingWorkweekEnabled: Bool?
-        /// Active weekday numbers (Gregorian 1=Sun ... 7=Sat) when workweek
-        /// pacing is on. nil -> Mon-Fri default in the getter.
-        var pacingActiveDays: [Int]?
-        /// Active-hours narrowing within the active days (optional, backward
-        /// compatible). nil -> full days.
-        var pacingHoursEnabled: Bool?
-        var pacingStartHour: Int?
-        var pacingEndHour: Int?
     }
 
     /// In-memory cache - avoids redundant disk reads within the same process.
@@ -93,11 +65,10 @@ final class SharedFileService: SharedFileServiceProtocol, @unchecked Sendable {
     }
 
     /// Reads the latest on-disk state, bypassing the in-memory cache. The app
-    /// holds one `SharedFileService` per store (UsageStore / SettingsStore /
-    /// ThemeStore), each with its own `cachedData`. A read-modify-write off a
-    /// stale per-instance cache silently reverts fields another instance just
-    /// wrote (e.g. a usage refresh clobbering the pacing schedule the settings
-    /// store saved). Update paths read fresh so writes MERGE instead of clobber.
+    /// holds one `SharedFileService` per store (UsageStore / SettingsStore),
+    /// each with its own `cachedData`. Writing off a stale per-instance cache
+    /// would clobber whatever another instance wrote since the last read, so
+    /// the update path reads fresh immediately before writing.
     private func loadFresh() -> SharedData {
         cachedData = nil
         return load()
@@ -133,88 +104,10 @@ final class SharedFileService: SharedFileServiceProtocol, @unchecked Sendable {
         load().lastSyncDate
     }
 
-    var theme: ThemeColors {
-        load().theme ?? .default
-    }
-
-    var thresholds: UsageThresholds {
-        load().thresholds ?? .default
-    }
-
-    var smartColorEnabled: Bool {
-        load().smartColorEnabled ?? true
-    }
-
-    var smartColorProfile: SmartColorProfile {
-        guard let raw = load().smartColorProfile,
-              let profile = SmartColorProfile(rawValue: raw) else {
-            return .default
-        }
-        return profile
-    }
-
     func updateAfterSync(usage: CachedUsage, syncDate: Date) {
         var data = loadFresh()
         data.cachedUsage = usage
         data.lastSyncDate = syncDate
-        save(data)
-    }
-
-    func updateTheme(_ theme: ThemeColors, thresholds: UsageThresholds) {
-        var data = loadFresh()
-        data.theme = theme
-        data.thresholds = thresholds
-        save(data)
-    }
-
-    func updateSmartColorEnabled(_ enabled: Bool) {
-        var data = loadFresh()
-        data.smartColorEnabled = enabled
-        save(data)
-    }
-
-    func updateSmartColorProfile(_ profile: SmartColorProfile) {
-        var data = loadFresh()
-        data.smartColorProfile = profile.rawValue
-        save(data)
-    }
-
-    /// Workweek pacing schedule. The widget reads this so it computes pacing
-    /// identically to the app. Falls back to Mon-Fri days / disabled when absent.
-    var pacingSchedule: PacingSchedule {
-        let data = load()
-        return PacingSchedule(
-            enabled: data.pacingWorkweekEnabled ?? PacingSchedule.default.enabled,
-            activeDays: data.pacingActiveDays.map(Set.init) ?? PacingSchedule.workweek,
-            hoursEnabled: data.pacingHoursEnabled ?? PacingSchedule.default.hoursEnabled,
-            startHour: data.pacingStartHour ?? PacingSchedule.defaultStartHour,
-            endHour: data.pacingEndHour ?? PacingSchedule.defaultEndHour
-        )
-    }
-
-    func updatePacingSchedule(_ schedule: PacingSchedule) {
-        var data = loadFresh()
-        data.pacingWorkweekEnabled = schedule.enabled
-        data.pacingActiveDays = Array(schedule.activeDays).sorted()
-        data.pacingHoursEnabled = schedule.hoursEnabled
-        data.pacingStartHour = schedule.startHour
-        data.pacingEndHour = schedule.endHour
-        save(data)
-    }
-
-    /// Last 7 daily token totals (oldest first). nil until first MonitoringInsightsStore refresh.
-    var lastWeekDailyTotals: [Int]? {
-        load().lastWeekDailyTotals
-    }
-
-    var lastWeekTotalsRefreshedAt: Date? {
-        load().lastWeekTotalsRefreshedAt
-    }
-
-    func updateLastWeekDailyTotals(_ totals: [Int], refreshedAt: Date = Date()) {
-        var data = loadFresh()
-        data.lastWeekDailyTotals = totals
-        data.lastWeekTotalsRefreshedAt = refreshedAt
         save(data)
     }
 

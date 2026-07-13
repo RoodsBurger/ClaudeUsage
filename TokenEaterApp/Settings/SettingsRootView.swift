@@ -6,7 +6,6 @@ import SwiftUI
 /// performance) remain in their existing files -> this view is just the
 /// router.
 struct SettingsRootView: View {
-    @EnvironmentObject private var themeStore: ThemeStore
     @EnvironmentObject private var settingsStore: SettingsStore
 
     @Binding var selection: SettingsSection
@@ -36,13 +35,11 @@ struct SettingsRootView: View {
             scrolling { SettingsSectionView(initialStatusInterval: settingsStore.statusPollInterval) }
         case .display:
             scrolling { DisplaySectionView(initialMetrics: settingsStore.pinnedMetrics) }
-        case .themes:
-            scrolling { ThemesSectionView() }
         case .pacing:
             scrolling {
                 PacingSectionView(
-                    initialWarning: themeStore.warningThreshold,
-                    initialCritical: themeStore.criticalThreshold,
+                    initialWarning: settingsStore.warningThreshold,
+                    initialCritical: settingsStore.criticalThreshold,
                     initialMargin: settingsStore.pacingMargin
                 )
             }

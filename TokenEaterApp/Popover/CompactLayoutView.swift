@@ -7,7 +7,6 @@ import SwiftUI
 struct CompactLayoutView: View {
     @EnvironmentObject private var usageStore: UsageStore
     @EnvironmentObject private var settingsStore: SettingsStore
-    @EnvironmentObject private var themeStore: ThemeStore
 
     var body: some View {
         VStack(spacing: 0) {
@@ -43,7 +42,6 @@ struct CompactLayoutView: View {
                         pct: usageStore.sonnetPct,
                         resetDate: usageStore.lastUsage?.sevenDaySonnet?.resetsAtDate,
                         windowDuration: 7 * 86_400,
-                        theme: themeStore,
                         settings: settingsStore
                     )
                 }
@@ -53,7 +51,6 @@ struct CompactLayoutView: View {
                         pct: usageStore.designPct,
                         resetDate: usageStore.lastUsage?.sevenDayDesign?.resetsAtDate,
                         windowDuration: 7 * 86_400,
-                        theme: themeStore,
                         settings: settingsStore
                     )
                 }
@@ -63,7 +60,6 @@ struct CompactLayoutView: View {
                         pct: usageStore.fablePct,
                         resetDate: usageStore.lastUsage?.sevenDayFable?.resetsAtDate,
                         windowDuration: 7 * 86_400,
-                        theme: themeStore,
                         settings: settingsStore
                     )
                 }
@@ -73,7 +69,6 @@ struct CompactLayoutView: View {
                         pct: usageStore.extraCreditsPct,
                         resetDate: nil,
                         windowDuration: 0,
-                        theme: themeStore,
                         settings: settingsStore
                     )
                 }
@@ -193,7 +188,6 @@ struct CompactLayoutView: View {
                 windowDuration: 5 * 3600,
                 label: String(localized: "metric.session"),
                 subtitle: sessionChipSubtitle,
-                theme: themeStore,
                 settings: settingsStore
             )
         case .weeklyChip:
@@ -203,7 +197,6 @@ struct CompactLayoutView: View {
                 windowDuration: 7 * 86_400,
                 label: String(localized: "metric.weekly"),
                 subtitle: weeklyChipSubtitle,
-                theme: themeStore,
                 settings: settingsStore
             )
         default:
@@ -228,16 +221,14 @@ struct CompactLayoutView: View {
             if let pacing = usageStore.fiveHourPacing {
                 PaceTileView(
                     label: String(localized: "pacing.session.label.short"),
-                    pacing: pacing,
-                    theme: themeStore
+                    pacing: pacing
                 )
             }
         case .weeklyPaceTile:
             if let pacing = usageStore.pacingResult {
                 PaceTileView(
                     label: String(localized: "pacing.weekly.label.short"),
-                    pacing: pacing,
-                    theme: themeStore
+                    pacing: pacing
                 )
             }
         default:
@@ -255,11 +246,10 @@ private struct ChipView: View {
     let windowDuration: TimeInterval
     let label: String
     let subtitle: String
-    let theme: ThemeStore
     let settings: SettingsStore
 
     var body: some View {
-        let color = PopoverColors.gauge(pct: pct, resetDate: resetDate, windowDuration: windowDuration, theme: theme, settings: settings)
+        let color = PopoverColors.gauge(pct: pct, resetDate: resetDate, windowDuration: windowDuration, settings: settings)
         HStack(spacing: 10) {
             ZStack {
                 Circle()
@@ -270,7 +260,6 @@ private struct ChipView: View {
                     .stroke(color, style: StrokeStyle(lineWidth: 4, lineCap: .round))
                     .frame(width: 38, height: 38)
                     .rotationEffect(.degrees(-90))
-                    .dsGlow(color, radius: 3, opacity: 0.4)
             }
             VStack(alignment: .leading, spacing: 1) {
                 Text(label.uppercased())
@@ -304,10 +293,9 @@ private struct ChipView: View {
 private struct PaceTileView: View {
     let label: String
     let pacing: PacingResult
-    let theme: ThemeStore
 
     var body: some View {
-        let color = PopoverColors.zone(pacing.zone, theme: theme)
+        let color = PopoverColors.zone(pacing.zone)
         let sign = pacing.delta >= 0 ? "+" : ""
         VStack(alignment: .leading, spacing: 4) {
             HStack {
@@ -323,7 +311,7 @@ private struct PaceTileView: View {
                 actual: pacing.actualUsage,
                 expected: pacing.expectedUsage,
                 zone: pacing.zone,
-                gradient: PopoverColors.zoneGradient(pacing.zone, theme: theme),
+                gradient: PopoverColors.zoneGradient(pacing.zone),
                 compact: true
             )
         }
@@ -346,11 +334,10 @@ struct CompactExtraChip: View {
     let pct: Int
     let resetDate: Date?
     let windowDuration: TimeInterval
-    let theme: ThemeStore
     let settings: SettingsStore
 
     var body: some View {
-        let color = PopoverColors.gauge(pct: pct, resetDate: resetDate, windowDuration: windowDuration, theme: theme, settings: settings)
+        let color = PopoverColors.gauge(pct: pct, resetDate: resetDate, windowDuration: windowDuration, settings: settings)
         HStack(spacing: 8) {
             ZStack {
                 Circle()
@@ -361,7 +348,6 @@ struct CompactExtraChip: View {
                     .stroke(color, style: StrokeStyle(lineWidth: 3, lineCap: .round))
                     .frame(width: 28, height: 28)
                     .rotationEffect(.degrees(-90))
-                    .dsGlow(color, radius: 2, opacity: 0.4)
             }
             VStack(alignment: .leading, spacing: 0) {
                 Text(label.uppercased())

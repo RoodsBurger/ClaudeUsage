@@ -7,7 +7,6 @@ import SwiftUI
 struct FocusLayoutView: View {
     @EnvironmentObject private var usageStore: UsageStore
     @EnvironmentObject private var settingsStore: SettingsStore
-    @EnvironmentObject private var themeStore: ThemeStore
 
     var body: some View {
         VStack(spacing: 0) {
@@ -73,7 +72,6 @@ struct FocusLayoutView: View {
                         pct: usageStore.sonnetPct,
                         resetDate: usageStore.lastUsage?.sevenDaySonnet?.resetsAtDate,
                         windowDuration: 7 * 86_400,
-                        theme: themeStore,
                         settings: settingsStore
                     )
                 }
@@ -83,7 +81,6 @@ struct FocusLayoutView: View {
                         pct: usageStore.designPct,
                         resetDate: usageStore.lastUsage?.sevenDayDesign?.resetsAtDate,
                         windowDuration: 7 * 86_400,
-                        theme: themeStore,
                         settings: settingsStore
                     )
                 }
@@ -93,7 +90,6 @@ struct FocusLayoutView: View {
                         pct: usageStore.fablePct,
                         resetDate: usageStore.lastUsage?.sevenDayFable?.resetsAtDate,
                         windowDuration: 7 * 86_400,
-                        theme: themeStore,
                         settings: settingsStore
                     )
                 }
@@ -103,7 +99,6 @@ struct FocusLayoutView: View {
                         pct: usageStore.extraCreditsPct,
                         resetDate: nil,
                         windowDuration: 0,
-                        theme: themeStore,
                         settings: settingsStore
                     )
                 }
@@ -139,16 +134,14 @@ struct FocusLayoutView: View {
             if let pacing = usageStore.fiveHourPacing {
                 MiniPaceRow(
                     label: String(localized: "pacing.session.label.short"),
-                    pacing: pacing,
-                    theme: themeStore
+                    pacing: pacing
                 )
             }
         case .weeklyPaceMini:
             if let pacing = usageStore.pacingResult {
                 MiniPaceRow(
                     label: String(localized: "pacing.weekly.label.short"),
-                    pacing: pacing,
-                    theme: themeStore
+                    pacing: pacing
                 )
             }
         case .timestamp:
@@ -167,7 +160,6 @@ struct FocusLayoutView: View {
 
 private struct FocusHeroView: View {
     @EnvironmentObject private var usageStore: UsageStore
-    @EnvironmentObject private var themeStore: ThemeStore
     @EnvironmentObject private var settingsStore: SettingsStore
 
     let hero: FocusHeroChoice
@@ -179,7 +171,6 @@ private struct FocusHeroView: View {
                 Text(heroValue)
                     .font(.system(size: 38, weight: .black, design: .rounded))
                     .foregroundStyle(heroColor)
-                    .dsGlow(heroColor, radius: 10, opacity: 0.35)
                 Text(heroLabel.uppercased())
                     .font(.system(size: 9, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.5))
@@ -212,13 +203,12 @@ private struct FocusHeroView: View {
     private var heroColor: Color {
         switch hero {
         case .sessionReset, .weeklyReset:
-            return Color(red: 0.99, green: 0.90, blue: 0.54)
+            return .secondary
         case .sessionValue:
             return PopoverColors.gauge(
                 pct: usageStore.fiveHourPct,
                 resetDate: usageStore.lastUsage?.fiveHour?.resetsAtDate,
                 windowDuration: 5 * 3600,
-                theme: themeStore,
                 settings: settingsStore
             )
         case .weeklyValue:
@@ -226,7 +216,6 @@ private struct FocusHeroView: View {
                 pct: usageStore.sevenDayPct,
                 resetDate: usageStore.lastUsage?.sevenDay?.resetsAtDate,
                 windowDuration: 7 * 86_400,
-                theme: themeStore,
                 settings: settingsStore
             )
         }
@@ -275,7 +264,6 @@ private struct FocusHeroView: View {
                 path
                     .trim(from: 0, to: heroProgress)
                     .stroke(heroColor, style: StrokeStyle(lineWidth: strokeW, lineCap: .round))
-                    .dsGlow(heroColor, radius: 8, opacity: 0.5)
             }
         }
     }
@@ -285,7 +273,6 @@ private struct FocusHeroView: View {
 
 private struct FocusSatelliteCard: View {
     @EnvironmentObject private var usageStore: UsageStore
-    @EnvironmentObject private var themeStore: ThemeStore
     @EnvironmentObject private var settingsStore: SettingsStore
 
     let value: FocusHeroChoice
@@ -333,13 +320,12 @@ private struct FocusSatelliteCard: View {
     private var color: Color {
         switch value {
         case .sessionReset, .weeklyReset:
-            return Color(red: 0.99, green: 0.90, blue: 0.54)
+            return .secondary
         case .sessionValue:
             return PopoverColors.gauge(
                 pct: usageStore.fiveHourPct,
                 resetDate: usageStore.lastUsage?.fiveHour?.resetsAtDate,
                 windowDuration: 5 * 3600,
-                theme: themeStore,
                 settings: settingsStore
             )
         case .weeklyValue:
@@ -347,7 +333,6 @@ private struct FocusSatelliteCard: View {
                 pct: usageStore.sevenDayPct,
                 resetDate: usageStore.lastUsage?.sevenDay?.resetsAtDate,
                 windowDuration: 7 * 86_400,
-                theme: themeStore,
                 settings: settingsStore
             )
         }
@@ -359,10 +344,9 @@ private struct FocusSatelliteCard: View {
 private struct MiniPaceRow: View {
     let label: String
     let pacing: PacingResult
-    let theme: ThemeStore
 
     var body: some View {
-        let color = PopoverColors.zone(pacing.zone, theme: theme)
+        let color = PopoverColors.zone(pacing.zone)
         let sign = pacing.delta >= 0 ? "+" : ""
         HStack {
             Text(label)

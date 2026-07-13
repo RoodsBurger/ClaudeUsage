@@ -19,10 +19,9 @@ enum UsageLevel: Int, Comparable {
         return .green
     }
 
-    /// Mirrors `ThemeColors.smartLevel` so notifications align with the gauge
-    /// color the user actually sees. Couples threshold severity with pacing
-    /// severity, applies the reset-imminent override, and falls back to the
-    /// pure threshold path when no resetDate / windowDuration is available.
+    /// Mirrors `GaugeColorResolver`'s smart-mode decision so notifications
+    /// align with the gauge color the user actually sees: the same risk
+    /// score, folded through `SmartColor.riskZone` into ok/warning/critical.
     static func from(
         smartUtilization utilization: Double,
         resetDate: Date?,
@@ -33,21 +32,21 @@ enum UsageLevel: Int, Comparable {
         profile: SmartColorProfile = .default
     ) -> UsageLevel {
         // Reuse the same decision tree as the gauge so the user-visible
-        // signals stay in sync. We use the default theme since the threshold
-        // logic only depends on `thresholds`, not on the colour palette.
-        let level = ThemeColors.default.smartLevel(
+        // signals stay in sync. `thresholds` only drives the threshold-mode
+        // fallback (see `.from(pct:thresholds:)` above); smart mode is
+        // calibrated entirely by `profile`.
+        let risk = SmartColor.risk(
             utilization: utilization,
             resetDate: resetDate,
             windowDuration: windowDuration,
-            thresholds: thresholds,
             pacingMargin: pacingMargin,
             now: now,
             profile: profile
         )
-        switch level {
+        switch SmartColor.riskZone(forRisk: risk, params: profile.parameters) {
         case .critical: return .red
         case .warning:  return .orange
-        case .normal:   return .green
+        case .ok:       return .green
         }
     }
 }

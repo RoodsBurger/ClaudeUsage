@@ -17,7 +17,6 @@ enum MenuBarRenderer {
         let weeklyPacingDisplayMode: PacingDisplayMode
         let hasConfig: Bool
         let hasError: Bool
-        let themeColors: ThemeColors
         let thresholds: UsageThresholds
         let menuBarMonochrome: Bool
         let fiveHourReset: String
@@ -91,7 +90,6 @@ enum MenuBarRenderer {
             windowDuration: windowDuration,
             monochrome: data.menuBarMonochrome,
             smartEnabled: data.smartResetColor,
-            themeColors: data.themeColors,
             thresholds: data.thresholds,
             pacingMargin: data.pacingMargin,
             smartColorProfile: data.smartColorProfile
@@ -105,7 +103,7 @@ enum MenuBarRenderer {
     /// (e.g. the Extra Credits pool) has nothing to project against, so it
     /// falls back to the static warning/critical threshold ladder. This is the
     /// rule that keeps Extra Credits coloured identically in the menu bar, the
-    /// popover, the dashboard and the widgets. Internal (not private) so the
+    /// popover, and the dashboard. Internal (not private) so the
     /// windowless-fallback rule is unit-testable in isolation; `now` is
     /// injectable for deterministic tests.
     static func gaugeColor(
@@ -114,25 +112,22 @@ enum MenuBarRenderer {
         windowDuration: TimeInterval,
         monochrome: Bool,
         smartEnabled: Bool,
-        themeColors: ThemeColors,
         thresholds: UsageThresholds,
         pacingMargin: Double,
         smartColorProfile: SmartColorProfile,
         now: Date = Date()
     ) -> NSColor {
         if monochrome { return .labelColor }
-        if smartEnabled, let resetDate, windowDuration > 0 {
-            return themeColors.smartGaugeNSColor(
-                utilization: Double(pct),
-                resetDate: resetDate,
-                windowDuration: windowDuration,
-                thresholds: thresholds,
-                pacingMargin: pacingMargin,
-                now: now,
-                profile: smartColorProfile
-            )
-        }
-        return themeColors.gaugeNSColor(for: Double(pct), thresholds: thresholds)
+        return GaugeColorResolver.nsColor(
+            mode: GaugeColorResolver.mode(smartColorEnabled: smartEnabled, windowDuration: windowDuration),
+            utilization: pct,
+            resetDate: resetDate,
+            windowDuration: windowDuration,
+            thresholds: thresholds,
+            pacingMargin: pacingMargin,
+            now: now,
+            profile: smartColorProfile
+        )
     }
 
     private static func resetDate(for metric: MetricID, data: RenderData) -> Date? {
@@ -156,7 +151,7 @@ enum MenuBarRenderer {
 
     private static func colorForZone(_ zone: PacingZone, data: RenderData) -> NSColor {
         if data.menuBarMonochrome { return .labelColor }
-        return data.themeColors.pacingNSColor(for: zone)
+        return zone.semanticNSColor
     }
 
     /// Default colour for the period label ("5h" / "7d") when the user has not
@@ -180,16 +175,17 @@ enum MenuBarRenderer {
         periodLabelColor(hex: data.sessionPeriodColorHex)
     }
 
-    /// Reset countdown text color. Honors the Themes setting priority:
+    /// Reset countdown text color. Priority:
     ///   1. monochrome: always system label;
-    ///   2. smart mode: risk-based (green/orange/red) using the same 3
-    ///      gauge colors so it visually agrees with the session ring;
+    ///   2. smart mode: risk-based (`RiskZone`) so it visually agrees with
+    ///      the session ring;
     ///   3. static: user-picked hex, falling back to the system label.
     private static func resetValueColor(_ data: RenderData) -> NSColor {
         if data.menuBarMonochrome { return NSColor.labelColor }
         if data.smartResetColor {
-            return data.themeColors.smartGaugeNSColor(
-                utilization: Double(data.fiveHourPct),
+            return GaugeColorResolver.nsColor(
+                mode: .smart,
+                utilization: data.fiveHourPct,
                 resetDate: data.fiveHourResetDate,
                 windowDuration: 5 * 3600,
                 thresholds: data.thresholds,
@@ -200,28 +196,6 @@ enum MenuBarRenderer {
         return MenuBarTextColorResolver.resolve(
             hex: data.resetTextColorHex,
             fallback: .labelColor
-        )
-    }
-
-    /// Thin wrapper kept for API compatibility with the existing tests.
-    /// Delegates to the shared `ThemeColors.smartGaugeNSColor` so the menu
-    /// bar reset color and the in-app smart gauges always stay in sync.
-    /// `windowDuration` defaults to 5h since this helper is historically
-    /// scoped to the 5-hour reset countdown.
-    static func smartResetNSColor(
-        utilization: Double,
-        resetDate: Date,
-        themeColors: ThemeColors,
-        thresholds: UsageThresholds,
-        windowDuration: TimeInterval = 5 * 3600,
-        now: Date = Date()
-    ) -> NSColor {
-        themeColors.smartGaugeNSColor(
-            utilization: utilization,
-            resetDate: resetDate,
-            windowDuration: windowDuration,
-            thresholds: thresholds,
-            now: now
         )
     }
 

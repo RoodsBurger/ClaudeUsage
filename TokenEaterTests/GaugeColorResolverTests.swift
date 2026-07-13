@@ -5,7 +5,6 @@ import SwiftUI
 @Suite("GaugeColorResolver")
 struct GaugeColorResolverTests {
 
-    private var theme: ThemeColors { ThemeColors.preset(for: "default") ?? ThemeColors.allPresets[0].colors }
     private var thresholds: UsageThresholds { .default }
 
     // MARK: - mode decision
@@ -25,21 +24,33 @@ struct GaugeColorResolverTests {
         #expect(GaugeColorResolver.mode(smartColorEnabled: true, windowDuration: 0) == .threshold)
     }
 
-    // MARK: - threshold mode equals the static ramp and ignores time inputs
+    // MARK: - threshold mode equals the RiskZone ladder and ignores time inputs
 
-    @Test func thresholdColorMatchesStaticRamp() {
+    @Test func thresholdColorMatchesRiskZoneLadder() {
         let resolved = GaugeColorResolver.color(
             mode: .threshold,
             utilization: 95,
             resetDate: Date().addingTimeInterval(3600),
             windowDuration: 5 * 3600,
-            theme: theme,
             thresholds: thresholds,
             pacingMargin: 10,
             profile: .default
         )
-        let direct = theme.gaugeColor(for: 95, thresholds: thresholds)
+        let direct = RiskZone.forPercent(95, thresholds: thresholds).color
         #expect(resolved == direct)
+    }
+
+    @Test func thresholdZoneMatchesRiskZoneLadder() {
+        let resolved = GaugeColorResolver.zone(
+            mode: .threshold,
+            utilization: 95,
+            resetDate: nil,
+            windowDuration: 0,
+            thresholds: thresholds,
+            pacingMargin: 10,
+            profile: .default
+        )
+        #expect(resolved == .critical)
     }
 
     @Test func thresholdColorIgnoresResetDate() {
@@ -48,7 +59,6 @@ struct GaugeColorResolverTests {
             utilization: 50,
             resetDate: Date().addingTimeInterval(60),
             windowDuration: 5 * 3600,
-            theme: theme,
             thresholds: thresholds,
             pacingMargin: 10,
             profile: .default
@@ -58,7 +68,6 @@ struct GaugeColorResolverTests {
             utilization: 50,
             resetDate: nil,
             windowDuration: 5 * 3600,
-            theme: theme,
             thresholds: thresholds,
             pacingMargin: 10,
             profile: .default
@@ -66,9 +75,9 @@ struct GaugeColorResolverTests {
         #expect(withReset == withoutReset)
     }
 
-    // MARK: - smart mode matches ThemeColors.smartGaugeColor for the same inputs
+    // MARK: - smart mode matches SmartColor.risk -> riskZone for the same inputs
 
-    @Test func smartColorMatchesThemeSmartGauge() {
+    @Test func smartColorMatchesRiskZone() {
         let now = Date()
         let reset = now.addingTimeInterval(2 * 3600)
         let resolved = GaugeColorResolver.color(
@@ -76,13 +85,28 @@ struct GaugeColorResolverTests {
             utilization: 80,
             resetDate: reset,
             windowDuration: 5 * 3600,
-            theme: theme,
             thresholds: thresholds,
             pacingMargin: 10,
             now: now,
             profile: .default
         )
-        let direct = theme.smartGaugeColor(
+        let risk = SmartColor.risk(
+            utilization: 80,
+            resetDate: reset,
+            windowDuration: 5 * 3600,
+            pacingMargin: 10,
+            now: now,
+            profile: .default
+        )
+        let direct = SmartColor.riskZone(forRisk: risk, params: SmartColorProfile.default.parameters).color
+        #expect(resolved == direct)
+    }
+
+    @Test func smartNSColorMatchesRiskZone() {
+        let now = Date()
+        let reset = now.addingTimeInterval(2 * 3600)
+        let resolved = GaugeColorResolver.nsColor(
+            mode: .smart,
             utilization: 80,
             resetDate: reset,
             windowDuration: 5 * 3600,
@@ -91,6 +115,15 @@ struct GaugeColorResolverTests {
             now: now,
             profile: .default
         )
+        let risk = SmartColor.risk(
+            utilization: 80,
+            resetDate: reset,
+            windowDuration: 5 * 3600,
+            pacingMargin: 10,
+            now: now,
+            profile: .default
+        )
+        let direct = SmartColor.riskZone(forRisk: risk, params: SmartColorProfile.default.parameters).nsColor
         #expect(resolved == direct)
     }
 }

@@ -226,48 +226,58 @@ struct SmartColorTests {
         #expect(SmartColor.zoneForRisk(0.85, previous: .chill) == .hot)
     }
 
-    // MARK: - Backwards compatibility (smartLevel mapping)
+    // MARK: - riskZone (RiskZone folding of the 4-zone hysteresis result)
 
-    @Test("Legacy smartLevel maps from continuous risk consistently")
-    func legacyLevelMapping() {
-        // Defaults to back-compat with existing notification logic:
-        // r < 0.50 -> .normal, 0.50 <= r < 0.78 -> .warning, >= 0.78 -> .critical
-        #expect(SmartColor.legacyLevel(forRisk: 0.0)  == .normal)
-        #expect(SmartColor.legacyLevel(forRisk: 0.49) == .normal)
-        #expect(SmartColor.legacyLevel(forRisk: 0.50) == .warning)
-        #expect(SmartColor.legacyLevel(forRisk: 0.77) == .warning)
-        #expect(SmartColor.legacyLevel(forRisk: 0.78) == .critical)
-        #expect(SmartColor.legacyLevel(forRisk: 1.0)  == .critical)
+    @Test("riskZone folds the rising thresholds into ok/warning/critical")
+    func riskZoneMapping() {
+        // chill and onTrack both read as "under control" -> ok.
+        #expect(SmartColor.riskZone(forRisk: 0.0)  == .ok)
+        #expect(SmartColor.riskZone(forRisk: 0.29) == .ok)   // chill
+        #expect(SmartColor.riskZone(forRisk: 0.30) == .ok)   // onTrack
+        #expect(SmartColor.riskZone(forRisk: 0.54) == .ok)   // onTrack
+        #expect(SmartColor.riskZone(forRisk: 0.55) == .warning)
+        #expect(SmartColor.riskZone(forRisk: 0.77) == .warning)
+        #expect(SmartColor.riskZone(forRisk: 0.78) == .critical) // hot
+        #expect(SmartColor.riskZone(forRisk: 1.0)  == .critical)
     }
 
-    // MARK: - End-to-end through ThemeColors API
+    @Test("riskZone hysteresis carries through from zoneForRisk")
+    func riskZoneHysteresis() {
+        // In warning (>= 0.55); dropping to 0.54 would cross to onTrack/ok
+        // under strict rising thresholds, but hysteresis (falling threshold
+        // 0.50) holds warning until r < 0.50.
+        #expect(SmartColor.riskZone(forRisk: 0.54, previous: .warning) == .warning)
+        #expect(SmartColor.riskZone(forRisk: 0.49, previous: .warning) == .ok)
 
-    @Test("smartRisk via ThemeColors honors a 5h window with 30min remaining + 98% util -> 1.0")
+        // In hot (>= 0.78); stays hot until r < 0.73, then warning.
+        #expect(SmartColor.riskZone(forRisk: 0.74, previous: .hot) == .critical)
+        #expect(SmartColor.riskZone(forRisk: 0.72, previous: .hot) == .warning)
+    }
+
+    // MARK: - End-to-end via SmartColor.risk
+
+    @Test("risk honors a 5h window with 30min remaining + 98% util -> 1.0")
     func endToEndCriticalScenario() {
-        let theme = ThemeColors.default
         let now = Date()
         let window: TimeInterval = 5 * 3600  // 5h
         let resetIn30min = now.addingTimeInterval(30 * 60)
 
-        let r = theme.smartRisk(
+        let r = SmartColor.risk(
             utilization: 98,
             resetDate: resetIn30min,
             windowDuration: window,
-            thresholds: .default,
             pacingMargin: 10,
             now: now
         )
         #expect(r >= 0.78, "98% util with 30min remaining must surface as hot (got \(r))")
     }
 
-    @Test("smartRisk falls back to absolute-only when resetDate is nil")
+    @Test("risk falls back to absolute-only when resetDate is nil")
     func fallbackWithoutResetDate() {
-        let theme = ThemeColors.default
-        let r = theme.smartRisk(
+        let r = SmartColor.risk(
             utilization: 90,
             resetDate: nil,
             windowDuration: 5 * 3600,
-            thresholds: .default,
             pacingMargin: 10,
             now: Date()
         )

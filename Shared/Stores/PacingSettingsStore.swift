@@ -1,8 +1,7 @@
 import Foundation
 
 /// Pacing-domain slice of the user settings. Extracted from SettingsStore as the
-/// first step of the fat-store split. Owns its own persistence + the shared-file
-/// mirror so the (sandboxed) widget computes pacing identically.
+/// first step of the fat-store split. Owns its own persistence.
 @MainActor
 final class PacingSettingsStore: ObservableObject {
     /// Acceptable distance ahead of linear pace, in percentage points, before the
@@ -14,42 +13,27 @@ final class PacingSettingsStore: ObservableObject {
     /// Workweek pacing: when on, the expected pace only advances over the user's
     /// active days, so off-days don't make them look ahead of pace.
     @Published var workweekEnabled: Bool {
-        didSet {
-            UserDefaults.standard.set(workweekEnabled, forKey: "pacingWorkweekEnabled")
-            sharedFileService.updatePacingSchedule(schedule)
-        }
+        didSet { UserDefaults.standard.set(workweekEnabled, forKey: "pacingWorkweekEnabled") }
     }
     /// Active weekday numbers (Gregorian 1=Sun ... 7=Sat) used when workweek
     /// pacing is on. Persisted as a sorted array.
     @Published var activeDays: Set<Int> {
-        didSet {
-            UserDefaults.standard.set(Array(activeDays).sorted(), forKey: "pacingActiveDays")
-            sharedFileService.updatePacingSchedule(schedule)
-        }
+        didSet { UserDefaults.standard.set(Array(activeDays).sorted(), forKey: "pacingActiveDays") }
     }
     /// When on, workweek pacing is further narrowed to active hours of the day.
     @Published var hoursEnabled: Bool {
-        didSet {
-            UserDefaults.standard.set(hoursEnabled, forKey: "pacingHoursEnabled")
-            sharedFileService.updatePacingSchedule(schedule)
-        }
+        didSet { UserDefaults.standard.set(hoursEnabled, forKey: "pacingHoursEnabled") }
     }
     /// Start hour (0...23) of the active window, applied to every active day.
     @Published var startHour: Int {
-        didSet {
-            UserDefaults.standard.set(startHour, forKey: "pacingStartHour")
-            sharedFileService.updatePacingSchedule(schedule)
-        }
+        didSet { UserDefaults.standard.set(startHour, forKey: "pacingStartHour") }
     }
     /// End hour (1...24) of the active window, applied to every active day.
     @Published var endHour: Int {
-        didSet {
-            UserDefaults.standard.set(endHour, forKey: "pacingEndHour")
-            sharedFileService.updatePacingSchedule(schedule)
-        }
+        didSet { UserDefaults.standard.set(endHour, forKey: "pacingEndHour") }
     }
 
-    /// The resolved schedule handed to the pacing calculator + widget.
+    /// The resolved schedule handed to the pacing calculator.
     var schedule: PacingSchedule {
         PacingSchedule(
             enabled: workweekEnabled,
@@ -60,35 +44,22 @@ final class PacingSettingsStore: ObservableObject {
         )
     }
 
-    private let sharedFileService: SharedFileServiceProtocol
-
-    init(sharedFileService: SharedFileServiceProtocol) {
-        self.sharedFileService = sharedFileService
+    init() {
         self.margin = {
             let val = UserDefaults.standard.integer(forKey: "pacingMargin")
             let raw = val > 0 ? val : 10
             let snapped = (Int((Double(raw) / 5.0).rounded()) * 5)
             return min(30, max(5, snapped))
         }()
-        let enabled = SettingsDefaults.bool(key: "pacingWorkweekEnabled", default: false)
-        let days: Set<Int> = {
-            if let stored = UserDefaults.standard.array(forKey: "pacingActiveDays") as? [Int], !stored.isEmpty {
-                return Set(stored)
-            }
-            return PacingSchedule.workweek
-        }()
-        self.workweekEnabled = enabled
-        self.activeDays = days
+        self.workweekEnabled = SettingsDefaults.bool(key: "pacingWorkweekEnabled", default: false)
+        if let stored = UserDefaults.standard.array(forKey: "pacingActiveDays") as? [Int], !stored.isEmpty {
+            self.activeDays = Set(stored)
+        } else {
+            self.activeDays = PacingSchedule.workweek
+        }
         self.hoursEnabled = SettingsDefaults.bool(key: "pacingHoursEnabled", default: false)
         self.startHour = SettingsDefaults.int(key: "pacingStartHour", default: PacingSchedule.defaultStartHour)
         self.endHour = SettingsDefaults.int(key: "pacingEndHour", default: PacingSchedule.defaultEndHour)
-        // Mirror the resolved schedule to the shared file so the (sandboxed)
-        // widget computes pacing identically on first paint.
-        sharedFileService.updatePacingSchedule(
-            PacingSchedule(enabled: enabled, activeDays: days,
-                           hoursEnabled: self.hoursEnabled,
-                           startHour: self.startHour, endHour: self.endHour)
-        )
     }
 }
 

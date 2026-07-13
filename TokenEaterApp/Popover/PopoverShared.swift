@@ -7,27 +7,25 @@ import SwiftUI
 
 @MainActor
 enum PopoverColors {
-    static func gauge(pct: Int, resetDate: Date?, windowDuration: TimeInterval, theme: ThemeStore, settings: SettingsStore) -> Color {
+    static func gauge(pct: Int, resetDate: Date?, windowDuration: TimeInterval, settings: SettingsStore) -> Color {
         GaugeColorResolver.color(
             mode: GaugeColorResolver.mode(smartColorEnabled: settings.smartColorEnabled, windowDuration: windowDuration),
             utilization: pct,
             resetDate: resetDate,
             windowDuration: windowDuration,
-            theme: theme.current,
-            thresholds: theme.thresholds,
+            thresholds: settings.thresholds,
             pacingMargin: Double(settings.pacingMargin),
             profile: settings.smartColorProfile
         )
     }
 
-    static func gaugeGradient(pct: Int, resetDate: Date?, windowDuration: TimeInterval, theme: ThemeStore, settings: SettingsStore) -> LinearGradient {
+    static func gaugeGradient(pct: Int, resetDate: Date?, windowDuration: TimeInterval, settings: SettingsStore) -> LinearGradient {
         GaugeColorResolver.gradient(
             mode: GaugeColorResolver.mode(smartColorEnabled: settings.smartColorEnabled, windowDuration: windowDuration),
             utilization: pct,
             resetDate: resetDate,
             windowDuration: windowDuration,
-            theme: theme.current,
-            thresholds: theme.thresholds,
+            thresholds: settings.thresholds,
             pacingMargin: Double(settings.pacingMargin),
             profile: settings.smartColorProfile,
             startPoint: .leading,
@@ -35,12 +33,13 @@ enum PopoverColors {
         )
     }
 
-    static func zone(_ zone: PacingZone, theme: ThemeStore) -> Color {
-        theme.current.pacingColor(for: zone)
+    static func zone(_ zone: PacingZone) -> Color {
+        zone.semanticColor
     }
 
-    static func zoneGradient(_ zone: PacingZone, theme: ThemeStore) -> LinearGradient {
-        theme.current.pacingGradient(for: zone, startPoint: .leading, endPoint: .trailing)
+    static func zoneGradient(_ zone: PacingZone) -> LinearGradient {
+        let base = zone.semanticColor
+        return LinearGradient(colors: [base, base.lighter()], startPoint: .leading, endPoint: .trailing)
     }
 }
 
@@ -390,7 +389,6 @@ struct PopoverQuitButton: View {
 // MARK: - Pacing row (Classic variant)
 
 struct PopoverPacingRow: View {
-    @EnvironmentObject private var themeStore: ThemeStore
     @EnvironmentObject private var settingsStore: SettingsStore
 
     let label: String
@@ -424,7 +422,7 @@ struct PopoverPacingRow: View {
                     actual: pacing.actualUsage,
                     expected: pacing.expectedUsage,
                     zone: pacing.zone,
-                    gradient: PopoverColors.zoneGradient(pacing.zone, theme: themeStore),
+                    gradient: PopoverColors.zoneGradient(pacing.zone),
                     compact: true,
                     offDayRanges: offRanges,
                     nowInOffDay: nowInOffDay,
@@ -432,13 +430,10 @@ struct PopoverPacingRow: View {
                 )
                 .frame(maxWidth: .infinity)
 
-                GlowText(
-                    "\(sign)\(Int(pacing.delta))%",
-                    font: .system(size: 12, weight: .black, design: .rounded),
-                    color: PopoverColors.zone(pacing.zone, theme: themeStore),
-                    glowRadius: 2
-                )
-                .frame(width: 48, alignment: .trailing)
+                Text("\(sign)\(Int(pacing.delta))%")
+                    .font(.system(size: 12, weight: .black, design: .rounded))
+                    .foregroundStyle(PopoverColors.zone(pacing.zone))
+                    .frame(width: 48, alignment: .trailing)
             }
         }
     }
@@ -451,30 +446,24 @@ struct PopoverPacingRow: View {
 /// Menu bar settings section.
 struct PopoverHeroRing: View {
     @EnvironmentObject private var usageStore: UsageStore
-    @EnvironmentObject private var themeStore: ThemeStore
     @EnvironmentObject private var settingsStore: SettingsStore
 
     var body: some View {
         let pct = usageStore.fiveHourPct
         let resetDate = usageStore.lastUsage?.fiveHour?.resetsAtDate
         let windowDuration: TimeInterval = 5 * 3600
-        let color = PopoverColors.gauge(pct: pct, resetDate: resetDate, windowDuration: windowDuration, theme: themeStore, settings: settingsStore)
+        let color = PopoverColors.gauge(pct: pct, resetDate: resetDate, windowDuration: windowDuration, settings: settingsStore)
         VStack(spacing: 8) {
             ZStack {
                 RingGauge(
                     percentage: pct,
-                    gradient: PopoverColors.gaugeGradient(pct: pct, resetDate: resetDate, windowDuration: windowDuration, theme: themeStore, settings: settingsStore),
-                    size: 100,
-                    glowColor: color,
-                    glowRadius: 6
+                    gradient: PopoverColors.gaugeGradient(pct: pct, resetDate: resetDate, windowDuration: windowDuration, settings: settingsStore),
+                    size: 100
                 )
                 VStack(spacing: 2) {
-                    GlowText(
-                        "\(pct)%",
-                        font: .system(size: 24, weight: .black, design: .rounded),
-                        color: color,
-                        glowRadius: 4
-                    )
+                    Text("\(pct)%")
+                        .font(.system(size: 24, weight: .black, design: .rounded))
+                        .foregroundStyle(color)
                     Text(String(localized: "metric.session"))
                         .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(.white.opacity(0.5))
@@ -492,7 +481,6 @@ struct PopoverHeroRing: View {
 /// Small satellite ring (40px). Used for Weekly or Sonnet when
 /// `displaySonnet = true`.
 struct PopoverSatelliteRing: View {
-    @EnvironmentObject private var themeStore: ThemeStore
     @EnvironmentObject private var settingsStore: SettingsStore
 
     let label: String
@@ -501,22 +489,17 @@ struct PopoverSatelliteRing: View {
     let windowDuration: TimeInterval
 
     var body: some View {
-        let color = PopoverColors.gauge(pct: pct, resetDate: resetDate, windowDuration: windowDuration, theme: themeStore, settings: settingsStore)
+        let color = PopoverColors.gauge(pct: pct, resetDate: resetDate, windowDuration: windowDuration, settings: settingsStore)
         VStack(spacing: 4) {
             ZStack {
                 RingGauge(
                     percentage: pct,
-                    gradient: PopoverColors.gaugeGradient(pct: pct, resetDate: resetDate, windowDuration: windowDuration, theme: themeStore, settings: settingsStore),
-                    size: 40,
-                    glowColor: color,
-                    glowRadius: 3
+                    gradient: PopoverColors.gaugeGradient(pct: pct, resetDate: resetDate, windowDuration: windowDuration, settings: settingsStore),
+                    size: 40
                 )
-                GlowText(
-                    "\(pct)%",
-                    font: .system(size: 10, weight: .black, design: .rounded),
-                    color: color,
-                    glowRadius: 2
-                )
+                Text("\(pct)%")
+                    .font(.system(size: 10, weight: .black, design: .rounded))
+                    .foregroundStyle(color)
             }
             Text(label)
                 .font(.system(size: 10, weight: .medium))
@@ -528,7 +511,6 @@ struct PopoverSatelliteRing: View {
 /// Medium ring (70px) used in the "two equal rings" layout (Classic without
 /// Sonnet). Includes an optional reset countdown below.
 struct PopoverEqualRing: View {
-    @EnvironmentObject private var themeStore: ThemeStore
     @EnvironmentObject private var settingsStore: SettingsStore
 
     let label: String
@@ -539,23 +521,18 @@ struct PopoverEqualRing: View {
     let windowDuration: TimeInterval
 
     var body: some View {
-        let color = PopoverColors.gauge(pct: pct, resetDate: resetDate, windowDuration: windowDuration, theme: themeStore, settings: settingsStore)
+        let color = PopoverColors.gauge(pct: pct, resetDate: resetDate, windowDuration: windowDuration, settings: settingsStore)
         VStack(spacing: 8) {
             ZStack {
                 RingGauge(
                     percentage: pct,
-                    gradient: PopoverColors.gaugeGradient(pct: pct, resetDate: resetDate, windowDuration: windowDuration, theme: themeStore, settings: settingsStore),
-                    size: 70,
-                    glowColor: color,
-                    glowRadius: 4
+                    gradient: PopoverColors.gaugeGradient(pct: pct, resetDate: resetDate, windowDuration: windowDuration, settings: settingsStore),
+                    size: 70
                 )
                 VStack(spacing: 2) {
-                    GlowText(
-                        "\(pct)%",
-                        font: .system(size: 16, weight: .black, design: .rounded),
-                        color: color,
-                        glowRadius: 3
-                    )
+                    Text("\(pct)%")
+                        .font(.system(size: 16, weight: .black, design: .rounded))
+                        .foregroundStyle(color)
                     Text(label)
                         .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(.white.opacity(0.5))

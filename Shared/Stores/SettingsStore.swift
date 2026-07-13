@@ -31,9 +31,21 @@ final class SettingsStore: ObservableObject {
     var smartColorProfile: SmartColorProfile {
         get { display.smartColorProfile } set { display.smartColorProfile = newValue }
     }
-    var glowIntensity: DS.GlowIntensity {
-        get { display.glowIntensity } set { display.glowIntensity = newValue }
+    /// Threshold-mode warning percentage (used when Smart Color is off).
+    var warningThreshold: Int {
+        get { display.warningThreshold } set { display.warningThreshold = newValue }
     }
+    /// Threshold-mode critical percentage (used when Smart Color is off).
+    var criticalThreshold: Int {
+        get { display.criticalThreshold } set { display.criticalThreshold = newValue }
+    }
+    /// When true, every gauge/pacing color in the menu bar renders as the
+    /// system label color instead of its semantic `RiskZone` color.
+    var menuBarMonochrome: Bool {
+        get { display.menuBarMonochrome } set { display.menuBarMonochrome = newValue }
+    }
+    /// The resolved warning/critical ladder handed to `RiskZone.forPercent(_:thresholds:)`.
+    var thresholds: UsageThresholds { display.thresholds }
     var menuBarStyle: MenuBarStyle {
         get { display.menuBarStyle } set { display.menuBarStyle = newValue }
     }
@@ -272,9 +284,9 @@ final class SettingsStore: ObservableObject {
         self.tokenProvider = tokenProvider
         self.sharedFileService = sharedFileService
 
-        self.pacing = PacingSettingsStore(sharedFileService: sharedFileService)
+        self.pacing = PacingSettingsStore()
         self.notification = NotificationSettingsStore()
-        self.display = DisplaySettingsStore(sharedFileService: sharedFileService)
+        self.display = DisplaySettingsStore()
 
         self.hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
         self.proxyEnabled = UserDefaults.standard.bool(forKey: "proxyEnabled")

@@ -2,82 +2,60 @@ import Testing
 import Foundation
 import AppKit
 
-@Suite("MenuBarRenderer.smartResetNSColor")
-struct MenuBarRendererTests {
+/// Regression coverage for `MenuBarRenderer.gaugeColor`'s smart-mode path,
+/// expressed against validated (u, e) scenarios from `SmartColorTests` so the
+/// expected zone is grounded in the risk model rather than hand-picked.
+@Suite("MenuBarRenderer.gaugeColor smart-mode regression")
+struct MenuBarRendererSmartRegressionTests {
 
-    private let theme = ThemeColors.default
     private let thresholds = UsageThresholds.default // warning: 60, critical: 85
     private let now = Date(timeIntervalSince1970: 1_700_000_000)
+    private let window: TimeInterval = 5 * 3600 // 300 min
 
     private func reset(_ minutesAway: Double) -> Date {
         now.addingTimeInterval(minutesAway * 60)
     }
 
-    private func color(_ utilization: Double, minutesRemaining: Double) -> NSColor {
-        MenuBarRenderer.smartResetNSColor(
-            utilization: utilization,
+    private func color(_ utilization: Int, minutesRemaining: Double) -> NSColor {
+        MenuBarRenderer.gaugeColor(
+            pct: utilization,
             resetDate: reset(minutesRemaining),
-            themeColors: theme,
+            windowDuration: window,
+            monochrome: false,
+            smartEnabled: true,
             thresholds: thresholds,
+            pacingMargin: 10,
+            smartColorProfile: .balanced,
             now: now
         )
     }
 
-    @Test("limit reached with short remaining stays critical")
-    func limitReachedShortRemainingCritical() {
-        // Bug repro: utilization 100%, 20 min left -> risk score = 20 which
-        // used to map to the normal (green) gauge color. With the fix, any
-        // utilization at or above the critical threshold must return the
-        // critical color regardless of remaining time.
-        let observed = color(100, minutesRemaining: 20)
-        let expected = theme.gaugeNSColor(for: 100, thresholds: thresholds)
-        #expect(observed == expected)
+    @Test("100% utilization is always critical, regardless of time remaining")
+    func hardCapAlwaysCritical() {
+        #expect(color(100, minutesRemaining: 20) == RiskZone.critical.nsColor)
+        #expect(color(100, minutesRemaining: 240) == RiskZone.critical.nsColor)
     }
 
-    @Test("limit reached with long remaining stays critical")
-    func limitReachedLongRemainingCritical() {
-        let observed = color(95, minutesRemaining: 240)
-        let expected = theme.gaugeNSColor(for: 95, thresholds: thresholds)
-        #expect(observed == expected)
+    @Test("95% with 5 min remaining is critical (matches SmartColorTests u=0.95 e=0.983 -> hot)")
+    func criticalLowTime() {
+        #expect(color(95, minutesRemaining: 5) == RiskZone.critical.nsColor)
     }
 
-    @Test("low utilization near reset stays normal")
-    func lowUtilizationShortRemainingNormal() {
-        // 30% with 15 min left: risk = 4.5 -> normal color.
-        let observed = color(30, minutesRemaining: 15)
-        let expected = theme.gaugeNSColor(for: 10, thresholds: thresholds)
-        #expect(observed == expected)
+    @Test("low utilization near reset stays ok")
+    func lowUtilizationStaysOk() {
+        #expect(color(30, minutesRemaining: 15) == RiskZone.ok.nsColor)
     }
 
-    @Test("high pre-critical utilization with ample remaining escalates to critical")
-    func projectedRiskEscalatesToCritical() {
-        // 80% utilization (below critical 85) with 3h left: risk = 144 -> critical band.
-        let observed = color(80, minutesRemaining: 180)
-        let expected = theme.gaugeNSColor(for: 100, thresholds: thresholds)
-        #expect(observed == expected)
+    @Test("80% used at 50% elapsed is critical (matches SmartColorTests u=0.80 e=0.50 -> hot)")
+    func highUtilizationAheadOfPaceEscalates() {
+        // e=0.50 on a 300min window -> 150min remaining.
+        #expect(color(80, minutesRemaining: 150) == RiskZone.critical.nsColor)
     }
 
-    @Test("pre-critical utilization with moderate remaining lands in warning band (v3)")
-    func projectedRiskWarning() {
-        // v3 model: smart calibration is now profile-driven (Balanced
-        // bounds 0.50/1.00 instead of the user's 0.60/0.85 thresholds),
-        // and the absolute signal is dampened by projection health
-        // (smoothstep(0.7, 1.0, u/e)). At u=0.80 / 90min remaining on
-        // 5h: u/e = 0.80/0.90 = 0.889, dampened to ~0.69, multiplied
-        // by absolute_raw smoothstep(0.50, 1.00, 0.80) ≈ 0.65 -> final
-        // risk ~0.45, which interpolates ~60% of the way from green to
-        // orange. So the color is a vivid orange, not red.
-        //
-        // The pre-v3 expectation of "stays critical at 80% / 90min" was
-        // a v2-era fix for v1's reset-imminent override; v3's projection-
-        // health damping makes 80% with calm pacing legitimately less
-        // alarming because the user is on track to finish ~89% of limit.
-        let observed = color(80, minutesRemaining: 90)
-        // The 98%/30min hard flag is preserved separately; here we just
-        // assert the color sits in the green-to-orange interpolation
-        // region rather than matching threshold-mode red.
-        let red = theme.gaugeNSColor(for: 95, thresholds: thresholds)
-        #expect(observed != red, "80% / 90min should no longer match the threshold-mode red color")
+    @Test("72% with calm pacing stays ok (matches SmartColorTests u=0.72 e=0.84 -> chill)")
+    func highAbsoluteCalmPacingStaysOk() {
+        // e=0.84 on a 300min window -> 48min remaining.
+        #expect(color(72, minutesRemaining: 48) == RiskZone.ok.nsColor)
     }
 }
 
@@ -106,7 +84,6 @@ struct MenuBarOutageBadgeTests {
             weeklyPacingDisplayMode: .dotDelta,
             hasConfig: true,
             hasError: false,
-            themeColors: .default,
             thresholds: .default,
             menuBarMonochrome: false,
             fiveHourReset: "",
@@ -203,13 +180,12 @@ struct MenuBarPeriodLabelColorTests {
 }
 
 /// Covers the windowless-metric colouring rule that keeps Extra Credits in
-/// agreement across the menu bar, popover, dashboard and widgets: Smart Color
+/// agreement across the menu bar, popover, and dashboard: Smart Color
 /// is time-aware, so a metric with no reset window must use the static
 /// threshold ladder instead of the profile-based absolute-risk colour.
 @Suite("MenuBarRenderer.gaugeColor (windowless fallback)")
 struct MenuBarGaugeColorTests {
 
-    private let theme = ThemeColors.default
     private let thresholds = UsageThresholds.default // warning 60, critical 85
     private let now = Date(timeIntervalSince1970: 1_700_000_000)
 
@@ -219,19 +195,20 @@ struct MenuBarGaugeColorTests {
         let observed = MenuBarRenderer.gaugeColor(
             pct: 67, resetDate: nil, windowDuration: 0,
             monochrome: false, smartEnabled: true,
-            themeColors: theme, thresholds: thresholds,
+            thresholds: thresholds,
             pacingMargin: 10, smartColorProfile: .balanced, now: now
         )
         // 67% is past the 60 warning threshold → warning colour.
-        #expect(observed == theme.gaugeNSColor(for: 67, thresholds: thresholds))
+        #expect(observed == RiskZone.forPercent(67, thresholds: thresholds).nsColor)
         // Regression guard for the green-vs-orange bug: the old code routed
         // windowless metrics through Smart Color, which reads a calmer colour
         // at 67% because the profile bounds (≈0.50/1.00) differ from the user's
         // 60/85 thresholds. Those two colours must NOT be equal here.
-        let smartWindowless = theme.smartGaugeNSColor(
+        let risk = SmartColor.risk(
             utilization: 67, resetDate: nil, windowDuration: 0,
-            thresholds: thresholds, pacingMargin: 10, now: now, profile: .balanced
+            pacingMargin: 10, now: now, profile: .balanced
         )
+        let smartWindowless = SmartColor.riskZone(forRisk: risk, params: SmartColorProfile.balanced.parameters).nsColor
         #expect(observed != smartWindowless)
     }
 
@@ -241,13 +218,14 @@ struct MenuBarGaugeColorTests {
         let observed = MenuBarRenderer.gaugeColor(
             pct: 80, resetDate: reset, windowDuration: 5 * 3600,
             monochrome: false, smartEnabled: true,
-            themeColors: theme, thresholds: thresholds,
+            thresholds: thresholds,
             pacingMargin: 10, smartColorProfile: .balanced, now: now
         )
-        let expectedSmart = theme.smartGaugeNSColor(
+        let risk = SmartColor.risk(
             utilization: 80, resetDate: reset, windowDuration: 5 * 3600,
-            thresholds: thresholds, pacingMargin: 10, now: now, profile: .balanced
+            pacingMargin: 10, now: now, profile: .balanced
         )
+        let expectedSmart = SmartColor.riskZone(forRisk: risk, params: SmartColorProfile.balanced.parameters).nsColor
         #expect(observed == expectedSmart)
     }
 
@@ -257,10 +235,10 @@ struct MenuBarGaugeColorTests {
         let observed = MenuBarRenderer.gaugeColor(
             pct: 80, resetDate: reset, windowDuration: 5 * 3600,
             monochrome: false, smartEnabled: false,
-            themeColors: theme, thresholds: thresholds,
+            thresholds: thresholds,
             pacingMargin: 10, smartColorProfile: .balanced, now: now
         )
-        #expect(observed == theme.gaugeNSColor(for: 80, thresholds: thresholds))
+        #expect(observed == RiskZone.forPercent(80, thresholds: thresholds).nsColor)
     }
 
     @Test("monochrome wins over everything")
@@ -268,7 +246,7 @@ struct MenuBarGaugeColorTests {
         let observed = MenuBarRenderer.gaugeColor(
             pct: 67, resetDate: nil, windowDuration: 0,
             monochrome: true, smartEnabled: true,
-            themeColors: theme, thresholds: thresholds,
+            thresholds: thresholds,
             pacingMargin: 10, smartColorProfile: .balanced, now: now
         )
         #expect(observed == NSColor.labelColor)
@@ -295,7 +273,7 @@ struct MenuBarExtraCreditsRenderTests {
             sessionPacingDelta: 0, sessionPacingZone: .onTrack, hasSessionPacing: false,
             sessionPacingDisplayMode: .dotDelta, weeklyPacingDisplayMode: .dotDelta,
             hasConfig: true, hasError: false,
-            themeColors: .default, thresholds: .default,
+            thresholds: .default,
             menuBarMonochrome: false,
             fiveHourReset: "", fiveHourResetAbsolute: "",
             fiveHourResetDate: nil, sevenDayResetDate: nil, sonnetResetDate: nil, designResetDate: nil,

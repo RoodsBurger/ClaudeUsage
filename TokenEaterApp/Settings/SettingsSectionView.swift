@@ -3,7 +3,6 @@ import SwiftUI
 struct SettingsSectionView: View {
     @EnvironmentObject private var usageStore: UsageStore
     @EnvironmentObject private var settingsStore: SettingsStore
-    @EnvironmentObject private var themeStore: ThemeStore
 
     @State private var isTesting = false
     @State private var testResult: ConnectionTestResult?
@@ -292,8 +291,7 @@ struct SettingsSectionView: View {
                 importMessage = String(localized: "connect.oauth.success")
                 importSuccess = true
                 usageStore.proxyConfig = settingsStore.proxyConfig
-                usageStore.reloadConfig(thresholds: themeStore.thresholds)
-                themeStore.syncToSharedFile()
+                usageStore.reloadConfig(thresholds: settingsStore.thresholds)
             } else {
                 importMessage = result.message
                 importSuccess = false

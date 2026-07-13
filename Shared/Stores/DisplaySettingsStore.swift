@@ -5,11 +5,10 @@ import Foundation
 /// `PacingSettingsStore` and `NotificationSettingsStore`.
 ///
 /// Owns the menu-bar visibility + style, the pinned metrics set, the reset /
-/// pacing display formats, the smart-color settings (with the shared-file mirror
-/// the sandboxed widget reads), the glow intensity, the menu-bar text colors,
-/// and the popover satellite toggles. Each property persists itself to
-/// UserDefaults; smart-color also mirrors to the shared file (so the widget
-/// colors identically), which is why this store needs `sharedFileService`.
+/// pacing display formats, the smart-color settings, the gauge warning/
+/// critical thresholds, the menu-bar monochrome toggle, the menu-bar text
+/// colors, and the popover satellite toggles. Each property persists itself
+/// to UserDefaults.
 @MainActor
 final class DisplaySettingsStore: ObservableObject {
     @Published var showMenuBar: Bool {
@@ -36,24 +35,26 @@ final class DisplaySettingsStore: ObservableObject {
     /// stays green rather than going red. Falls back to threshold-based coloring
     /// when no reset date is available.
     @Published var smartColorEnabled: Bool {
-        didSet {
-            UserDefaults.standard.set(smartColorEnabled, forKey: "smartColorEnabled")
-            sharedFileService.updateSmartColorEnabled(smartColorEnabled)
-        }
+        didSet { UserDefaults.standard.set(smartColorEnabled, forKey: "smartColorEnabled") }
     }
     /// User-selected temperament for the smart color algorithm. Shifts
     /// when the gauge transitions from chill -> warning -> hot. See
     /// `SmartColorProfile` for the parameter mapping.
     @Published var smartColorProfile: SmartColorProfile {
-        didSet {
-            UserDefaults.standard.set(smartColorProfile.rawValue, forKey: "smartColorProfile")
-            sharedFileService.updateSmartColorProfile(smartColorProfile)
-        }
+        didSet { UserDefaults.standard.set(smartColorProfile.rawValue, forKey: "smartColorProfile") }
     }
-    /// Controls the global glow / halo intensity in the popover and monitoring
-    /// views. Drives a single environment value read by every `.dsGlow()` call.
-    @Published var glowIntensity: DS.GlowIntensity {
-        didSet { UserDefaults.standard.set(glowIntensity.rawValue, forKey: "glowIntensity") }
+    /// Threshold-mode warning percentage (used when Smart Color is off).
+    @Published var warningThreshold: Int {
+        didSet { UserDefaults.standard.set(warningThreshold, forKey: "warningThreshold") }
+    }
+    /// Threshold-mode critical percentage (used when Smart Color is off).
+    @Published var criticalThreshold: Int {
+        didSet { UserDefaults.standard.set(criticalThreshold, forKey: "criticalThreshold") }
+    }
+    /// When true, every gauge/pacing color in the menu bar renders as the
+    /// system label color instead of its semantic `RiskZone` color.
+    @Published var menuBarMonochrome: Bool {
+        didSet { UserDefaults.standard.set(menuBarMonochrome, forKey: "menuBarMonochrome") }
     }
     /// Typography / separator style for the pinned metrics in the menu bar.
     @Published var menuBarStyle: MenuBarStyle {
@@ -99,11 +100,12 @@ final class DisplaySettingsStore: ObservableObject {
         didSet { UserDefaults.standard.set(displayExtraCredits, forKey: "displayExtraCredits") }
     }
 
-    private let sharedFileService: SharedFileServiceProtocol
+    /// Resolved threshold ladder handed to `RiskZone.forPercent(_:thresholds:)`.
+    var thresholds: UsageThresholds {
+        UsageThresholds(warningPercent: warningThreshold, criticalPercent: criticalThreshold)
+    }
 
-    init(sharedFileService: SharedFileServiceProtocol) {
-        self.sharedFileService = sharedFileService
-
+    init() {
         self.showMenuBar = UserDefaults.standard.object(forKey: "showMenuBar") as? Bool ?? true
         self.launchInBackground = SettingsDefaults.bool(key: "launchInBackground", default: false)
 
@@ -114,21 +116,19 @@ final class DisplaySettingsStore: ObservableObject {
         self.sessionPeriodColorHex = UserDefaults.standard.string(forKey: "sessionPeriodColorHex") ?? ""
 
         // Default ON.
-        let initialSmartColor = UserDefaults.standard.object(forKey: "smartColorEnabled") as? Bool ?? true
-        self.smartColorEnabled = initialSmartColor
-        // Push the resolved value to the shared file so the (sandboxed) widget
-        // sees the same setting on first launch without waiting for a toggle.
-        sharedFileService.updateSmartColorEnabled(initialSmartColor)
-        let initialProfile = SmartColorProfile(
+        self.smartColorEnabled = UserDefaults.standard.object(forKey: "smartColorEnabled") as? Bool ?? true
+        self.smartColorProfile = SmartColorProfile(
             rawValue: UserDefaults.standard.string(forKey: "smartColorProfile") ?? SmartColorProfile.default.rawValue
         ) ?? .default
-        self.smartColorProfile = initialProfile
-        // Mirror the resolved profile to the shared file so the (sandboxed)
-        // widget picks it up at first paint without waiting for a toggle.
-        sharedFileService.updateSmartColorProfile(initialProfile)
-        self.glowIntensity = DS.GlowIntensity(
-            rawValue: UserDefaults.standard.string(forKey: "glowIntensity") ?? DS.GlowIntensity.glow.rawValue
-        ) ?? .glow
+        self.warningThreshold = {
+            let val = UserDefaults.standard.integer(forKey: "warningThreshold")
+            return val > 0 ? val : 60
+        }()
+        self.criticalThreshold = {
+            let val = UserDefaults.standard.integer(forKey: "criticalThreshold")
+            return val > 0 ? val : 85
+        }()
+        self.menuBarMonochrome = UserDefaults.standard.bool(forKey: "menuBarMonochrome")
         self.menuBarStyle = MenuBarStyle(
             rawValue: UserDefaults.standard.string(forKey: "menuBarStyle") ?? "classic"
         ) ?? .classic

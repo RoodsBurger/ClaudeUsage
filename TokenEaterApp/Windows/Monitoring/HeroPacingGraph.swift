@@ -81,7 +81,6 @@ struct HeroPacingGraph: View {
                 Circle()
                     .fill(trajectoryColor)
                     .frame(width: 8, height: 8)
-                    .dsGlow(trajectoryColor, radius: 5, opacity: 0.6)
                     .position(actualPoint)
             }
         }

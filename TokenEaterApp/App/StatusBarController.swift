@@ -15,20 +15,17 @@ final class StatusBarController: NSObject {
     private var countdownCancellable: AnyCancellable?
 
     private let usageStore: UsageStore
-    private let themeStore: ThemeStore
     private let settingsStore: SettingsStore
     private let vendorStatusStore: VendorStatusStore
     private let tokenFileMonitor: TokenFileMonitorProtocol
 
     init(
         usageStore: UsageStore,
-        themeStore: ThemeStore,
         settingsStore: SettingsStore,
         vendorStatusStore: VendorStatusStore,
         tokenFileMonitor: TokenFileMonitorProtocol = TokenFileMonitor()
     ) {
         self.usageStore = usageStore
-        self.themeStore = themeStore
         self.settingsStore = settingsStore
         self.vendorStatusStore = vendorStatusStore
         self.tokenFileMonitor = tokenFileMonitor
@@ -89,7 +86,6 @@ final class StatusBarController: NSObject {
     private func installPopoverContent() {
         let popoverView = MenuBarPopoverView()
             .environmentObject(usageStore)
-            .environmentObject(themeStore)
             .environmentObject(settingsStore)
             .environmentObject(vendorStatusStore)
         popover.contentViewController = NSHostingController(rootView: popoverView)
@@ -98,7 +94,6 @@ final class StatusBarController: NSObject {
     private func observeStoreChanges() {
         Publishers.MergeMany(
             usageStore.objectWillChange.map { _ in () }.eraseToAnyPublisher(),
-            themeStore.objectWillChange.map { _ in () }.eraseToAnyPublisher(),
             settingsStore.objectWillChange.map { _ in () }.eraseToAnyPublisher(),
             vendorStatusStore.objectWillChange.map { _ in () }.eraseToAnyPublisher()
         )
@@ -185,9 +180,8 @@ final class StatusBarController: NSObject {
         usageStore.notifTogglesProvider = { [weak self] in self?.makeNotificationToggles() }
         vendorStatusStore.notifTogglesProvider = { [weak self] in self?.makeNotificationToggles() }
         vendorStatusStore.healthyPollInterval = TimeInterval(settingsStore.statusPollInterval)
-        usageStore.reloadConfig(thresholds: themeStore.thresholds)
-        usageStore.startAutoRefresh(thresholds: themeStore.thresholds)
-        themeStore.syncToSharedFile()
+        usageStore.reloadConfig(thresholds: settingsStore.thresholds)
+        usageStore.startAutoRefresh(thresholds: settingsStore.thresholds)
 
         // Monitor token files (credentials + config.json) for changes
         tokenFileMonitor.startMonitoring()
@@ -239,7 +233,7 @@ final class StatusBarController: NSObject {
             smartColorEnabled: settingsStore.smartColorEnabled,
             smartColorProfile: settingsStore.smartColorProfile,
             pacingMargin: Double(settingsStore.pacingMargin),
-            thresholds: themeStore.thresholds,
+            thresholds: settingsStore.thresholds,
             vendorDegraded: settingsStore.notifVendorDegraded,
             vendorRestored: settingsStore.notifVendorRestored
         )
@@ -300,9 +294,8 @@ final class StatusBarController: NSObject {
             weeklyPacingDisplayMode: settingsStore.weeklyPacingDisplayMode,
             hasConfig: usageStore.hasConfig,
             hasError: usageStore.hasError,
-            themeColors: themeStore.current,
-            thresholds: themeStore.thresholds,
-            menuBarMonochrome: themeStore.menuBarMonochrome,
+            thresholds: settingsStore.thresholds,
+            menuBarMonochrome: settingsStore.menuBarMonochrome,
             fiveHourReset: usageStore.fiveHourReset,
             fiveHourResetAbsolute: usageStore.fiveHourResetAbsolute,
             fiveHourResetDate: usageStore.lastUsage?.fiveHour?.resetsAtDate,
@@ -553,7 +546,6 @@ final class StatusBarController: NSObject {
 
         let appView = MainAppView()
             .environmentObject(usageStore)
-            .environmentObject(themeStore)
             .environmentObject(settingsStore)
             .environmentObject(vendorStatusStore)
 

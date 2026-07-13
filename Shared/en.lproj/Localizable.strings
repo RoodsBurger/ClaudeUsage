@@ -46,10 +46,10 @@
 "settings.group.pin" = "What to pin";
 "settings.group.pin.hint" = "Tap a chip to pin or unpin a metric. Active chips reveal their format options inline.";
 "settings.group.colors" = "Colors";
-"settings.group.colors.hint" = "Theme the menu bar text. Smart Color (in Themes) takes over the reset countdown when enabled.";
+"settings.group.colors.hint" = "Color the menu bar text. Smart Color (in Pacing) takes over the reset countdown when enabled.";
 "settings.metric.format" = "Format";
-"settings.theme.color.custom" = "Custom";
-"settings.theme.color.mono" = "Monochrome";
+"settings.menubar.color.custom" = "Custom";
+"settings.menubar.color.mono" = "Monochrome";
 "settings.menubar.title" = "Menu bar";
 "settings.tab.connection" = "Connection";
 "settings.tab.display" = "Display";
@@ -331,32 +331,11 @@
 /* Relative Time */
 "relative.now" = "now";
 
-/* Theming */
-"settings.tab.theming" = "Theming";
-"settings.theme.colors" = "Color Theme";
-"settings.theme.preset" = "Preset";
-"settings.theme.custom" = "Custom";
-"settings.theme.custom.colors" = "Custom Colors";
-"settings.theme.gauge.normal" = "Gauge Normal";
-"settings.theme.gauge.warning" = "Gauge Warning";
-"settings.theme.gauge.critical" = "Gauge Critical";
-"settings.theme.pacing.chill" = "Pacing Chill";
-"settings.theme.pacing.ontrack" = "Pacing On Track";
-"settings.theme.pacing.hot" = "Pacing Hot";
-"settings.theme.thresholds" = "Usage Thresholds";
-"settings.theme.thresholds.hint" = "Used in both modes. Smart Color combines these with the pacing zone (max of the two), so a high utilization always escalates even when pacing is on track.";
-"settings.theme.warning" = "Warning";
-"settings.theme.critical" = "Critical";
-"settings.theme.menubar" = "Menu Bar";
-"settings.theme.monochrome" = "Monochrome menu bar";
-"settings.theme.preview" = "Preview";
-"settings.theme.preview.normal" = "Normal";
-"settings.theme.preview.warning" = "Warning";
-"settings.theme.preview.critical" = "Critical";
-"settings.theme.reset" = "Reset to Defaults";
-"settings.theme.reset.confirm" = "Reset all theming settings?";
-"settings.theme.reset.cancel" = "Cancel";
-"settings.theme.reset.action" = "Reset";
+/* Thresholds (Pacing section) */
+"settings.thresholds" = "Usage Thresholds";
+"settings.thresholds.hint" = "Used in both modes. Smart Color combines these with the pacing zone (max of the two), so a high utilization always escalates even when pacing is on track.";
+"settings.thresholds.warning" = "Warning";
+"settings.thresholds.critical" = "Critical";
 
 /* Shared reset (per-section) */
 "settings.section.reset" = "Reset to Defaults";
@@ -365,10 +344,6 @@
 "settings.display.reset.confirm" = "Reset all display settings?";
 "settings.popover.reset.confirm" = "Reset all popover settings?";
 "settings.notifications.reset.confirm" = "Reset all notification toggles?";
-"theme.default" = "Default";
-"theme.monochrome" = "Monochrome";
-"theme.neon" = "Neon";
-"theme.pastel" = "Pastel";
 
 /* Dashboard */
 "dashboard.tier" = "Tier";
@@ -402,19 +377,11 @@
 "settings.reset.format.both" = "Both";
 "settings.reset.color" = "Reset countdown";
 "settings.session.periodcolor" = "Period label (5h / 7d)";
-"settings.theme.menubar" = "Menu bar text";
-"settings.theme.menubar.hint" = "Customize the color of the reset countdown and period labels in the menu bar. Leave on system defaults if you want TokenEater to match your menu bar styling.";
-"settings.theme.menubar.resetColor" = "Revert to system default";
-"settings.theme.smartreset" = "Smart color for reset countdown";
-"settings.theme.smartreset.hint" = "Colour the reset countdown based on urgency (gauge colors): green when you have headroom, orange / red when usage is high relative to time remaining. Overrides the manual color above while on.";
+"settings.menubar.color.resetColor" = "Revert to system default";
 
-/* Smart Color (global toggle in Themes) */
+/* Smart Color (global toggle in Pacing) */
 "settings.smartcolor.title" = "Smart Color";
 "settings.smartcolor.hint" = "Color codes adapt to time-to-reset, not just absolute usage.";
-"settings.glow.title" = "Neon glow";
-"settings.glow.hint" = "Halo around gauges and metrics in the popover and monitoring view. Turn off for a cleaner, flatter look.";
-"settings.glow.mode.glow" = "Glow";
-"settings.glow.mode.flat" = "Flat";
 "settings.smartcolor.popover.title" = "How Smart Color works";
 "settings.smartcolor.popover.intro" = "Smart Color factors in the time you have left before the next reset. Same percentage gets a different color depending on how soon you'll be reset.";
 "settings.smartcolor.popover.example1.label" = "Low risk";
@@ -484,7 +451,6 @@
 "history.tooltip.tokens" = "tokens";
 "history.tooltip.sessions" = "%lld session(s)";
 "sidebar.display" = "Menu bar";
-"sidebar.themes" = "Themes";
 "sidebar.pacing" = "Pacing";
 "sidebar.pacing.subtitle" = "Smart Color, sensitivity, and your workweek schedule.";
 "sidebar.popover" = "Popover";
@@ -498,7 +464,6 @@
 
 /* Section subtitles */
 "sidebar.display.subtitle" = "Choose which metrics appear in the menu bar and how they look.";
-"sidebar.themes.subtitle" = "Colours and visual style.";
 "sidebar.settings.subtitle" = "Proxy, refresh interval, and other global preferences.";
 "popover.settings.preview" = "Preview";
 "popover.settings.reset" = "Reset to defaults";

@@ -1,6 +1,4 @@
 import Foundation
-import SwiftUI
-import AppKit
 
 /// Smart-color risk model. Pure functional layer - no UI, no I/O,
 /// no state. Tested directly in isolation (see `SmartColorTests`).
@@ -97,95 +95,33 @@ enum SmartColor {
         return max(a, max(b, c))
     }
 
-    // MARK: - Color interpolation
+    /// End-to-end continuous risk score [0, 1] for a metric's utilization
+    /// against its reset window. Falls back to absolute-only risk when
+    /// there is no reset date / window to project against (e.g. the Extra
+    /// Credits pool). Smart mode is profile-driven; user thresholds only
+    /// apply to threshold mode (see `RiskZone.forPercent`).
+    static func risk(
+        utilization: Double,
+        resetDate: Date?,
+        windowDuration: TimeInterval,
+        pacingMargin: Double = 10,
+        now: Date = Date(),
+        profile: SmartColorProfile = .default
+    ) -> Double {
+        if utilization >= 100 { return 1.0 }
+        let u = max(0, utilization) / 100
+        let params = profile.parameters
 
-    /// Continuous color across 4 anchor stops:
-    /// - 0.00 -> normal (chill)
-    /// - 0.30 -> normal (still chill)
-    /// - 0.55 -> warning (orange)
-    /// - 0.85 -> critical (red)
-    /// - 1.00 -> critical
-    /// HSB interpolation between adjacent stops keeps the gradient
-    /// readable through yellow-orange-red without muddy intermediates.
-    static func colorForRisk(_ risk: Double, theme: ThemeColors) -> Color {
-        let r = max(0, min(1, risk))
-        let normal = Color(hex: theme.gaugeNormal)
-        let warning = Color(hex: theme.gaugeWarning)
-        let critical = Color(hex: theme.gaugeCritical)
-
-        if r <= 0.30 { return normal }
-        if r >= 0.85 { return critical }
-        if r <= 0.55 {
-            let t = (r - 0.30) / 0.25
-            return interpolate(normal, warning, t: t)
-        }
-        let t = (r - 0.55) / 0.30
-        return interpolate(warning, critical, t: t)
-    }
-
-    /// NSColor variant for AppKit surfaces (menu bar, popover chrome).
-    static func nsColorForRisk(_ risk: Double, theme: ThemeColors) -> NSColor {
-        let r = max(0, min(1, risk))
-        let normal = NSColor(hex: theme.gaugeNormal)
-        let warning = NSColor(hex: theme.gaugeWarning)
-        let critical = NSColor(hex: theme.gaugeCritical)
-
-        if r <= 0.30 { return normal }
-        if r >= 0.85 { return critical }
-        if r <= 0.55 {
-            let t = CGFloat((r - 0.30) / 0.25)
-            return interpolateNS(normal, warning, t: t)
-        }
-        let t = CGFloat((r - 0.55) / 0.30)
-        return interpolateNS(warning, critical, t: t)
-    }
-
-    private static func interpolate(_ a: Color, _ b: Color, t: Double) -> Color {
-        let nsA = NSColor(a).usingColorSpace(.sRGB) ?? .gray
-        let nsB = NSColor(b).usingColorSpace(.sRGB) ?? .gray
-        return Color(interpolateHSBNS(nsA, nsB, t: CGFloat(max(0, min(1, t)))))
-    }
-
-    private static func interpolateNS(_ a: NSColor, _ b: NSColor, t: CGFloat) -> NSColor {
-        let aRGB = a.usingColorSpace(.sRGB) ?? a
-        let bRGB = b.usingColorSpace(.sRGB) ?? b
-        return interpolateHSBNS(aRGB, bRGB, t: max(0, min(1, t)))
-    }
-
-    /// HSB-space interpolation between two NSColors. Linear sRGB interp
-    /// produces muddy intermediates around the green->orange band (e.g.
-    /// midpoint of `#22C55E` and `#F97316` is ~`#8E9D3A` olive). HSB
-    /// rotates hue along the natural color wheel so the same midpoint
-    /// becomes a vivid yellow-green instead.
-    ///
-    /// Hue takes the SHORT angular path when the two anchors are within
-    /// half a turn of each other (always true for the gauge palette).
-    /// Saturation, brightness, and alpha lerp linearly. The user's theme
-    /// anchors stay intact - this only changes WHAT happens between
-    /// adjacent anchors, not the anchors themselves.
-    private static func interpolateHSBNS(_ a: NSColor, _ b: NSColor, t: CGFloat) -> NSColor {
-        let f = max(0, min(1, t))
-        let h1 = a.hueComponent
-        let h2 = b.hueComponent
-        let dh = h2 - h1
-
-        // Short-path hue interpolation. NSColor hue is in [0, 1] (full
-        // rotation). For dh ∈ [-0.5, 0.5] we lerp directly; otherwise we
-        // wrap to take the short way around the wheel.
-        let h: CGFloat
-        if abs(dh) <= 0.5 {
-            h = (h1 + dh * f + 1.0).truncatingRemainder(dividingBy: 1.0)
-        } else if dh > 0.5 {
-            h = (h1 + (dh - 1.0) * f + 1.0).truncatingRemainder(dividingBy: 1.0)
-        } else {
-            h = (h1 + (dh + 1.0) * f + 1.0).truncatingRemainder(dividingBy: 1.0)
+        guard let resetDate, windowDuration > 0 else {
+            return absoluteRisk(u: u, θw: params.absoluteLower, θc: params.absoluteUpper)
         }
 
-        let s = a.saturationComponent + (b.saturationComponent - a.saturationComponent) * f
-        let br = a.brightnessComponent + (b.brightnessComponent - a.brightnessComponent) * f
-        let alpha = a.alphaComponent + (b.alphaComponent - a.alphaComponent) * f
+        let remaining = max(0, resetDate.timeIntervalSince(now))
+        let t = min(1.0, remaining / windowDuration)
+        let e = max(0.0, 1.0 - t)
+        let m = pacingMargin / 100
 
-        return NSColor(hue: h, saturation: s, brightness: br, alpha: alpha)
+        return combinedRisk(u: u, e: e, m: m, params: params)
     }
 
     // MARK: - Zone derivation
@@ -237,16 +173,18 @@ enum SmartColor {
         return .chill
     }
 
-    // MARK: - Legacy 3-level mapping
+    // MARK: - RiskZone mapping
 
-    /// Maps the continuous risk back to the legacy `SmartLevel` enum
-    /// used by `NotificationService` and other call sites that haven't
-    /// been migrated to the 4-zone system. Boundaries chosen so
-    /// `.warning` aligns with the orange band and `.critical` with the
-    /// red band.
-    static func legacyLevel(forRisk risk: Double) -> ThemeColors.SmartLevel {
-        if risk >= 0.78 { return .critical }
-        if risk >= 0.50 { return .warning }
-        return .normal
+    /// Maps continuous risk to the semantic `RiskZone` (ok/warning/critical)
+    /// used everywhere a data point needs a color: resolves the 4-zone
+    /// hysteresis result via `zoneForRisk`, then folds chill/onTrack into
+    /// `.ok` (both read as "under control"), warning into `.warning`, and
+    /// hot into `.critical`.
+    static func riskZone(forRisk risk: Double, previous: PacingZone? = nil, params: SmartColorParameters = .default) -> RiskZone {
+        switch zoneForRisk(risk, previous: previous, params: params) {
+        case .chill, .onTrack: return .ok
+        case .warning:         return .warning
+        case .hot:              return .critical
+        }
     }
 }

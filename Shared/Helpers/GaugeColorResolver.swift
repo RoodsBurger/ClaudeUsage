@@ -1,12 +1,12 @@
 import SwiftUI
+import AppKit
 
 /// Single source of truth for "smart vs threshold" gauge coloring, shared by
-/// the Monitoring dashboard, the popover layouts, and (later) the widget.
-/// Previously this dispatch was copy-pasted in `PopoverColors`,
-/// `MonitoringView.gaugeColor/gaugeGradient`, and `MetricTile.body`.
+/// the Monitoring dashboard, the popover layouts, and the menu bar.
 ///
-/// Pure over `ThemeColors` (not the store) so the decision is unit-testable.
-/// The only per-call-site difference is the gradient's start/end points.
+/// Resolves to a `RiskZone` (ok/warning/critical), the single semantic-color
+/// vocabulary every data point in the app draws from. The only per-call-site
+/// difference beyond that is the gradient's start/end points.
 enum GaugeColorMode: Equatable {
     case smart
     case threshold
@@ -24,31 +24,77 @@ enum GaugeColorResolver {
         (smartColorEnabled && windowDuration > 0) ? .smart : .threshold
     }
 
+    /// The resolved `RiskZone` for a data point: smart mode maps the
+    /// continuous risk score through `SmartColor.riskZone`; threshold mode
+    /// maps the raw percentage through the user's warning/critical ladder.
+    static func zone(
+        mode: GaugeColorMode,
+        utilization: Int,
+        resetDate: Date?,
+        windowDuration: TimeInterval,
+        thresholds: UsageThresholds,
+        pacingMargin: Double,
+        now: Date = Date(),
+        profile: SmartColorProfile
+    ) -> RiskZone {
+        switch mode {
+        case .smart:
+            let risk = SmartColor.risk(
+                utilization: Double(utilization),
+                resetDate: resetDate,
+                windowDuration: windowDuration,
+                pacingMargin: pacingMargin,
+                now: now,
+                profile: profile
+            )
+            return SmartColor.riskZone(forRisk: risk, params: profile.parameters)
+        case .threshold:
+            return RiskZone.forPercent(utilization, thresholds: thresholds)
+        }
+    }
+
     static func color(
         mode: GaugeColorMode,
         utilization: Int,
         resetDate: Date?,
         windowDuration: TimeInterval,
-        theme: ThemeColors,
         thresholds: UsageThresholds,
         pacingMargin: Double,
         now: Date = Date(),
         profile: SmartColorProfile
     ) -> Color {
-        switch mode {
-        case .smart:
-            return theme.smartGaugeColor(
-                utilization: Double(utilization),
-                resetDate: resetDate,
-                windowDuration: windowDuration,
-                thresholds: thresholds,
-                pacingMargin: pacingMargin,
-                now: now,
-                profile: profile
-            )
-        case .threshold:
-            return theme.gaugeColor(for: Double(utilization), thresholds: thresholds)
-        }
+        zone(
+            mode: mode,
+            utilization: utilization,
+            resetDate: resetDate,
+            windowDuration: windowDuration,
+            thresholds: thresholds,
+            pacingMargin: pacingMargin,
+            now: now,
+            profile: profile
+        ).color
+    }
+
+    static func nsColor(
+        mode: GaugeColorMode,
+        utilization: Int,
+        resetDate: Date?,
+        windowDuration: TimeInterval,
+        thresholds: UsageThresholds,
+        pacingMargin: Double,
+        now: Date = Date(),
+        profile: SmartColorProfile
+    ) -> NSColor {
+        zone(
+            mode: mode,
+            utilization: utilization,
+            resetDate: resetDate,
+            windowDuration: windowDuration,
+            thresholds: thresholds,
+            pacingMargin: pacingMargin,
+            now: now,
+            profile: profile
+        ).nsColor
     }
 
     static func gradient(
@@ -56,7 +102,6 @@ enum GaugeColorResolver {
         utilization: Int,
         resetDate: Date?,
         windowDuration: TimeInterval,
-        theme: ThemeColors,
         thresholds: UsageThresholds,
         pacingMargin: Double,
         now: Date = Date(),
@@ -64,26 +109,16 @@ enum GaugeColorResolver {
         startPoint: UnitPoint,
         endPoint: UnitPoint
     ) -> LinearGradient {
-        switch mode {
-        case .smart:
-            return theme.smartGaugeGradient(
-                utilization: Double(utilization),
-                resetDate: resetDate,
-                windowDuration: windowDuration,
-                thresholds: thresholds,
-                pacingMargin: pacingMargin,
-                now: now,
-                startPoint: startPoint,
-                endPoint: endPoint,
-                profile: profile
-            )
-        case .threshold:
-            return theme.gaugeGradient(
-                for: Double(utilization),
-                thresholds: thresholds,
-                startPoint: startPoint,
-                endPoint: endPoint
-            )
-        }
+        let base = color(
+            mode: mode,
+            utilization: utilization,
+            resetDate: resetDate,
+            windowDuration: windowDuration,
+            thresholds: thresholds,
+            pacingMargin: pacingMargin,
+            now: now,
+            profile: profile
+        )
+        return LinearGradient(colors: [base, base.lighter()], startPoint: startPoint, endPoint: endPoint)
     }
 }

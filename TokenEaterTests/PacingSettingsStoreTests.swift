@@ -15,7 +15,7 @@ struct PacingSettingsStoreTests {
     @Test("defaults match PacingSchedule.default")
     func defaults() {
         clean(); defer { clean() }
-        let store = PacingSettingsStore(sharedFileService: MockSharedFileService())
+        let store = PacingSettingsStore()
         #expect(store.margin == 10)
         #expect(store.workweekEnabled == false)
         #expect(store.startHour == PacingSchedule.defaultStartHour)
@@ -23,15 +23,13 @@ struct PacingSettingsStoreTests {
         #expect(store.schedule == PacingSchedule.default)
     }
 
-    @Test("changing workweekEnabled persists and mirrors to shared file")
-    func workweekEnabledPersistsAndMirrors() {
+    @Test("changing workweekEnabled persists to UserDefaults")
+    func workweekEnabledPersists() {
         clean(); defer { clean() }
-        let shared = MockSharedFileService()
-        let store = PacingSettingsStore(sharedFileService: shared)
+        let store = PacingSettingsStore()
         store.workweekEnabled = true
         #expect(UserDefaults.standard.object(forKey: "pacingWorkweekEnabled") as? Bool == true)
-        #expect(shared.updatePacingScheduleCallCount >= 1)
-        #expect(shared.pacingSchedule.enabled == true)
+        #expect(store.schedule.enabled == true)
     }
 
     @Test("margin snaps to nearest 5 and clamps to 5...30 on load")
@@ -39,7 +37,7 @@ struct PacingSettingsStoreTests {
         clean(); defer { clean() }
         func loadedMargin(raw: Int) -> Int {
             UserDefaults.standard.set(raw, forKey: "pacingMargin")
-            return PacingSettingsStore(sharedFileService: MockSharedFileService()).margin
+            return PacingSettingsStore().margin
         }
         #expect(loadedMargin(raw: 13) == 15) // 2.6 -> 3 -> 15
         #expect(loadedMargin(raw: 7) == 5)   // 1.4 -> 1 -> 5

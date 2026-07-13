@@ -6,11 +6,11 @@ import SwiftUI
 /// the dominant session metric, a grid of secondary metric tiles, a pacing
 /// signal row, and an optional extra-usage card. Every surface uses
 /// `dsGlass` and pulls colors from `DS` tokens for chrome, while the
-/// gauge/pacing colors continue to flow from `ThemeStore` so user themes
-/// (default / neon / pastel / monochrome) stay in control of the data hue.
+/// gauge/pacing colors flow from `GaugeColorResolver` / `RiskZone` /
+/// `PacingZone.semanticColor` so every data point uses the same semantic
+/// system colors.
 struct MonitoringView: View {
     @EnvironmentObject private var usageStore: UsageStore
-    @EnvironmentObject private var themeStore: ThemeStore
     @EnvironmentObject private var settingsStore: SettingsStore
     @EnvironmentObject private var vendorStatusStore: VendorStatusStore
 
@@ -28,7 +28,6 @@ struct MonitoringView: View {
     @State private var heroBlurProgress: CGFloat = 0
     @State private var heroFlipping: Bool = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.glowIntensity) private var glowIntensity
 
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
@@ -234,7 +233,6 @@ struct MonitoringView: View {
                     Circle()
                         .fill(gaugeColor)
                         .frame(width: 6, height: 6)
-                        .dsGlow(gaugeColor, radius: 4, opacity: 0.6)
                     Text(String(localized: "dashboard.hero.session.label").uppercased())
                         .font(DS.Typography.micro)
                         .tracking(1.5)
@@ -246,7 +244,6 @@ struct MonitoringView: View {
                         .font(.system(size: 64, weight: .bold, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(gaugeColor)
-                        .dsGlow(gaugeColor, radius: 10, opacity: 0.45)
                         .contentTransition(.numericText(value: Double(pct)))
                         .animation(DS.Motion.springLiquid, value: pct)
                     Text("%")
@@ -280,30 +277,25 @@ struct MonitoringView: View {
 
             // Right -> ring + zone glyph
             ZStack {
-                if glowIntensity == .glow {
-                    RadialGradient(
-                        colors: [gaugeColor.opacity(0.20), gaugeColor.opacity(0.04), .clear],
-                        center: .center,
-                        startRadius: 10,
-                        endRadius: 90
-                    )
-                    .frame(width: 200, height: 200)
-                    .blur(radius: 14)
-                    .allowsHitTesting(false)
-                }
+                RadialGradient(
+                    colors: [gaugeColor.opacity(0.20), gaugeColor.opacity(0.04), .clear],
+                    center: .center,
+                    startRadius: 10,
+                    endRadius: 90
+                )
+                .frame(width: 200, height: 200)
+                .blur(radius: 14)
+                .allowsHitTesting(false)
 
                 RingGauge(
                     percentage: pct,
                     gradient: gaugeGradient,
-                    size: 140,
-                    glowColor: gaugeColor,
-                    glowRadius: 8
+                    size: 140
                 )
 
                 Image(systemName: zoneGlyph(for: zone))
                     .font(.system(size: 40, weight: .semibold))
-                    .foregroundStyle(zone.map { themeStore.current.pacingColor(for: $0) } ?? gaugeColor)
-                    .dsGlow(zone.map { themeStore.current.pacingColor(for: $0) } ?? gaugeColor, radius: 10, opacity: 0.55)
+                    .foregroundStyle(zone.map { $0.semanticColor } ?? gaugeColor)
                     .animation(DS.Motion.springLiquid, value: zone)
             }
             .frame(width: 160, height: 160)
@@ -326,7 +318,6 @@ struct MonitoringView: View {
                     Circle()
                         .fill(gaugeColor)
                         .frame(width: 6, height: 6)
-                        .dsGlow(gaugeColor, radius: 4, opacity: 0.6)
                     Text(String(localized: "dashboard.hero.session.label").uppercased() + " · PACING")
                         .font(DS.Typography.micro)
                         .tracking(1.5)
@@ -361,11 +352,11 @@ struct MonitoringView: View {
                     HStack(spacing: 6) {
                         Image(systemName: zoneGlyph(for: zone))
                             .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(themeStore.current.pacingColor(for: zone))
+                            .foregroundStyle(zone.semanticColor)
                         Text(zoneLabel(zone).uppercased())
                             .font(.system(size: 10, weight: .bold))
                             .tracking(1)
-                            .foregroundStyle(themeStore.current.pacingColor(for: zone))
+                            .foregroundStyle(zone.semanticColor)
                     }
                 }
             }
@@ -423,7 +414,7 @@ struct MonitoringView: View {
                             smartEnabled: settingsStore.smartColorEnabled,
                             pacingMargin: Double(settingsStore.pacingMargin),
                             smartProfile: settingsStore.smartColorProfile,
-                            themeStore: themeStore,
+                            thresholds: settingsStore.thresholds,
                             insights: hasRichBack(tileId: tile.id)
                                 ? insightsStore.snapshot(for: tileFamily(for: tile.id))
                                 : nil,
@@ -520,7 +511,7 @@ struct MonitoringView: View {
     }
 
     private func pacingCard(pacing: PacingResult, label: String, icon: String, showWorkweekBadge: Bool = false) -> some View {
-        let tint = themeStore.current.pacingColor(for: pacing.zone)
+        let tint = pacing.zone.semanticColor
         let sign = pacing.delta >= 0 ? "+" : ""
         let schedule = settingsStore.pacingSchedule
         let offRanges: [ClosedRange<Double>] = (showWorkweekBadge && schedule.isActive)
@@ -551,7 +542,6 @@ struct MonitoringView: View {
                         Circle()
                             .fill(tint)
                             .frame(width: 5, height: 5)
-                            .dsGlow(tint, radius: 3, opacity: 1.0)
                         Text(zoneLabel(pacing.zone))
                             .font(.system(size: 9, weight: .bold))
                             .tracking(1.2)
@@ -563,7 +553,6 @@ struct MonitoringView: View {
                     .font(.system(size: 28, weight: .bold, design: .rounded))
                     .monospacedDigit()
                     .foregroundStyle(tint)
-                    .dsGlow(tint, radius: 5, opacity: 0.45)
                     .contentTransition(.numericText(value: pacing.delta))
                     .animation(DS.Motion.springLiquid, value: pacing.delta)
             }
@@ -615,12 +604,10 @@ struct MonitoringView: View {
                 RoundedRectangle(cornerRadius: 3)
                     .fill(LinearGradient(colors: [tint.opacity(0.7), tint], startPoint: .leading, endPoint: .trailing))
                     .frame(width: geo.size.width * CGFloat(clampedActual) / 100, height: 6)
-                    .dsGlow(tint, radius: 4, opacity: 0.4)
                 Rectangle()
                     .fill(Color.white.opacity(nowInOffDay ? 0.4 : 0.85))
                     .frame(width: 2, height: 12)
                     .offset(x: (markerFraction.map { geo.size.width * CGFloat(min(max($0, 0), 1)) } ?? (geo.size.width * CGFloat(clampedExpected) / 100)) - 1, y: -3)
-                    .dsGlow(.white, radius: 2, opacity: nowInOffDay ? 0.15 : 0.4)
             }
         }
         .frame(height: 12)
@@ -640,7 +627,6 @@ struct MonitoringView: View {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 16, weight: .bold))
                     .foregroundStyle(tint)
-                    .dsGlow(tint, radius: 4, opacity: 0.45)
                 Text(title)
                     .font(DS.Typography.title2)
                     .foregroundStyle(DS.Palette.textPrimary)
@@ -675,10 +661,10 @@ struct MonitoringView: View {
         let limit = extra.monthlyLimit ?? 0
         let pct = extra.utilization.map { Int($0) } ?? (limit > 0 ? Int(used / limit * 100) : 0)
         let currency = extra.currency ?? "USD"
-        // Same threshold ladder + theme palette as the menu bar / popover /
-        // widgets. Extra Credits has no reset window, so it never uses Smart
-        // Color; the static gauge thresholds keep every surface in agreement.
-        let tint = themeStore.current.gaugeColor(for: Double(pct), thresholds: themeStore.thresholds)
+        // Same threshold ladder as the menu bar / popover. Extra Credits has
+        // no reset window, so it never uses Smart Color; the static gauge
+        // thresholds keep every surface in agreement.
+        let tint = RiskZone.forPercent(pct, thresholds: settingsStore.thresholds).color
 
         return VStack(alignment: .leading, spacing: DS.Spacing.sm) {
             HStack {
@@ -690,7 +676,6 @@ struct MonitoringView: View {
                     .font(.system(size: 20, weight: .bold, design: .rounded))
                     .monospacedDigit()
                     .foregroundStyle(tint)
-                    .dsGlow(tint, radius: 4, opacity: 0.45)
             }
             if limit > 0 {
                 GeometryReader { geo in
@@ -772,17 +757,16 @@ struct MonitoringView: View {
 
     // MARK: - Helpers
 
-    /// Smart-aware gauge color helper. When the user enabled "Smart Color" in
-    /// Themes, uses the risk-aware formula (utilization x time-to-reset);
-    /// otherwise falls back to the static threshold ramp.
+    /// Smart-aware gauge color helper. When the user enabled Smart Color,
+    /// uses the risk-aware formula (utilization x time-to-reset); otherwise
+    /// falls back to the static threshold ramp.
     private func gaugeColor(pct: Int, resetDate: Date?, windowDuration: TimeInterval) -> Color {
         GaugeColorResolver.color(
             mode: GaugeColorResolver.mode(smartColorEnabled: settingsStore.smartColorEnabled, windowDuration: windowDuration),
             utilization: pct,
             resetDate: resetDate,
             windowDuration: windowDuration,
-            theme: themeStore.current,
-            thresholds: themeStore.thresholds,
+            thresholds: settingsStore.thresholds,
             pacingMargin: Double(settingsStore.pacingMargin),
             profile: settingsStore.smartColorProfile
         )
@@ -794,8 +778,7 @@ struct MonitoringView: View {
             utilization: pct,
             resetDate: resetDate,
             windowDuration: windowDuration,
-            theme: themeStore.current,
-            thresholds: themeStore.thresholds,
+            thresholds: settingsStore.thresholds,
             pacingMargin: Double(settingsStore.pacingMargin),
             profile: settingsStore.smartColorProfile,
             startPoint: .topLeading,

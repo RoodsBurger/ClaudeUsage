@@ -2,7 +2,6 @@ import SwiftUI
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     var usageStore: UsageStore!
-    var themeStore: ThemeStore!
     var settingsStore: SettingsStore!
     var vendorStatusStore: VendorStatusStore!
 
@@ -26,7 +25,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         statusBarController = StatusBarController(
             usageStore: usageStore,
-            themeStore: themeStore,
             settingsStore: settingsStore,
             vendorStatusStore: vendorStatusStore
         )
@@ -38,19 +36,16 @@ struct TokenEaterApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     private let usageStore: UsageStore
-    private let themeStore: ThemeStore
     private let settingsStore: SettingsStore
     private let vendorStatusStore: VendorStatusStore
 
     init() {
         self.usageStore = UsageStore()
-        self.themeStore = ThemeStore()
         self.settingsStore = SettingsStore()
         self.vendorStatusStore = VendorStatusStore()
 
         NotificationService().setupDelegate()
         appDelegate.usageStore = usageStore
-        appDelegate.themeStore = themeStore
         appDelegate.settingsStore = settingsStore
         appDelegate.vendorStatusStore = vendorStatusStore
     }

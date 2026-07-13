@@ -4,12 +4,13 @@ import AppKit
 /// TokenEater design tokens -> single source of truth for the window app chrome
 /// (sidebar, cards, panels, typo, spacing, motion).
 ///
-/// Scope : window app only. Does NOT apply to the menu bar, popover, or widget,
-/// which keep their existing identity.
+/// Scope : window app only. Does NOT apply to the menu bar or popover, which
+/// keep their existing identity.
 ///
-/// Cohabits with user themes (`ThemeColors` + presets default/neon/pastel/monochrome)
-/// which continue to color *only* the data points (gauges, pacing dots, metric
-/// values). The chrome stays constant regardless of the active theme.
+/// Cohabits with the semantic `RiskZone` / `PacingZone` colors (see
+/// `Shared/Design/Semantic.swift`) which color *only* the data points
+/// (gauges, pacing dots, metric values). The chrome stays constant
+/// regardless of a data point's risk zone.
 ///
 /// Reference -> `docs/design/MASTER.md`
 enum DS {
@@ -140,39 +141,6 @@ enum DS {
         static let elev   = ShadowToken(radius: 48, y: 16, alpha: 0.32)
     }
 
-    /// Arc-like glow -> halo bleeding from the border on hover/focus.
-    /// Apply via `.dsGlow(color:strong:)` below.
-    enum Glow {
-        static let subtle = ShadowToken(radius: 16, y: 0, alpha: 0.25)
-        static let strong = ShadowToken(radius: 24, y: 0, alpha: 0.40)
-    }
-
-    /// Binary toggle for the popover and monitoring glow / halo effect.
-    /// `.glow` keeps the default neon look, `.flat` removes every shadow on
-    /// gauges, metric text, and pacing tiles. Driven via a single environment
-    /// value so toggling the setting applies everywhere immediately.
-    enum GlowIntensity: String, CaseIterable, Identifiable, Hashable {
-        case glow
-        case flat
-
-        public var id: String { rawValue }
-
-        var radiusMultiplier: CGFloat {
-            self == .glow ? 1.0 : 0.0
-        }
-
-        var opacityMultiplier: Double {
-            self == .glow ? 1.0 : 0.0
-        }
-
-        var localizedLabel: String {
-            switch self {
-            case .glow: return String(localized: "settings.glow.mode.glow")
-            case .flat: return String(localized: "settings.glow.mode.flat")
-            }
-        }
-    }
-
     // MARK: - Motion
 
     enum Duration {
@@ -220,14 +188,9 @@ enum DS {
 // MARK: - View modifiers
 
 extension View {
-    /// Apply a `DS.Shadow` / `DS.Glow` token directly.
+    /// Apply a `DS.Shadow` token directly.
     func dsShadow(_ token: DS.ShadowToken) -> some View {
         self.shadow(color: token.color, radius: token.radius, x: 0, y: token.y)
-    }
-
-    /// Tinted Arc-like glow using an arbitrary color (usually module accent).
-    func dsGlow(color: Color, token: DS.ShadowToken = DS.Glow.subtle) -> some View {
-        self.shadow(color: color.opacity(token.alpha), radius: token.radius, x: 0, y: token.y)
     }
 
     /// Standard glass surface : `bgElevated` at partial alpha, `.ultraThinMaterial`
