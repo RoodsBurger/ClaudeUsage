@@ -25,7 +25,10 @@ overhaul:
 ## Goals
 
 - One native macOS design language across every surface.
+- Menu bar item as the primary surface: deeply configurable content, format,
+  and display modes.
 - Correct, plan-aware labeling of usage-based spend, with dollar amounts primary.
+- Easy install on the work machine: downloadable DMG from GitHub Releases.
 - Same binary adapts to personal (Pro/Max) and work (Enterprise) accounts with no
   mode switch — everything derives from the API response.
 - A raw API response viewer so unknown account shapes can be inspected in-app.
@@ -103,10 +106,26 @@ dark/light.
 
 ## 3. Surfaces
 
-- **Menu bar item.** `MenuBarRenderer` keeps its style options (icon only,
-  percent, pinned metrics) with colors remapped to semantic risk colors. New
-  pinnable metric: spend in dollars (`$142`). AppKit `NSStatusItem` hosting is
-  unchanged.
+- **Menu bar item — the primary surface.** The owner lives in the menu bar, so
+  it gets the deepest configurability. `MenuBarRenderer` stays a pure, unit-
+  tested helper; AppKit `NSStatusItem` hosting is unchanged. Everything below is
+  user-configurable from a new Settings → Menu Bar section with a live preview:
+  - **Pinned metrics.** Any subset of available metrics (session 5h, weekly,
+    per-model weeklies, spend), user-ordered, shown side by side with a
+    configurable separator (`·` default).
+  - **Per-metric format.** Prefix style (SF Symbol, short label like `5h`/`W`,
+    or none) and value style (percent, dollars for spend, remaining instead of
+    used) per pinned metric.
+  - **Display modes.** All-pinned row · highest-risk-only (single metric, the
+    one closest to its limit) · rotate through pinned metrics every N seconds.
+  - **Reset countdown.** Optional inline countdown next to a metric
+    (`42% · 2h13m`), format configurable (compact / clock time).
+  - **Color.** Monochrome template (native menu bar look) or semantic risk
+    coloring (green/orange/red); applies to text, icon, or both.
+  - **Icon.** Show/hide the app glyph; glyph tint follows overall risk;
+    `symbolEffect(.pulse)` during refresh.
+  - All numbers `.monospacedDigit()` to prevent menu bar width jitter; fixed-
+    width rendering option to stop neighbor icons shifting.
 - **Popover (single layout, ~340pt wide).** Vertical stack with dividers:
   1. Header: 32pt tinted status disc (pulsing hierarchical symbol) + app name in
      `.rounded` + plan badge + account email `.caption .tertiary`.
@@ -163,9 +182,18 @@ dark/light.
 - `project.yml`: drop the widget target and its entitlements/plist wiring; keep
   `TokenEaterApp` and `TokenEaterTests`; remove the installer prebuild step.
   Regenerate with `xcodegen generate`.
-- Workflows: keep only `ci.yml` (build + tests on PR/push). Delete `release.yml`
-  and `test-build.yml` — both depend on signing/notarization secrets this fork
-  does not have; local `build.sh` covers installs.
+- Workflows: keep `ci.yml` (build + tests on PR/push). Replace `release.yml`
+  with a trimmed release workflow: on `v*` tag (or manual dispatch), build
+  Release, ad-hoc sign, package a DMG, attach it to a GitHub Release. No
+  notarization (owner has no paid Apple Developer account); Sparkle/appcast/
+  homebrew publishing deleted. Delete `test-build.yml`.
+- **Install story (work machine).** Download DMG from the fork's GitHub
+  Releases → drag to /Applications → first launch via right-click → Open (or
+  System Settings → Privacy & Security → Open Anyway) because the build is not
+  notarized. Documented as a short "Install" section in the README. Known risk:
+  a strict MDM policy that fully blocks unidentified developers would require
+  building from source on the work machine instead; treated as a fallback, not
+  the primary path.
 - Docs (`README`/`SETUP`/`AGENTS`): rewrite to match the reduced app after
   implementation stabilizes.
 
@@ -176,9 +204,11 @@ Three stages, each ending with a green build + tests:
 1. **Strip.** Delete cut-list items, fix compilation, prune project.yml and CI,
    delete orphaned tests. App runs with old look minus removed features.
 2. **Reskin.** New `DS`, single popover, semantic colors, grouped settings,
-   sidebar main window, hero onboarding.
-3. **Spend.** `SpendInfo` + plan-aware labels + dollar displays + menu bar `$`
-   pin + raw API viewer + `billing_type` pill + enterprise-shaped JSON fixtures.
+   sidebar main window, hero onboarding, menu bar configurability (pinned
+   metrics, formats, display modes, live preview).
+3. **Spend + ship.** `SpendInfo` + plan-aware labels + dollar displays + menu
+   bar `$` pin + raw API viewer + `billing_type` pill + enterprise-shaped JSON
+   fixtures; trimmed DMG release workflow + README install section.
 
 Verification per repo rules:
 
