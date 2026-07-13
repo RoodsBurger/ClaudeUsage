@@ -1,5 +1,4 @@
 import SwiftUI
-import Combine
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     var usageStore: UsageStore!

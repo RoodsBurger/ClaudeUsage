@@ -41,7 +41,6 @@ final class StatusBarController: NSObject {
         setupPopover()
         observeStoreChanges()
         observeDashboardRequest()
-        observeAppActivation()
 
         if settingsStore.hasCompletedOnboarding {
             bootstrapRefresh()
@@ -265,20 +264,6 @@ final class StatusBarController: NSObject {
             name: .openDashboard,
             object: nil
         )
-    }
-
-    private func observeAppActivation() {
-        NSWorkspace.shared.notificationCenter.addObserver(
-            self,
-            selector: #selector(appDidActivate),
-            name: NSWorkspace.didActivateApplicationNotification,
-            object: nil
-        )
-    }
-
-    @objc private func appDidActivate(_ notification: Notification) {
-        guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
-              app.bundleIdentifier == Bundle.main.bundleIdentifier else { return }
     }
 
     @objc private func handleDashboardRequest(_ notification: Notification) {

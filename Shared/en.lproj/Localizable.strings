@@ -27,47 +27,6 @@
 "metric.sonnet" = "Sonnet";
 "metric.reset" = "Resets in %@";
 
-/* Widget */
-"widget.session" = "Session";
-"widget.weekly" = "Weekly";
-"widget.sonnet" = "Sonnet";
-"widget.session.subtitle" = "5h sliding window";
-"widget.weekly.full" = "Weekly";
-"widget.weekly.subtitle" = "Opus + Sonnet + Haiku";
-"widget.sonnet.subtitle" = "Dedicated limit";
-"widget.offline" = "Offline";
-"widget.loading" = "Loading...";
-"widget.reset" = "Reset %@";
-"widget.soon" = "Soon";
-"widget.updated" = "Upd. %@";
-"widget.refresh.interval" = "15 min";
-"widget.refresh.button" = "Refresh";
-"widget.description.usage" = "Monitor your Claude usage in real time";
-"widget.description.pacing" = "Your Claude usage pace";
-"widget.title.sessionRing" = "Session Ring";
-"widget.description.sessionRing" = "Big ring gauge for your 5h session window with Smart Color";
-"widget.title.pacingGraph" = "Pacing Graph";
-"widget.description.pacingGraph" = "See your pace versus the ideal trajectory in one glance";
-"widget.title.historySparkline" = "Tokens History";
-"widget.description.historySparkline" = "Last 7 days of token usage with daily totals and trend";
-"widget.title.usage" = "Overview";
-"widget.title.pacingGlance" = "Pacing Glance";
-"widget.pacing.title" = "Weekly Pace";
-"widget.pacing.session" = "5h";
-"widget.pacing.weekly" = "7d";
-"widget.design" = "Design";
-"widget.extra" = "Extra Credits";
-"widget.title.extraCredits" = "Extra Credits";
-"widget.description.extraCredits" = "Track your paid Extra Credits pool: spend, monthly limit and percentage used";
-"widget.extra.disabled" = "Extra Credits not enabled";
-"widget.history.title" = "History";
-"widget.history.last7days" = "Last 7 days";
-"widget.history.total" = "Total";
-"widget.history.vsYesterday" = "vs yesterday";
-"widget.history.stale" = "Open the app to refresh";
-"widget.history.empty.title" = "No history yet";
-"widget.history.empty.body" = "Open TokenEater so it can index your sessions";
-
 /* Settings */
 "settings.subtitle" = "Monitor your Claude usage";
 "settings.test" = "Test";
@@ -144,8 +103,6 @@
 "guide.oauth.step1" = "Install **Claude Code** (Anthropic's CLI)";
 "guide.oauth.step2" = "Open TokenEater and click **Connect**";
 "guide.oauth.step3" = "Done - token refreshes automatically";
-"guide.widget" = "Add the widget";
-"guide.widget.detail" = "Right-click desktop > **Edit Widgets** > **TokenEater**";
 
 /* Errors - API */
 "error.notoken" = "No OAuth token found. Install Claude Code and click Connect.";
@@ -386,8 +343,6 @@
 "settings.theme.pacing.chill" = "Pacing Chill";
 "settings.theme.pacing.ontrack" = "Pacing On Track";
 "settings.theme.pacing.hot" = "Pacing Hot";
-"settings.theme.widget.bg" = "Widget Background";
-"settings.theme.widget.text" = "Widget Text";
 "settings.theme.thresholds" = "Usage Thresholds";
 "settings.theme.thresholds.hint" = "Used in both modes. Smart Color combines these with the pacing zone (max of the two), so a high utilization always escalates even when pacing is on track.";
 "settings.theme.warning" = "Warning";
@@ -674,7 +629,6 @@
 
 /* Fable (Claude Fable weekly limit) */
 "metric.fable" = "Fable";
-"widget.fable" = "Fable";
 "popover.option.showFable" = "Show Fable ring (Classic variant)";
 "settings.notifications.track.fable" = "Track Claude Fable weekly";
 "notif.title.fable.pace" = "Ahead of Fable pace";
