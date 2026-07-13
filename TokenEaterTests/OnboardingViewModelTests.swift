@@ -1,7 +1,7 @@
 import Testing
 import Foundation
 
-private let settingsKeys = ["overlayEnabled", "hasCompletedOnboarding"]
+private let settingsKeys = ["hasCompletedOnboarding"]
 
 private func cleanDefaults() {
     for key in settingsKeys {
@@ -74,14 +74,4 @@ struct OnboardingViewModelTests {
         #expect(vm.canFinish == false)
     }
 
-    @Test("readyCount counts gates and optional toggles independently")
-    func readyCountSemantics() {
-        let vm = makeViewModel()
-        vm.claudeCodeStatus = .detected
-        vm.connectionStatus = .idle
-        vm.watcherEnabled = true
-        // claudeCode + watchers = 2 ready out of 4
-        #expect(vm.readyCount == 2)
-        #expect(vm.totalSteps == 4)
-    }
 }

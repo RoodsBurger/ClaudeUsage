@@ -29,6 +29,8 @@ overhaul:
   and display modes.
 - Correct, plan-aware labeling of usage-based spend, with dollar amounts primary.
 - Easy install on the work machine: downloadable DMG from GitHub Releases.
+- Self-sufficient auth: sign in once per machine, app keeps itself authenticated
+  — no Claude Code terminal required, no re-auth after reboot.
 - Same binary adapts to personal (Pro/Max) and work (Enterprise) accounts with no
   mode switch — everything derives from the API response.
 - A raw API response viewer so unknown account shapes can be inspected in-app.
@@ -177,7 +179,42 @@ dark/light.
 - **No mode switch.** Personal Mac shows Pro/Max buckets; work Mac shows
   enterprise labeling + dollars. All differences derive from response + profile.
 
-## 5. Project & CI changes
+## 5. Self-sufficient authentication
+
+Today the app only borrows Claude Code's OAuth token (Keychain item
+`Claude Code-credentials` via the `security` CLI, or credential files) and has
+no refresh capability of its own. Two failure modes follow:
+
+- The borrowed access token expires unless Claude Code itself is running to
+  refresh it — hence "keep a terminal open".
+- Local ad-hoc builds change code-signing identity, so the Keychain ACL
+  "Always Allow" doesn't stick and every reboot/rebuild re-prompts.
+
+Fix:
+
+- **First-class OAuth login (primary).** New `OAuthService` implementing the
+  same authorization-code + PKCE flow Claude Code uses (public client id,
+  `claude.ai` authorize page, token exchange endpoint). Login: browser opens →
+  user authorizes → local loopback callback (127.0.0.1, random port; manual
+  code-paste fallback) → access + refresh tokens stored in an **app-owned**
+  Keychain item (service `com.tokeneater.oauth`). Because the app creates the
+  item, reads are ACL-prompt-free regardless of signing identity.
+- **Autonomous refresh.** `TokenProvider` refreshes proactively before
+  `expiresAt` and reactively on 401 (refresh → retry once). No dependency on
+  Claude Code running; survives reboots for the refresh token's lifetime.
+- **Borrowed token demoted to fallback.** The existing Claude Code readers
+  remain as a secondary "use Claude Code's session" connect option (useful
+  first-run shortcut), clearly labeled, with its known limitations.
+- **Onboarding:** primary button "Sign in with Claude" (runs OAuthService),
+  secondary "Use Claude Code's token" (runs today's bootstrap).
+- **Sign out:** deletes the app-owned Keychain item and clears in-memory cache.
+- Tokens live only in the Keychain and memory — never on disk; `shared.json`
+  continues to hold usage numbers only.
+- **Risk:** the OAuth client id/endpoints are unpublished internals and could
+  change; the borrowed-token fallback stays as the safety net. Validated by a
+  real login during implementation.
+
+## 6. Project & CI changes
 
 - `project.yml`: drop the widget target and its entitlements/plist wiring; keep
   `TokenEaterApp` and `TokenEaterTests`; remove the installer prebuild step.
@@ -197,16 +234,18 @@ dark/light.
 - Docs (`README`/`SETUP`/`AGENTS`): rewrite to match the reduced app after
   implementation stabilizes.
 
-## 6. Staging & verification
+## 7. Staging & verification
 
-Three stages, each ending with a green build + tests:
+Four stages, each ending with a green build + tests:
 
 1. **Strip.** Delete cut-list items, fix compilation, prune project.yml and CI,
    delete orphaned tests. App runs with old look minus removed features.
 2. **Reskin.** New `DS`, single popover, semantic colors, grouped settings,
    sidebar main window, hero onboarding, menu bar configurability (pinned
    metrics, formats, display modes, live preview).
-3. **Spend + ship.** `SpendInfo` + plan-aware labels + dollar displays + menu
+3. **Auth.** `OAuthService` + autonomous refresh + onboarding sign-in +
+   sign-out; borrowed-token readers demoted to fallback.
+4. **Spend + ship.** `SpendInfo` + plan-aware labels + dollar displays + menu
    bar `$` pin + raw API viewer + `billing_type` pill + enterprise-shaped JSON
    fixtures; trimmed DMG release workflow + README install section.
 

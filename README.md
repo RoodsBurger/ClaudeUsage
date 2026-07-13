@@ -89,8 +89,6 @@ If installed via Homebrew: `brew uninstall --cask tokeneater`
 git clone https://github.com/AThevon/TokenEater.git
 cd TokenEater
 xcodegen generate
-plutil -insert NSExtension -json '{"NSExtensionPointIdentifier":"com.apple.widgetkit-extension"}' \
-  TokenEaterWidget/Info.plist 2>/dev/null || true
 xcodebuild -project TokenEater.xcodeproj -scheme TokenEaterApp \
   -configuration Release -derivedDataPath build build
 cp -R "build/Build/Products/Release/TokenEater.app" /Applications/
@@ -143,7 +141,6 @@ Anthropic does not currently offer a third-party OAuth flow or scoped API tokens
 |---------|-------|-----|
 | "Rate limited" or "API unavailable" | Your OAuth token has hit its per-token request limit | Run `claude /login` in your terminal for a fresh token - TokenEater detects the change and recovers automatically within seconds |
 | Keychain popup asking to access "Claude Code-credentials" | First run on a new install needs to authorize `/usr/bin/security` to read your Claude Code token | Click **Always Allow** once - it sticks across future app updates |
-| Widget stuck / not updating | macOS caches widget extensions aggressively | Remove the widget, run a clean reset, re-add the widget |
 
 ### Clean reset
 
@@ -151,43 +148,29 @@ If something is broken and you want to start fresh, run this in your terminal. I
 
 ```bash
 # 1. Kill processes
-killall TokenEater NotificationCenter chronod cfprefsd 2>/dev/null; sleep 1
+killall TokenEater NotificationCenter cfprefsd 2>/dev/null; sleep 1
 
 # 2. Wipe preferences
 defaults delete com.tokeneater.app 2>/dev/null
-defaults delete com.claudeusagewidget.app 2>/dev/null
 rm -f ~/Library/Preferences/com.tokeneater.app.plist
-rm -f ~/Library/Preferences/com.claudeusagewidget.app.plist
 
 # 3. Wipe sandbox containers
-for c in com.tokeneater.app com.tokeneater.app.widget com.claudeusagewidget.app com.claudeusagewidget.app.widget; do
+for c in com.tokeneater.app; do
     d="$HOME/Library/Containers/$c/Data"
     [ -d "$d" ] && rm -rf "$d/Library/Preferences/"* "$d/Library/Caches/"* "$d/Library/Application Support/"* "$d/tmp/"* 2>/dev/null
 done
 
 # 4. Wipe shared data and caches
 rm -rf ~/Library/Application\ Support/com.tokeneater.shared
-rm -rf ~/Library/Application\ Support/com.claudeusagewidget.shared
 rm -rf ~/Library/Caches/com.tokeneater.app
-rm -rf ~/Library/Group\ Containers/group.com.claudeusagewidget.shared
 
-# 5. Wipe WidgetKit caches (critical - macOS keeps old widget binaries here)
-TMPBASE=$(getconf DARWIN_USER_TEMP_DIR)
-CACHEBASE=$(getconf DARWIN_USER_CACHE_DIR)
-rm -rf "${TMPBASE}com.apple.chrono" "${CACHEBASE}com.apple.chrono" 2>/dev/null
-rm -rf "${CACHEBASE}com.tokeneater.app" "${CACHEBASE}com.claudeusagewidget.app" 2>/dev/null
-
-# 6. Unregister widget plugins
-pluginkit -r -i com.tokeneater.app.widget 2>/dev/null
-pluginkit -r -i com.claudeusagewidget.app.widget 2>/dev/null
-
-# 7. Remove the app
+# 5. Remove the app
 rm -rf /Applications/TokenEater.app
 ```
 
 > Some `Operation not permitted` errors on container metadata files are normal - macOS protects those, but the actual data is cleaned.
 
-After this, reinstall from the [latest release](https://github.com/AThevon/TokenEater/releases/latest/download/TokenEater.dmg) or via Homebrew, then **remove old widgets from your desktop and add them again** (right-click > Edit Widgets > TokenEater).
+After this, reinstall from the [latest release](https://github.com/AThevon/TokenEater/releases/latest/download/TokenEater.dmg) or via Homebrew.
 
 ## Contributing
 

@@ -92,7 +92,7 @@ func darkPrimaryButton(_ titleKey: LocalizedStringResource, action: @escaping ()
 
 /// Bottom-of-section reset control with a destructive confirmation alert.
 /// Shared across settings sub-sections so the visual + interaction is
-/// identical everywhere (Themes, Display, Popover, Watchers, Notifications,
+/// identical everywhere (Themes, Display, Popover, Notifications,
 /// Performance). Caller passes the localised confirmation title and the
 /// closure that performs the actual reset.
 struct ResetSectionButton: View {

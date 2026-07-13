@@ -43,13 +43,6 @@ targets:
           - CFBundleURLName: com.tokeneater.app
             CFBundleURLSchemes:
               - tokeneater
-    preBuildScripts:
-      - script: |
-          osacompile -o "$BUILT_PRODUCTS_DIR/$PRODUCT_NAME.app/Contents/Resources/TokenEaterInstaller.app" "$SRCROOT/TokenEaterApp/Resources/installer.applescript"
-        name: Compile installer applets
-    dependencies:
-      - target: TokenEaterWidgetExtension
-        embed: true
 
   TokenEaterTests:
     type: bundle.unit-test
@@ -63,26 +56,6 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.tokeneater.tests
         CODE_SIGN_IDENTITY: ""
         CODE_SIGNING_REQUIRED: "NO"
-
-  TokenEaterWidgetExtension:
-    type: app-extension
-    platform: macOS
-    sources:
-      - path: TokenEaterWidget
-        excludes:
-          - Info.plist
-      - path: Shared
-    settings:
-      base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.tokeneater.app.widget
-        PRODUCT_NAME: TokenEaterWidgetExtension
-        CODE_SIGN_ENTITLEMENTS: TokenEaterWidget/TokenEaterWidget.entitlements
-        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks @executable_path/../../../../Frameworks"
-    info:
-      path: TokenEaterWidget/Info.plist
-      properties:
-        NSExtension:
-          NSExtensionPointIdentifier: com.apple.widgetkit-extension
 
 schemes:
   TokenEaterTests:
@@ -98,7 +71,6 @@ schemes:
     build:
       targets:
         TokenEaterApp: all
-        TokenEaterWidgetExtension: all
     run:
       config: Debug
     archive:

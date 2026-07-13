@@ -113,6 +113,5 @@ final class ThemeStore: ObservableObject {
 
     func syncToSharedFile() {
         sharedFileService.updateTheme(current, thresholds: thresholds)
-        WidgetReloader.scheduleReload()
     }
 }

@@ -1,5 +1,15 @@
 import Foundation
 
+/// Activity state derived from the last meaningful event in a session's JSONL tail.
+enum SessionState: String, Sendable {
+    case idle
+    case thinking
+    case toolExec
+    case waiting
+    case subagent
+    case compacting
+}
+
 struct JSONLParseResult: Sendable {
     let sessionId: String
     let projectPath: String

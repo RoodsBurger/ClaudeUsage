@@ -1,9 +1,7 @@
 import Foundation
 
 final class SharedFileService: SharedFileServiceProtocol, @unchecked Sendable {
-    private static let appGroupID = "group.com.tokeneater"
-    private static let legacyDirectoryName = "com.tokeneater.shared"
-    private static let oldDirectoryName = "com.claudeusagewidget.shared"
+    private static let directoryName = "com.tokeneater.shared"
     private static let fileName = "shared.json"
 
     private var realHomeDirectory: String {
@@ -32,85 +30,11 @@ final class SharedFileService: SharedFileServiceProtocol, @unchecked Sendable {
     private var rootDirectoryURL: URL {
         URL(fileURLWithPath: realHomeDirectory)
             .appendingPathComponent("Library/Application Support")
-            .appendingPathComponent(Self.legacyDirectoryName)
+            .appendingPathComponent(Self.directoryName)
     }
 
     private var sharedFileURL: URL {
         rootDirectoryURL.appendingPathComponent(Self.fileName)
-    }
-
-    private var legacyHomeRelativeFileURL: URL {
-        URL(fileURLWithPath: realHomeDirectory)
-            .appendingPathComponent("Library/Application Support")
-            .appendingPathComponent(Self.legacyDirectoryName)
-            .appendingPathComponent(Self.fileName)
-    }
-
-    private var oldProductFileURL: URL {
-        URL(fileURLWithPath: realHomeDirectory)
-            .appendingPathComponent("Library/Application Support")
-            .appendingPathComponent(Self.oldDirectoryName)
-            .appendingPathComponent(Self.fileName)
-    }
-
-    init() {
-        migrateFromOldProductName()
-        migrateFromGroupContainerToHomeRelative()
-    }
-
-    // MARK: - Migrations
-
-    /// v4.x migration: users who installed very early with the `com.claudeusagewidget.*`
-    /// bundle IDs still have the old directory. Move its content into the new one.
-    private func migrateFromOldProductName() {
-        let fm = FileManager.default
-        guard fm.fileExists(atPath: oldProductFileURL.path) else { return }
-
-        let legacyDir = legacyHomeRelativeFileURL.deletingLastPathComponent()
-        try? fm.createDirectory(at: legacyDir, withIntermediateDirectories: true)
-
-        if !fm.fileExists(atPath: legacyHomeRelativeFileURL.path) {
-            try? fm.copyItem(at: oldProductFileURL, to: legacyHomeRelativeFileURL)
-        }
-
-        try? fm.removeItem(at: oldProductFileURL.deletingLastPathComponent())
-    }
-
-    /// Reverse migration: previous v5.0 builds wrote to the App Group container
-    /// (when running desandboxed - macOS hands out a Group Container path even
-    /// without the entitlement) but the sandboxed widget couldn't read it.
-    /// This pulls any data stranded there back to the home-relative path that
-    /// both processes can see, then removes the Group Container directory.
-    /// No-op when the container doesn't exist or is empty.
-    private func migrateFromGroupContainerToHomeRelative() {
-        let fm = FileManager.default
-        guard let container = fm.containerURL(forSecurityApplicationGroupIdentifier: Self.appGroupID) else {
-            return
-        }
-        guard fm.fileExists(atPath: container.path) else { return }
-
-        let items = (try? fm.contentsOfDirectory(at: container, includingPropertiesForKeys: nil)) ?? []
-        guard !items.isEmpty else {
-            try? fm.removeItem(at: container)
-            return
-        }
-
-        let homeDir = legacyHomeRelativeFileURL.deletingLastPathComponent()
-        try? fm.createDirectory(at: homeDir, withIntermediateDirectories: true)
-        var allCopiesOK = true
-        for item in items {
-            let dest = homeDir.appendingPathComponent(item.lastPathComponent)
-            if !fm.fileExists(atPath: dest.path) {
-                do {
-                    try fm.copyItem(at: item, to: dest)
-                } catch {
-                    allCopiesOK = false
-                }
-            }
-        }
-        if allCopiesOK {
-            try? fm.removeItem(at: container)
-        }
     }
 
     // MARK: - SharedData (same JSON format as SharedContainer for backward compat)

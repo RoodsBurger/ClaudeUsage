@@ -90,48 +90,6 @@ final class SettingsStore: ObservableObject {
         didSet { UserDefaults.standard.set(proxyPort, forKey: "proxyPort") }
     }
 
-    // Overlay + Performance - extracted into a child ObservableObject domain
-    // slice, same pattern as `pacing`. Views should prefer `settings.overlay.$x`
-    // for bindings; the forwards below keep existing non-binding call sites
-    // compiling without change.
-    @Published var overlay: OverlaySettingsStore
-    private var overlayRelay: AnyCancellable?
-
-    // Backwards-compatible forwards (no $ bindings should target these).
-    var overlayEnabled: Bool {
-        get { overlay.overlayEnabled } set { overlay.overlayEnabled = newValue }
-    }
-    var overlayDockEffect: Bool {
-        get { overlay.overlayDockEffect } set { overlay.overlayDockEffect = newValue }
-    }
-    var overlayScale: Double {
-        get { overlay.overlayScale } set { overlay.overlayScale = newValue }
-    }
-    var overlayLeftSide: Bool {
-        get { overlay.overlayLeftSide } set { overlay.overlayLeftSide = newValue }
-    }
-    var overlayTriggerZone: OverlayTriggerZone {
-        get { overlay.overlayTriggerZone } set { overlay.overlayTriggerZone = newValue }
-    }
-    var watchersDetailedMode: Bool {
-        get { overlay.watchersDetailedMode } set { overlay.watchersDetailedMode = newValue }
-    }
-    var watcherStyle: WatcherStyle {
-        get { overlay.watcherStyle } set { overlay.watcherStyle = newValue }
-    }
-    var watcherDisplayMode: WatcherDisplayMode {
-        get { overlay.watcherDisplayMode } set { overlay.watcherDisplayMode = newValue }
-    }
-    var watcherScanInterval: WatcherScanInterval {
-        get { overlay.watcherScanInterval } set { overlay.watcherScanInterval = newValue }
-    }
-    var watcherVisibility: WatcherVisibility {
-        get { overlay.watcherVisibility } set { overlay.watcherVisibility = newValue }
-    }
-    var watcherAnimationsEnabled: Bool {
-        get { overlay.watcherAnimationsEnabled } set { overlay.watcherAnimationsEnabled = newValue }
-    }
-
     // Pacing - extracted into a child ObservableObject domain slice. Views should
     // prefer `settings.pacing.$x` for bindings; the forwards below keep existing
     // non-binding call sites compiling without change.
@@ -316,7 +274,6 @@ final class SettingsStore: ObservableObject {
 
         self.pacing = PacingSettingsStore(sharedFileService: sharedFileService)
         self.notification = NotificationSettingsStore()
-        self.overlay = OverlaySettingsStore()
         self.display = DisplaySettingsStore(sharedFileService: sharedFileService)
 
         self.hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
@@ -368,9 +325,6 @@ final class SettingsStore: ObservableObject {
             self?.objectWillChange.send()
         }
         self.notificationRelay = notification.objectWillChange.sink { [weak self] in
-            self?.objectWillChange.send()
-        }
-        self.overlayRelay = overlay.objectWillChange.sink { [weak self] in
             self?.objectWillChange.send()
         }
         self.displayRelay = display.objectWillChange.sink { [weak self] in

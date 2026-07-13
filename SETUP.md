@@ -28,10 +28,6 @@ brew install xcodegen
 # Generate Xcode project
 xcodegen generate
 
-# Fix widget Info.plist (XcodeGen strips NSExtension)
-plutil -insert NSExtension -json '{"NSExtensionPointIdentifier":"com.apple.widgetkit-extension"}' \
-  TokenEaterWidget/Info.plist 2>/dev/null || true
-
 # Build
 xcodebuild -project TokenEater.xcodeproj \
   -scheme TokenEaterApp \

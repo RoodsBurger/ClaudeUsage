@@ -30,8 +30,6 @@ Three targets:
 | `TokenEaterWidgetExtension` | The WidgetKit extension. Sandboxed and read-only (WidgetKit requires `app-sandbox: true`). | `TokenEaterWidget/` + `Shared/` |
 | `TokenEaterTests` | Swift Testing bundle, unsigned. | `TokenEaterTests/` + `Shared/` + the single file `TokenEaterApp/OnboardingViewModel.swift` |
 
-XcodeGen strips the widget's `NSExtension` key from `Info.plist` on every generate, so a `plutil -insert NSExtension ...` step is load-bearing and present in every workflow and in `SETUP.md`. Keep it; if the widget gallery ever shows nothing, this is the first thing to check.
-
 `Shared/` is compiled into all three targets:
 
 - `Shared/Models/` - pure `Codable` structs and enums (UsageModels, ProfileModels, PacingModels, ThemeModels, SessionModels, MetricModels, ProxyConfig, and the various display-format enums).
@@ -168,23 +166,14 @@ macOS caches widget extensions aggressively (binary, timeline, rendering). The n
 ```bash
 # Build
 xcodegen generate && \
-plutil -insert NSExtension -json '{"NSExtensionPointIdentifier":"com.apple.widgetkit-extension"}' TokenEaterWidget/Info.plist 2>/dev/null; \
 xcodebuild -project TokenEater.xcodeproj -scheme TokenEaterApp -configuration Release -derivedDataPath build -allowProvisioningUpdates DEVELOPMENT_TEAM=S7B8M9JYF4 build 2>&1 | tail -3 && \
 \
-# Nuke: kill processes + caches + plugin
-killall TokenEater 2>/dev/null; killall NotificationCenter 2>/dev/null; killall chronod 2>/dev/null; \
+# Nuke: kill processes + caches
+killall TokenEater 2>/dev/null; killall NotificationCenter 2>/dev/null; \
 rm -rf ~/Library/Application\ Support/com.tokeneater.shared && \
-rm -rf ~/Library/Application\ Support/com.claudeusagewidget.shared && \
 rm -rf ~/Library/Group\ Containers/S7B8M9JYF4.group.com.tokeneater && \
 rm -rf ~/Library/Group\ Containers/group.com.tokeneater && \
-rm -rf ~/Library/Group\ Containers/group.com.claudeusagewidget.shared && \
-rm -rf /private/var/folders/d6/*/0/com.apple.chrono 2>/dev/null; \
-rm -rf /private/var/folders/d6/*/T/com.apple.chrono 2>/dev/null; \
-rm -rf /private/var/folders/d6/*/C/com.apple.chrono 2>/dev/null; \
 rm -rf /private/var/folders/d6/*/C/com.tokeneater.app 2>/dev/null; \
-rm -rf /private/var/folders/d6/*/C/com.claudeusagewidget.app 2>/dev/null; \
-pluginkit -r -i com.tokeneater.app.widget 2>/dev/null; \
-pluginkit -r -i com.claudeusagewidget.app.widget 2>/dev/null; \
 \
 # Install + register + launch
 sleep 2 && \
@@ -200,15 +189,11 @@ Why each nuke step is needed:
 
 | Step | Reason |
 |------|--------|
-| `killall TokenEater / NotificationCenter / chronod` | The app and the widget daemons hold the old binary in memory. |
+| `killall TokenEater / NotificationCenter` | The app holds the old binary in memory. |
 | `rm -rf .../com.tokeneater.shared` | Removes the shared JSON (token + usage cache) to start clean. |
-| `rm -rf .../com.claudeusagewidget.shared` | Removes the old shared directory (migration leftover). |
 | `rm -rf .../Group Containers/...` | Old group container (unused now, but can linger). |
-| `rm -rf /private/var/folders/.../com.apple.chrono` | The most important step: macOS WidgetKit caches (timeline, rendering, widget binary). Without this, macOS keeps using the old widget. |
-| `pluginkit -r` | Unregisters the widget extension so macOS does not keep the old one in memory. |
+| `rm -rf /private/var/folders/.../com.tokeneater.app` | Application cache to ensure clean state. |
 | `lsregister -f -R` | Forces LaunchServices to re-scan the `.app` so it does not keep old version metadata. |
-
-After installing, remove the old widget from the desktop and add a fresh one (right-click > Edit Widgets > TokenEater).
 
 The `xattr -cr` above is only for ad-hoc local builds. Official releases are Developer ID-signed and notarized in CI, so shipped DMGs are not quarantined.
 

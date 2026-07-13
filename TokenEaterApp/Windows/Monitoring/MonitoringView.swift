@@ -12,7 +12,6 @@ struct MonitoringView: View {
     @EnvironmentObject private var usageStore: UsageStore
     @EnvironmentObject private var themeStore: ThemeStore
     @EnvironmentObject private var settingsStore: SettingsStore
-    @EnvironmentObject private var sessionStore: SessionStore
     @EnvironmentObject private var vendorStatusStore: VendorStatusStore
 
     /// Lightweight 7d daily-buckets store for the back-of-card stats.
@@ -371,42 +370,6 @@ struct MonitoringView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-
-            // Right column: live session activity. Sessions count is the
-            // headline number; top model fills the line below. Pulls
-            // from SessionStore (kept in sync by the overlay watcher).
-            VStack(alignment: .trailing, spacing: 6) {
-                Text("LIVE")
-                    .font(DS.Typography.micro)
-                    .tracking(1.2)
-                    .foregroundStyle(DS.Palette.textTertiary)
-
-                let count = sessionStore.activeSessions.count
-                Text("\(count)")
-                    .font(.system(size: 34, weight: .bold, design: .rounded))
-                    .foregroundStyle(count > 0 ? DS.Palette.textPrimary : DS.Palette.textTertiary)
-                    .monospacedDigit()
-                    .contentTransition(.numericText(value: Double(count)))
-                    .animation(DS.Motion.springLiquid, value: count)
-                Text(count == 1 ? "active session" : "active sessions")
-                    .font(.system(size: 9, weight: .medium))
-                    .tracking(0.8)
-                    .foregroundStyle(DS.Palette.textTertiary)
-                    .textCase(.uppercase)
-
-                if let topModel = sessionStore.topActiveModelName {
-                    HStack(spacing: 5) {
-                        Circle()
-                            .fill(gaugeColor)
-                            .frame(width: 5, height: 5)
-                        Text(topModel)
-                            .font(.system(size: 11, weight: .semibold, design: .rounded))
-                            .foregroundStyle(DS.Palette.textSecondary)
-                    }
-                    .padding(.top, 2)
-                }
-            }
-            .frame(width: 160, height: 160)
         }
     }
 

@@ -27,47 +27,6 @@
 "metric.sonnet" = "Sonnet";
 "metric.reset" = "Resets in %@";
 
-/* Widget */
-"widget.session" = "Session";
-"widget.weekly" = "Weekly";
-"widget.sonnet" = "Sonnet";
-"widget.session.subtitle" = "5h sliding window";
-"widget.weekly.full" = "Weekly";
-"widget.weekly.subtitle" = "Opus + Sonnet + Haiku";
-"widget.sonnet.subtitle" = "Dedicated limit";
-"widget.offline" = "Offline";
-"widget.loading" = "Loading...";
-"widget.reset" = "Reset %@";
-"widget.soon" = "Soon";
-"widget.updated" = "Upd. %@";
-"widget.refresh.interval" = "15 min";
-"widget.refresh.button" = "Refresh";
-"widget.description.usage" = "Monitor your Claude usage in real time";
-"widget.description.pacing" = "Your Claude usage pace";
-"widget.title.sessionRing" = "Session Ring";
-"widget.description.sessionRing" = "Big ring gauge for your 5h session window with Smart Color";
-"widget.title.pacingGraph" = "Pacing Graph";
-"widget.description.pacingGraph" = "See your pace versus the ideal trajectory in one glance";
-"widget.title.historySparkline" = "Tokens History";
-"widget.description.historySparkline" = "Last 7 days of token usage with daily totals and trend";
-"widget.title.usage" = "Overview";
-"widget.title.pacingGlance" = "Pacing Glance";
-"widget.pacing.title" = "Weekly Pace";
-"widget.pacing.session" = "5h";
-"widget.pacing.weekly" = "7d";
-"widget.design" = "Design";
-"widget.extra" = "Extra Credits";
-"widget.title.extraCredits" = "Extra Credits";
-"widget.description.extraCredits" = "Track your paid Extra Credits pool: spend, monthly limit and percentage used";
-"widget.extra.disabled" = "Extra Credits not enabled";
-"widget.history.title" = "History";
-"widget.history.last7days" = "Last 7 days";
-"widget.history.total" = "Total";
-"widget.history.vsYesterday" = "vs yesterday";
-"widget.history.stale" = "Open the app to refresh";
-"widget.history.empty.title" = "No history yet";
-"widget.history.empty.body" = "Open TokenEater so it can index your sessions";
-
 /* Settings */
 "settings.subtitle" = "Monitor your Claude usage";
 "settings.test" = "Test";
@@ -144,8 +103,6 @@
 "guide.oauth.step1" = "Install **Claude Code** (Anthropic's CLI)";
 "guide.oauth.step2" = "Open TokenEater and click **Connect**";
 "guide.oauth.step3" = "Done - token refreshes automatically";
-"guide.widget" = "Add the widget";
-"guide.widget.detail" = "Right-click desktop > **Edit Widgets** > **TokenEater**";
 
 /* Errors - API */
 "error.notoken" = "No OAuth token found. Install Claude Code and click Connect.";
@@ -386,8 +343,6 @@
 "settings.theme.pacing.chill" = "Pacing Chill";
 "settings.theme.pacing.ontrack" = "Pacing On Track";
 "settings.theme.pacing.hot" = "Pacing Hot";
-"settings.theme.widget.bg" = "Widget Background";
-"settings.theme.widget.text" = "Widget Text";
 "settings.theme.thresholds" = "Usage Thresholds";
 "settings.theme.thresholds.hint" = "Used in both modes. Smart Color combines these with the pacing zone (max of the two), so a high utilization always escalates even when pacing is on track.";
 "settings.theme.warning" = "Warning";
@@ -409,9 +364,7 @@
 "settings.section.reset.action" = "Reset";
 "settings.display.reset.confirm" = "Reset all display settings?";
 "settings.popover.reset.confirm" = "Reset all popover settings?";
-"settings.watchers.reset.confirm" = "Reset all watcher settings?";
 "settings.notifications.reset.confirm" = "Reset all notification toggles?";
-"settings.performance.reset.confirm" = "Reset all performance settings?";
 "theme.default" = "Default";
 "theme.monochrome" = "Monochrome";
 "theme.neon" = "Neon";
@@ -490,105 +443,6 @@
 "settings.smartColor.profile.balanced.hint" = "Default tuning.";
 "settings.smartColor.profile.vigilant.hint" = "Reads early signals as risk.";
 
-/* Update */
-"update.check" = "Check for updates";
-"update.uptodate" = "Up to date";
-"update.available.title" = "Update available";
-"update.available.subtitle" = "A new version of TokenEater is ready";
-"update.available.badge %@" = "v%@ available";
-"update.download" = "Download";
-"update.later" = "Later";
-"update.downloading" = "Downloading update...";
-"update.downloading.hint" = "This will only take a moment";
-"update.ready.title" = "Ready to install";
-"update.ready.subtitle" = "macOS will ask for your password to install the update.";
-"update.install" = "Install & relaunch";
-"update.install.hint" = "TokenEater will restart automatically";
-"update.installing" = "Installing...";
-"update.installing.hint" = "Enter your password when macOS asks";
-"update.version.current" = "Current";
-"update.version.new" = "New";
-"update.error.signatureInvalid" = "Signature verification failed. Aborting install.";
-"update.error.signatureMissing" = "Update is missing a signature. Aborting install.";
-"update.error.sizeMismatch" = "Update file size does not match the appcast. Aborting install.";
-"update.error.verifyReadFailed" = "Could not read update files for verification. Aborting install.";
-"update.notes.title" = "What's new";
-"update.notes.loading" = "Fetching release notes…";
-"update.notes.unavailable" = "Release notes unavailable";
-"update.notes.viewOnGitHub" = "View on GitHub";
-
-/* Brew Migration */
-"update.brew.detected" = "Installed via Homebrew";
-"update.brew.hint" = "Updates are now handled directly by TokenEater. Run this command to clean up the old brew install:";
-"update.brew.dismiss" = "Dismiss";
-
-/* Session Overlay */
-"settings.overlay.title" = "Session Overlay";
-"settings.overlay.toggle" = "Show session overlay";
-
-/* Agent Watchers */
-"settings.watchers.description" = "A floating overlay showing your active Claude Code sessions. Hover to expand, click to jump to a session.";
-"settings.watchers.trigger" = "Hover zone";
-"settings.watchers.trigger.minimal" = "Minimal";
-"settings.watchers.trigger.narrow" = "Narrow";
-"settings.watchers.trigger.medium" = "Medium";
-"settings.watchers.trigger.wide" = "Wide";
-"settings.watchers.trigger.hint" = "How close to the screen edge the cursor must get to open the overlay. Minimal keeps the rest of the screen fully clickable; once the overlay pops open the grabable area grows so the cursor can drift without snapping shut.";
-"settings.watchers.legend" = "Status legend";
-"settings.watchers.legend.hint" = "Color cues that show on each session tile.";
-"settings.watchers.legend.simple" = "Simple";
-"settings.watchers.legend.detailed" = "Detailed";
-"settings.watchers.behavior.hint" = "How the overlay reveals itself and where it lives on screen.";
-"settings.watchers.style.hint" = "Visual treatment for each session tile.";
-"settings.watchers.terminalSetup" = "Terminal setup";
-"settings.watchers.terminalSetup.hint" = "Helpers for tmux, WezTerm and Kitty in one place.";
-"settings.watchers.terminalSetup.sheet.hint" = "Drop the matching snippet into your terminal config so TokenEater can pick up sessions correctly.";
-"settings.watchers.animations" = "Animations";
-"settings.watchers.idle" = "Idle - waiting for input";
-"settings.watchers.thinking" = "Thinking - generating a response";
-"settings.watchers.executing" = "Executing - running a tool";
-"settings.watchers.waiting" = "Waiting - needs your input";
-"settings.watchers.subagent" = "Subagent - spawned an agent";
-"settings.watchers.compacting" = "Compacting - compressing context";
-"settings.watchers.detailed" = "Detailed status mode";
-"settings.watchers.simple.idle" = "Idle - waiting for input";
-"settings.watchers.simple.working" = "Working - Claude is busy";
-"settings.watchers.behavior" = "Behavior";
-"settings.watchers.dock" = "Dock effect";
-"settings.watchers.leftside" = "Left side";
-"settings.watchers.size" = "Card size";
-"settings.watchers.size.reset" = "Reset to default";
-"settings.watchers.tmux.title" = "tmux setup";
-"settings.watchers.tmux.hint" = "If you use tmux, add this line to your ~/.tmux.conf so TokenEater can switch to the right pane on click:";
-"settings.watchers.tmux.copy" = "Copy";
-"settings.watchers.kitty.title" = "Kitty setup";
-"settings.watchers.kitty.hint" = "If you use Kitty, add this line to your kitty.conf so TokenEater can switch to the right tab on click:";
-"settings.watchers.kitty.copy" = "Copy";
-"settings.watchers.wezterm.title" = "WezTerm setup";
-"settings.watchers.wezterm.hint" = "If you use WezTerm, add this line to your ~/.wezterm.lua so TokenEater can switch to the right pane on click:";
-"settings.watchers.wezterm.copy" = "Copy";
-"settings.watchers.style" = "Overlay style";
-"settings.watchers.style.frost" = "Frost";
-"settings.watchers.style.neon" = "Neon";
-"settings.watchers.display" = "Display mode";
-"settings.watchers.display.branchPriority" = "Branch priority";
-"settings.watchers.display.projectAndBranch" = "Project + Branch";
-"settings.watchers.scanrate" = "Scan rate";
-"settings.watchers.visibility" = "Visibility";
-"settings.watchers.display.branchPriority.hint" = "Shows the git branch as the title when on a non-default branch, otherwise the project name.";
-"settings.watchers.display.projectAndBranch.hint" = "Always shows the project name as the title, with the branch displayed next to the status.";
-
-/* Performance */
-"sidebar.performance" = "Performance";
-"settings.performance.description" = "If TokenEater uses too much CPU, disable resource-heavy features here.";
-"settings.performance.dashboard" = "Dashboard";
-"settings.performance.gradient" = "Animated gradient";
-"settings.performance.watchers" = "Agent Watchers";
-"settings.performance.animations" = "Watcher animations";
-"settings.performance.monitor" = "Session Monitor";
-"settings.performance.monitor.toggle" = "Session detection";
-"settings.performance.monitor.warning" = "Disabling this turns off the Agent Watchers overlay entirely.";
-
 /* Sidebar */
 "sidebar.dashboard" = "Dashboard";
 "sidebar.stats" = "Stats";
@@ -634,7 +488,6 @@
 "sidebar.pacing" = "Pacing";
 "sidebar.pacing.subtitle" = "Smart Color, sensitivity, and your workweek schedule.";
 "sidebar.popover" = "Popover";
-"sidebar.agentWatchers" = "Watchers";
 "sidebar.notifications" = "Notifications";
 "sidebar.notifications.subtitle" = "Pick which events should fire a notification. Toggles run independently.";
 "sidebar.settings" = "Settings";
@@ -646,8 +499,6 @@
 /* Section subtitles */
 "sidebar.display.subtitle" = "Choose which metrics appear in the menu bar and how they look.";
 "sidebar.themes.subtitle" = "Colours and visual style.";
-"sidebar.agentWatchers.subtitle" = "Floating overlay for your live Claude Code sessions.";
-"sidebar.performance.subtitle" = "Fine-tune CPU usage by disabling features you don't need.";
 "sidebar.settings.subtitle" = "Proxy, refresh interval, and other global preferences.";
 "popover.settings.preview" = "Preview";
 "popover.settings.reset" = "Reset to defaults";
@@ -675,7 +526,6 @@
 "popoverBlock.weeklyPaceTile" = "Weekly pacing tile";
 "popoverBlock.sessionPaceMini" = "Session pacing (mini)";
 "popoverBlock.weeklyPaceMini" = "Weekly pacing (mini)";
-"popoverBlock.watchers" = "Agent watchers";
 "popoverBlock.timestamp" = "Updated timestamp";
 "popoverBlock.openTokenEaterButton" = "Open TokenEater button";
 "popoverBlock.quitButton" = "Quit button";
@@ -717,10 +567,7 @@
 "contextmenu.refresh" = "Refresh now";
 "contextmenu.open" = "Open TokenEater...";
 "contextmenu.variant" = "Popover layout";
-"contextmenu.watchers.enable" = "Enable Agent Watchers";
-"contextmenu.watchers.disable" = "Disable Agent Watchers";
 "contextmenu.settings" = "Settings";
-"contextmenu.updates" = "Check for updates...";
 
 "pacing.session.label.short" = "Session";
 "pacing.weekly.label.short" = "Weekly";
@@ -757,12 +604,7 @@
 "onboarding.card.notifications.test" = "Send test";
 "onboarding.card.notifications.opensettings" = "Open Settings";
 
-/* Card 3 - Watchers */
-"onboarding.card.watchers.title" = "Agent Watchers";
-"onboarding.card.watchers.status.on" = "on - live overlay";
-"onboarding.card.watchers.status.off" = "off - tiles paused";
-
-/* Card 4 - Connect */
+/* Card 3 - Connect */
 "onboarding.card.connect.title" = "Connect";
 "onboarding.card.connect.status.idle" = "tap to authorize";
 "onboarding.card.connect.status.connecting" = "talking to keychain...";
@@ -787,7 +629,6 @@
 
 /* Fable (Claude Fable weekly limit) */
 "metric.fable" = "Fable";
-"widget.fable" = "Fable";
 "popover.option.showFable" = "Show Fable ring (Classic variant)";
 "settings.notifications.track.fable" = "Track Claude Fable weekly";
 "notif.title.fable.pace" = "Ahead of Fable pace";

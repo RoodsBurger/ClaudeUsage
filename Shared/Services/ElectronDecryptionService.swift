@@ -40,9 +40,7 @@ final class ElectronDecryptionService: ElectronDecryptionServiceProtocol, @unche
     private static let electronService = "Claude Safe Storage"
     private static let electronAccount = "Claude Key"
 
-    // TokenEater cached key Keychain
-    private static let cacheService = "TokenEater"
-    private static let cacheAccount = "decryption-key"
+    // File-based key cache version marker
     private static let cacheVersionByte: UInt8 = 0x01
 
     // MARK: - State
@@ -54,19 +52,7 @@ final class ElectronDecryptionService: ElectronDecryptionServiceProtocol, @unche
     var hasEncryptionKey: Bool { derivedKey != nil }
 
     init() {
-        // Try file first (new path)
-        if let key = Self.loadKeyFromFile() {
-            derivedKey = key
-            return
-        }
-
-        // Migrate from Keychain (old path) - one-time, silent
-        if let key = Self.loadCachedKeyFromKeychain() {
-            Self.saveKeyToFile(key)
-            Self.deleteCachedKeyFromKeychain()
-            derivedKey = key
-            return
-        }
+        derivedKey = Self.loadKeyFromFile()
     }
 
     func decrypt(_ encryptedBase64: String) throws -> Data {
@@ -270,40 +256,6 @@ final class ElectronDecryptionService: ElectronDecryptionServiceProtocol, @unche
     static func deleteKeyFile(at url: URL? = nil) {
         let fileURL = url ?? keyFileURL
         try? FileManager.default.removeItem(at: fileURL)
-    }
-
-    // MARK: - Migration (Keychain → File, remove after v5.x)
-
-    private static func loadCachedKeyFromKeychain() -> Data? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: cacheService,
-            kSecAttrAccount as String: cacheAccount,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne,
-            kSecUseAuthenticationUI as String: kSecUseAuthenticationUISkip,
-        ]
-
-        var result: AnyObject?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
-
-        guard status == errSecSuccess,
-              let data = result as? Data,
-              data.count > 1,
-              data.first == cacheVersionByte else {
-            return nil
-        }
-
-        return data.dropFirst() // strip version byte
-    }
-
-    private static func deleteCachedKeyFromKeychain() {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: cacheService,
-            kSecAttrAccount as String: cacheAccount,
-        ]
-        SecItemDelete(query as CFDictionary)
     }
 
     // MARK: - Test Helpers

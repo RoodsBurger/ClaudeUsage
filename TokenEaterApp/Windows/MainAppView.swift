@@ -4,8 +4,6 @@ struct MainAppView: View {
     @EnvironmentObject private var usageStore: UsageStore
     @EnvironmentObject private var themeStore: ThemeStore
     @EnvironmentObject private var settingsStore: SettingsStore
-    @EnvironmentObject private var updateStore: UpdateStore
-    @EnvironmentObject private var sessionStore: SessionStore
 
     @State private var selectedSpace: AppSpace = .monitoring
     @State private var selectedSettingsSection: SettingsSection = .general
@@ -103,13 +101,6 @@ struct MainAppView: View {
         .padding(.horizontal, DS.Spacing.sm)
         .padding(.bottom, DS.Spacing.sm)
         .dsWindowBackground()
-        .overlay {
-            if updateStore.updateState.isModalVisible {
-                UpdateModalView()
-                    .transition(.opacity)
-                    .animation(DS.Motion.springSoft, value: updateStore.updateState.isModalVisible)
-            }
-        }
         .onReceive(NotificationCenter.default.publisher(for: .navigateToSection)) { notification in
             guard let payload = notification.userInfo?["section"] as? String,
                   let target = NavigationTarget.parse(payload) else { return }

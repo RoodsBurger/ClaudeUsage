@@ -85,40 +85,6 @@ struct DisplaySettingsStoreTests {
         #expect(shared.updateSmartColorProfileCallCount >= 1)
     }
 
-    @Test("legacy pinned 'pacing' migrates to weeklyPacing")
-    func legacyPacingPinMigrates() {
-        clean(); defer { clean() }
-        UserDefaults.standard.set(["fiveHour", "pacing"], forKey: "pinnedMetrics")
-        let store = DisplaySettingsStore(sharedFileService: MockSharedFileService())
-        #expect(store.pinnedMetrics.contains(.weeklyPacing))
-        #expect(!store.pinnedMetrics.contains(where: { $0.rawValue == "pacing" }))
-    }
-
-    @Test("legacy showSessionReset=true adds the sessionReset pin")
-    func legacyShowSessionResetMigrates() {
-        clean(); defer { clean() }
-        UserDefaults.standard.set(true, forKey: "showSessionReset")
-        let store = DisplaySettingsStore(sharedFileService: MockSharedFileService())
-        #expect(store.pinnedMetrics.contains(.sessionReset))
-    }
-
-    @Test("legacy smartResetColor=false is respected when smartColorEnabled is absent")
-    func legacySmartResetColorRespected() {
-        clean(); defer { clean() }
-        UserDefaults.standard.set(false, forKey: "smartResetColor")
-        let store = DisplaySettingsStore(sharedFileService: MockSharedFileService())
-        #expect(store.smartColorEnabled == false)
-    }
-
-    @Test("legacy global pacingDisplayMode seeds both per-bucket modes")
-    func legacyPacingDisplayModeMigrates() {
-        clean(); defer { clean() }
-        UserDefaults.standard.set(PacingDisplayMode.delta.rawValue, forKey: "pacingDisplayMode")
-        let store = DisplaySettingsStore(sharedFileService: MockSharedFileService())
-        #expect(store.sessionPacingDisplayMode == .delta)
-        #expect(store.weeklyPacingDisplayMode == .delta)
-    }
-
     @Test("child change relays objectWillChange to SettingsStore parent")
     func relaysToParent() {
         clean(); defer { clean() }

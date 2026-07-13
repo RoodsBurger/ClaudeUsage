@@ -31,37 +31,23 @@ final class OnboardingViewModel: ObservableObject {
     @Published var connectionStatus: ConnectionStatus = .idle
     @Published var notificationStatus: NotificationStatus = .unknown
 
-    /// Bridges `SettingsStore.overlayEnabled` so the Watchers card can
-    /// toggle directly without going through an environment object. Default
-    /// reflects the current store value at init time so re-running the
-    /// onboarding shows the user's existing preference.
-    @Published var watcherEnabled: Bool
-
     /// Total number of cards the user can interact with. Used by the hero
-    /// progress indicator. Hard-coded at 4 (Claude Code, Notifications,
-    /// Watchers, Connect).
-    let totalSteps: Int = 4
+    /// progress indicator. Hard-coded at 3 (Claude Code, Notifications,
+    /// Connect).
+    let totalSteps: Int = 3
 
     private let tokenProvider: TokenProviderProtocol
     private let repository: UsageRepositoryProtocol
     private let notificationService: NotificationServiceProtocol
-    private let settingsStore: SettingsStore
 
     init(
         tokenProvider: TokenProviderProtocol = TokenProvider(),
         repository: UsageRepositoryProtocol = UsageRepository(),
-        notificationService: NotificationServiceProtocol = NotificationService(),
-        settingsStore: SettingsStore? = nil
+        notificationService: NotificationServiceProtocol = NotificationService()
     ) {
         self.tokenProvider = tokenProvider
         self.repository = repository
         self.notificationService = notificationService
-        let store = settingsStore ?? SettingsStore(
-            notificationService: notificationService,
-            tokenProvider: tokenProvider
-        )
-        self.settingsStore = store
-        self.watcherEnabled = store.overlayEnabled
     }
 
     /// Whether the user might see a Keychain dialog (first connection attempt)
@@ -80,14 +66,13 @@ final class OnboardingViewModel: ObservableObject {
         }
     }
 
-    /// Hero progress count - how many of the 4 cards are in their "ready"
-    /// state. Both gates must be green; optional toggles count as ready
-    /// when on (Watchers) or authorized (Notifications).
+    /// Hero progress count - how many of the 3 cards are in their "ready"
+    /// state. Both gates must be green; the optional toggle counts as ready
+    /// when authorized (Notifications).
     var readyCount: Int {
         var count = 0
         if claudeCodeStatus == .detected { count += 1 }
         if notificationStatus == .authorized { count += 1 }
-        if watcherEnabled { count += 1 }
         switch connectionStatus {
         case .success, .rateLimited:
             count += 1
@@ -95,13 +80,6 @@ final class OnboardingViewModel: ObservableObject {
             break
         }
         return count
-    }
-
-    /// Updates `SettingsStore.overlayEnabled` whenever the user flicks the
-    /// Watchers toggle. Called from `WatchersCard`.
-    func setWatcherEnabled(_ enabled: Bool) {
-        watcherEnabled = enabled
-        settingsStore.overlayEnabled = enabled
     }
 
     func checkClaudeCode() {
@@ -186,6 +164,5 @@ final class OnboardingViewModel: ObservableObject {
     }
 
     func completeOnboarding() {
-        WidgetReloader.scheduleReload()
     }
 }

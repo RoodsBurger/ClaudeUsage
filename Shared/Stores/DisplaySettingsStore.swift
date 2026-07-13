@@ -2,7 +2,7 @@ import Foundation
 
 /// Display / menu-bar domain slice of the user settings. Extracted from
 /// SettingsStore as part of the fat-store split, same pattern as
-/// `PacingSettingsStore`, `NotificationSettingsStore`, and `OverlaySettingsStore`.
+/// `PacingSettingsStore` and `NotificationSettingsStore`.
 ///
 /// Owns the menu-bar visibility + style, the pinned metrics set, the reset /
 /// pacing display formats, the smart-color settings (with the shared-file mirror
@@ -113,14 +113,8 @@ final class DisplaySettingsStore: ObservableObject {
         self.resetTextColorHex = UserDefaults.standard.string(forKey: "resetTextColorHex") ?? ""
         self.sessionPeriodColorHex = UserDefaults.standard.string(forKey: "sessionPeriodColorHex") ?? ""
 
-        // Default ON. Migration: if the user had explicitly set the legacy
-        // "smartResetColor" key, respect that decision; otherwise opt them into
-        // smart coloring globally.
-        let initialSmartColor: Bool = {
-            if let v = UserDefaults.standard.object(forKey: "smartColorEnabled") as? Bool { return v }
-            if let legacy = UserDefaults.standard.object(forKey: "smartResetColor") as? Bool { return legacy }
-            return true
-        }()
+        // Default ON.
+        let initialSmartColor = UserDefaults.standard.object(forKey: "smartColorEnabled") as? Bool ?? true
         self.smartColorEnabled = initialSmartColor
         // Push the resolved value to the shared file so the (sandboxed) widget
         // sees the same setting on first launch without waiting for a toggle.
@@ -142,35 +136,18 @@ final class DisplaySettingsStore: ObservableObject {
             rawValue: UserDefaults.standard.string(forKey: "pacingShape") ?? "circle"
         ) ?? .circle
 
-        // Migrate the legacy global `pacingDisplayMode` into the two per-bucket
-        // settings so existing users keep the mode they had. If either per-bucket
-        // value has been saved before, prefer it.
-        let legacyMode = PacingDisplayMode(
-            rawValue: UserDefaults.standard.string(forKey: "pacingDisplayMode") ?? "dotDelta"
-        ) ?? .dotDelta
         self.sessionPacingDisplayMode = PacingDisplayMode(
-            rawValue: UserDefaults.standard.string(forKey: "sessionPacingDisplayMode") ?? legacyMode.rawValue
-        ) ?? legacyMode
+            rawValue: UserDefaults.standard.string(forKey: "sessionPacingDisplayMode") ?? "dotDelta"
+        ) ?? .dotDelta
         self.weeklyPacingDisplayMode = PacingDisplayMode(
-            rawValue: UserDefaults.standard.string(forKey: "weeklyPacingDisplayMode") ?? legacyMode.rawValue
-        ) ?? legacyMode
+            rawValue: UserDefaults.standard.string(forKey: "weeklyPacingDisplayMode") ?? "dotDelta"
+        ) ?? .dotDelta
 
-        var legacyPinned: Set<MetricID>
         if let saved = UserDefaults.standard.stringArray(forKey: "pinnedMetrics") {
-            // Migrate legacy "pacing" (covered weekly only) to the explicit weeklyPacing id.
-            let normalized = saved.map { $0 == "pacing" ? "weeklyPacing" : $0 }
-            legacyPinned = Set(normalized.compactMap { MetricID(rawValue: $0) })
+            self.pinnedMetrics = Set(saved.compactMap { MetricID(rawValue: $0) })
         } else {
-            legacyPinned = [.fiveHour, .sevenDay]
+            self.pinnedMetrics = [.fiveHour, .sevenDay]
         }
-        // Migrate the old `showSessionReset` boolean into the new `.sessionReset`
-        // pinnable metric so existing users keep seeing the countdown they opted
-        // in to.
-        if UserDefaults.standard.object(forKey: "showSessionReset") != nil,
-           UserDefaults.standard.bool(forKey: "showSessionReset") {
-            legacyPinned.insert(.sessionReset)
-        }
-        self.pinnedMetrics = legacyPinned
 
         // displaySonnet and displayDesign default to false for everyone -
         // the satellites are opt-in. Users who had the old behaviour (sonnet

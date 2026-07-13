@@ -10,7 +10,7 @@ enum PopoverBlockID: String, Codable, CaseIterable, Identifiable {
     case sessionPaceBar, weeklyPaceBar
     case sessionChip, weeklyChip, sessionPaceTile, weeklyPaceTile
     case sessionPaceMini, weeklyPaceMini
-    case watchers, timestamp
+    case timestamp
     case openTokenEaterButton, quitButton
     var id: String { rawValue }
 }
@@ -135,7 +135,6 @@ extension VariantLayout {
         middle: [
             BlockState(.sessionPaceBar),
             BlockState(.weeklyPaceBar),
-            BlockState(.watchers),
             BlockState(.timestamp),
             BlockState(.openTokenEaterButton),
             BlockState(.quitButton),
@@ -149,7 +148,6 @@ extension VariantLayout {
             BlockState(.weeklyChip),
             BlockState(.sessionPaceTile),
             BlockState(.weeklyPaceTile),
-            BlockState(.watchers),
             BlockState(.timestamp),
             BlockState(.openTokenEaterButton),
             BlockState(.quitButton),
@@ -161,7 +159,6 @@ extension VariantLayout {
         middle: [
             BlockState(.sessionPaceMini),
             BlockState(.weeklyPaceMini),
-            BlockState(.watchers),
             BlockState(.timestamp),
             BlockState(.openTokenEaterButton),
             BlockState(.quitButton),

@@ -17,8 +17,6 @@ final class StatusBarController: NSObject {
     private let usageStore: UsageStore
     private let themeStore: ThemeStore
     private let settingsStore: SettingsStore
-    private let updateStore: UpdateStore
-    private let sessionStore: SessionStore
     private let vendorStatusStore: VendorStatusStore
     private let tokenFileMonitor: TokenFileMonitorProtocol
 
@@ -26,16 +24,12 @@ final class StatusBarController: NSObject {
         usageStore: UsageStore,
         themeStore: ThemeStore,
         settingsStore: SettingsStore,
-        updateStore: UpdateStore,
-        sessionStore: SessionStore,
         vendorStatusStore: VendorStatusStore,
         tokenFileMonitor: TokenFileMonitorProtocol = TokenFileMonitor()
     ) {
         self.usageStore = usageStore
         self.themeStore = themeStore
         self.settingsStore = settingsStore
-        self.updateStore = updateStore
-        self.sessionStore = sessionStore
         self.vendorStatusStore = vendorStatusStore
         self.tokenFileMonitor = tokenFileMonitor
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -47,7 +41,6 @@ final class StatusBarController: NSObject {
         setupPopover()
         observeStoreChanges()
         observeDashboardRequest()
-        observeAppActivation()
 
         if settingsStore.hasCompletedOnboarding {
             bootstrapRefresh()
@@ -98,7 +91,6 @@ final class StatusBarController: NSObject {
             .environmentObject(usageStore)
             .environmentObject(themeStore)
             .environmentObject(settingsStore)
-            .environmentObject(updateStore)
             .environmentObject(vendorStatusStore)
         popover.contentViewController = NSHostingController(rootView: popoverView)
     }
@@ -150,7 +142,6 @@ final class StatusBarController: NSObject {
             guard let self else { return }
             self.usageStore.pacingSchedule = self.settingsStore.pacingSchedule
             self.usageStore.recalculatePacing()
-            WidgetReloader.scheduleReload()
         }
         .store(in: &cancellables)
 
@@ -273,21 +264,6 @@ final class StatusBarController: NSObject {
             name: .openDashboard,
             object: nil
         )
-    }
-
-    private func observeAppActivation() {
-        NSWorkspace.shared.notificationCenter.addObserver(
-            self,
-            selector: #selector(appDidActivate),
-            name: NSWorkspace.didActivateApplicationNotification,
-            object: nil
-        )
-    }
-
-    @objc private func appDidActivate(_ notification: Notification) {
-        guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
-              app.bundleIdentifier == Bundle.main.bundleIdentifier else { return }
-        WidgetReloader.scheduleReload(delay: 0.1)
     }
 
     @objc private func handleDashboardRequest(_ notification: Notification) {
@@ -444,19 +420,6 @@ final class StatusBarController: NSObject {
         variantItem.submenu = variantSub
         menu.addItem(variantItem)
 
-        // Watchers toggle
-        let watchersLabel = settingsStore.overlayEnabled
-            ? String(localized: "contextmenu.watchers.disable")
-            : String(localized: "contextmenu.watchers.enable")
-        let watchers = NSMenuItem(
-            title: watchersLabel,
-            action: #selector(contextToggleWatchers),
-            keyEquivalent: ""
-        )
-        watchers.target = self
-        watchers.state = settingsStore.overlayEnabled ? .on : .off
-        menu.addItem(watchers)
-
         menu.addItem(.separator())
 
         // Settings submenu (direct section shortcuts)
@@ -478,14 +441,6 @@ final class StatusBarController: NSObject {
         }
         settingsItem.submenu = settingsSub
         menu.addItem(settingsItem)
-
-        let updates = NSMenuItem(
-            title: String(localized: "contextmenu.updates"),
-            action: #selector(contextCheckUpdates),
-            keyEquivalent: ""
-        )
-        updates.target = self
-        menu.addItem(updates)
 
         menu.addItem(.separator())
 
@@ -514,10 +469,6 @@ final class StatusBarController: NSObject {
         settingsStore.popoverConfig.activeVariant = variant
     }
 
-    @objc private func contextToggleWatchers() {
-        settingsStore.overlayEnabled.toggle()
-    }
-
     @objc private func contextOpenSection(_ sender: NSMenuItem) {
         guard let raw = sender.representedObject as? String else { return }
         showDashboard()
@@ -526,10 +477,6 @@ final class StatusBarController: NSObject {
             object: nil,
             userInfo: ["section": raw]
         )
-    }
-
-    @objc private func contextCheckUpdates() {
-        updateStore.checkForUpdates()
     }
 
     @objc private func contextQuit() {
@@ -608,8 +555,6 @@ final class StatusBarController: NSObject {
             .environmentObject(usageStore)
             .environmentObject(themeStore)
             .environmentObject(settingsStore)
-            .environmentObject(updateStore)
-            .environmentObject(sessionStore)
             .environmentObject(vendorStatusStore)
 
         let isOnboarding = !settingsStore.hasCompletedOnboarding

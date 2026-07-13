@@ -4,14 +4,12 @@ struct SettingsSectionView: View {
     @EnvironmentObject private var usageStore: UsageStore
     @EnvironmentObject private var settingsStore: SettingsStore
     @EnvironmentObject private var themeStore: ThemeStore
-    @EnvironmentObject private var updateStore: UpdateStore
 
     @State private var isTesting = false
     @State private var testResult: ConnectionTestResult?
     @State private var isImporting = false
     @State private var importMessage: String?
     @State private var importSuccess = false
-    @State private var brewCopied = false
     /// Local mirror of the status poll interval for the slider (seconds).
     /// @State + .onChange instead of Binding(get:set:), per the SwiftUI rules.
     @State private var statusPollIntervalSeconds: Double
@@ -78,46 +76,6 @@ struct SettingsSectionView: View {
                         Text(result.message)
                             .font(.system(size: 11))
                             .foregroundStyle(result.success ? .green : .red)
-                    }
-                }
-            }
-
-            // Update (placed right under Connection so the user spots a
-            // pending version straight away).
-            glassCard {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack {
-                        Text("TokenEater v\(updateStore.currentVersion)")
-                            .font(.system(size: 12))
-                            .foregroundStyle(.white.opacity(0.5))
-                        Spacer()
-                        if case .checking = updateStore.updateState {
-                            ProgressView()
-                                .scaleEffect(0.5)
-                                .frame(width: 16, height: 16)
-                        } else if case .upToDate = updateStore.updateState {
-                            Label(String(localized: "update.uptodate"), systemImage: "checkmark.circle.fill")
-                                .font(.system(size: 11))
-                                .foregroundStyle(.green)
-                        } else if let version = updateStore.updateState.availableVersion {
-                            Button(String(localized: "update.available.badge \(version)")) {
-                                updateStore.downloadUpdate()
-                            }
-                            .font(.system(size: 11, weight: .medium))
-                            .buttonStyle(.plain)
-                            .foregroundStyle(.orange)
-                        } else {
-                            Button(String(localized: "update.check")) {
-                                updateStore.checkForUpdates()
-                            }
-                            .font(.system(size: 11))
-                            .buttonStyle(.plain)
-                            .foregroundStyle(.blue)
-                        }
-                    }
-
-                    if updateStore.brewMigrationState == .detected {
-                        brewMigrationBanner
                     }
                 }
             }
@@ -311,44 +269,6 @@ struct SettingsSectionView: View {
         .onChange(of: settingsStore.statusPollInterval) { _, v in
             if Int(statusPollIntervalSeconds) != v { statusPollIntervalSeconds = Double(v) }
         }
-    }
-
-    private var brewMigrationBanner: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Label(String(localized: "update.brew.detected"), systemImage: "shippingbox.fill")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.orange)
-            Text(String(localized: "update.brew.hint"))
-                .font(.system(size: 10))
-                .foregroundStyle(.white.opacity(0.5))
-            HStack(spacing: 8) {
-                Text(updateStore.brewUninstallCommand)
-                    .font(.system(size: 10, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.6))
-                    .lineLimit(1)
-                Button {
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(updateStore.brewUninstallCommand, forType: .string)
-                    brewCopied = true
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) { brewCopied = false }
-                } label: {
-                    Image(systemName: brewCopied ? "checkmark" : "doc.on.doc")
-                        .font(.system(size: 10))
-                        .foregroundStyle(brewCopied ? .green : .white.opacity(0.4))
-                }
-                .buttonStyle(.plain)
-                Spacer()
-                Button(String(localized: "update.brew.dismiss")) {
-                    updateStore.dismissBrewMigration()
-                }
-                .font(.system(size: 10))
-                .buttonStyle(.plain)
-                .foregroundStyle(.white.opacity(0.4))
-            }
-        }
-        .padding(10)
-        .background(Color.orange.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
     private func formatInterval(_ seconds: Int) -> String {

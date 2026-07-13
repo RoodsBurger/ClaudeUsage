@@ -28,14 +28,13 @@ enum AppSpace: String, CaseIterable {
 
 /// Sub-sections inside the Settings space. Every configuration screen lives
 /// here -> general preferences first, then display / themes / popover /
-/// agent watchers / performance. Order drives the sub-sidebar display.
+/// performance. Order drives the sub-sidebar display.
 enum SettingsSection: String, CaseIterable {
     case general
     case themes
     case pacing
     case display
     case popover
-    case agentWatchers
     case notifications
 
     var labelKey: String {
@@ -45,7 +44,6 @@ enum SettingsSection: String, CaseIterable {
         case .themes:        "sidebar.themes"
         case .pacing:        "sidebar.pacing"
         case .popover:       "sidebar.popover"
-        case .agentWatchers: "sidebar.agentWatchers"
         case .notifications: "sidebar.notifications"
         }
     }
@@ -59,16 +57,12 @@ enum SettingsSection: String, CaseIterable {
         case .themes:        "paintpalette.fill"
         case .pacing:        "speedometer"
         case .popover:       "menubar.dock.rectangle"
-        case .agentWatchers: "waveform.path.ecg"
         case .notifications: "bell.fill"
         }
     }
 }
 
 /// Parsed navigation target sent via `Notification.Name.navigateToSection`.
-/// Legacy string payloads (`display`, `themes`, ...) are mapped to their new
-/// settings-sub-section equivalents so older call sites keep working while we
-/// migrate.
 struct NavigationTarget: Equatable {
     let space: AppSpace
     let settingsSection: SettingsSection?
@@ -78,17 +72,10 @@ struct NavigationTarget: Equatable {
         self.settingsSection = settingsSection
     }
 
-    /// Parse from a legacy or new-style payload string. Recognised values :
+    /// Parse from a payload string. Recognised values :
     /// - `"monitoring"`, `"history"`, `"settings"` -> AppSpace only
     /// - `"settings.general"`, `"settings.display"`, ... -> space + sub-section
-    /// - legacy `"dashboard"`, `"stats"` -> `.monitoring` (migration shims)
-    /// - legacy `"display"`, `"themes"`, `"popover"`, `"agentWatchers"`,
-    ///   `"performance"` -> `.settings` space + matching sub-section
     static func parse(_ payload: String) -> NavigationTarget? {
-        // Legacy aliases that pre-date the rename to `.monitoring`.
-        if payload == "dashboard" || payload == "stats" {
-            return NavigationTarget(space: .monitoring)
-        }
         // Nested "settings.xxx" form.
         if payload.hasPrefix("settings.") {
             let sub = String(payload.dropFirst("settings.".count))
@@ -101,10 +88,6 @@ struct NavigationTarget: Equatable {
         // Top-level space.
         if let space = AppSpace(rawValue: payload) {
             return NavigationTarget(space: space)
-        }
-        // Legacy flat settings sub-section names.
-        if let section = SettingsSection(rawValue: payload) {
-            return NavigationTarget(space: .settings, settingsSection: section)
         }
         return nil
     }

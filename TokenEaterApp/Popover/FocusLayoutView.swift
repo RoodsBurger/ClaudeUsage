@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Focus layout - a single hero piece (picked via `focusHero` radio),
-/// auto-rendered satellites, plus middle mini-paces / watchers / timestamp.
+/// auto-rendered satellites, plus middle mini-paces / timestamp.
 /// The hero reflects what the user wants to watch "first": time left, or a
 /// raw percentage.
 struct FocusLayoutView: View {
@@ -113,7 +113,7 @@ struct FocusLayoutView: View {
         }
     }
 
-    // MARK: - Middle (mini pace + watchers + timestamp)
+    // MARK: - Middle (mini pace + timestamp)
 
     @ViewBuilder
     private var middleZone: some View {
@@ -151,8 +151,6 @@ struct FocusLayoutView: View {
                     theme: themeStore
                 )
             }
-        case .watchers:
-            PopoverWatchersToggle()
         case .timestamp:
             PopoverTimestamp()
         case .openTokenEaterButton:

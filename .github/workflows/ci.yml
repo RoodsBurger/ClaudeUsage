@@ -21,11 +21,7 @@ jobs:
         run: brew install xcodegen || brew link xcodegen
 
       - name: Generate Xcode project
-        run: |
-          xcodegen generate
-          plutil -insert NSExtension \
-            -json '{"NSExtensionPointIdentifier":"com.apple.widgetkit-extension"}' \
-            TokenEaterWidget/Info.plist 2>/dev/null || true
+        run: xcodegen generate
 
       - name: Build (Release)
         run: |
