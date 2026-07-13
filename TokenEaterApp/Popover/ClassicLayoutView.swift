@@ -10,7 +10,7 @@ import SwiftUI
 ///   arrangement (Session hero, Weekly + Sonnet satellites). displaySonnet=false
 ///   renders the two rings as equal size, following `classic.hero` order and
 ///   visibility.
-/// - Middle zone: pacing rows + watchers + timestamp, in the order the user
+/// - Middle zone: pacing rows + timestamp, in the order the user
 ///   stored. Hidden blocks are skipped.
 /// - Footer zone: Open + Quit buttons, in stored order, hidden blocks skipped.
 struct ClassicLayoutView: View {
@@ -178,8 +178,6 @@ struct ClassicLayoutView: View {
                     showWorkweekBadge: true
                 )
             }
-        case .watchers:
-            PopoverWatchersToggle()
         case .timestamp:
             PopoverTimestamp()
         case .openTokenEaterButton:

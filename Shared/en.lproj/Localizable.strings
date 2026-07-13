@@ -409,7 +409,6 @@
 "settings.section.reset.action" = "Reset";
 "settings.display.reset.confirm" = "Reset all display settings?";
 "settings.popover.reset.confirm" = "Reset all popover settings?";
-"settings.watchers.reset.confirm" = "Reset all watcher settings?";
 "settings.notifications.reset.confirm" = "Reset all notification toggles?";
 "settings.performance.reset.confirm" = "Reset all performance settings?";
 "theme.default" = "Default";
@@ -490,72 +489,13 @@
 "settings.smartColor.profile.balanced.hint" = "Default tuning.";
 "settings.smartColor.profile.vigilant.hint" = "Reads early signals as risk.";
 
-/* Session Overlay */
-"settings.overlay.title" = "Session Overlay";
-"settings.overlay.toggle" = "Show session overlay";
-
-/* Agent Watchers */
-"settings.watchers.description" = "A floating overlay showing your active Claude Code sessions. Hover to expand, click to jump to a session.";
-"settings.watchers.trigger" = "Hover zone";
-"settings.watchers.trigger.minimal" = "Minimal";
-"settings.watchers.trigger.narrow" = "Narrow";
-"settings.watchers.trigger.medium" = "Medium";
-"settings.watchers.trigger.wide" = "Wide";
-"settings.watchers.trigger.hint" = "How close to the screen edge the cursor must get to open the overlay. Minimal keeps the rest of the screen fully clickable; once the overlay pops open the grabable area grows so the cursor can drift without snapping shut.";
-"settings.watchers.legend" = "Status legend";
-"settings.watchers.legend.hint" = "Color cues that show on each session tile.";
-"settings.watchers.legend.simple" = "Simple";
-"settings.watchers.legend.detailed" = "Detailed";
-"settings.watchers.behavior.hint" = "How the overlay reveals itself and where it lives on screen.";
-"settings.watchers.style.hint" = "Visual treatment for each session tile.";
-"settings.watchers.terminalSetup" = "Terminal setup";
-"settings.watchers.terminalSetup.hint" = "Helpers for tmux, WezTerm and Kitty in one place.";
-"settings.watchers.terminalSetup.sheet.hint" = "Drop the matching snippet into your terminal config so TokenEater can pick up sessions correctly.";
-"settings.watchers.animations" = "Animations";
-"settings.watchers.idle" = "Idle - waiting for input";
-"settings.watchers.thinking" = "Thinking - generating a response";
-"settings.watchers.executing" = "Executing - running a tool";
-"settings.watchers.waiting" = "Waiting - needs your input";
-"settings.watchers.subagent" = "Subagent - spawned an agent";
-"settings.watchers.compacting" = "Compacting - compressing context";
-"settings.watchers.detailed" = "Detailed status mode";
-"settings.watchers.simple.idle" = "Idle - waiting for input";
-"settings.watchers.simple.working" = "Working - Claude is busy";
-"settings.watchers.behavior" = "Behavior";
-"settings.watchers.dock" = "Dock effect";
-"settings.watchers.leftside" = "Left side";
-"settings.watchers.size" = "Card size";
-"settings.watchers.size.reset" = "Reset to default";
-"settings.watchers.tmux.title" = "tmux setup";
-"settings.watchers.tmux.hint" = "If you use tmux, add this line to your ~/.tmux.conf so TokenEater can switch to the right pane on click:";
-"settings.watchers.tmux.copy" = "Copy";
-"settings.watchers.kitty.title" = "Kitty setup";
-"settings.watchers.kitty.hint" = "If you use Kitty, add this line to your kitty.conf so TokenEater can switch to the right tab on click:";
-"settings.watchers.kitty.copy" = "Copy";
-"settings.watchers.wezterm.title" = "WezTerm setup";
-"settings.watchers.wezterm.hint" = "If you use WezTerm, add this line to your ~/.wezterm.lua so TokenEater can switch to the right pane on click:";
-"settings.watchers.wezterm.copy" = "Copy";
-"settings.watchers.style" = "Overlay style";
-"settings.watchers.style.frost" = "Frost";
-"settings.watchers.style.neon" = "Neon";
-"settings.watchers.display" = "Display mode";
-"settings.watchers.display.branchPriority" = "Branch priority";
-"settings.watchers.display.projectAndBranch" = "Project + Branch";
-"settings.watchers.scanrate" = "Scan rate";
-"settings.watchers.visibility" = "Visibility";
-"settings.watchers.display.branchPriority.hint" = "Shows the git branch as the title when on a non-default branch, otherwise the project name.";
-"settings.watchers.display.projectAndBranch.hint" = "Always shows the project name as the title, with the branch displayed next to the status.";
-
 /* Performance */
 "sidebar.performance" = "Performance";
 "settings.performance.description" = "If TokenEater uses too much CPU, disable resource-heavy features here.";
 "settings.performance.dashboard" = "Dashboard";
 "settings.performance.gradient" = "Animated gradient";
-"settings.performance.watchers" = "Agent Watchers";
-"settings.performance.animations" = "Watcher animations";
 "settings.performance.monitor" = "Session Monitor";
 "settings.performance.monitor.toggle" = "Session detection";
-"settings.performance.monitor.warning" = "Disabling this turns off the Agent Watchers overlay entirely.";
 
 /* Sidebar */
 "sidebar.dashboard" = "Dashboard";
@@ -602,7 +542,6 @@
 "sidebar.pacing" = "Pacing";
 "sidebar.pacing.subtitle" = "Smart Color, sensitivity, and your workweek schedule.";
 "sidebar.popover" = "Popover";
-"sidebar.agentWatchers" = "Watchers";
 "sidebar.notifications" = "Notifications";
 "sidebar.notifications.subtitle" = "Pick which events should fire a notification. Toggles run independently.";
 "sidebar.settings" = "Settings";
@@ -614,7 +553,6 @@
 /* Section subtitles */
 "sidebar.display.subtitle" = "Choose which metrics appear in the menu bar and how they look.";
 "sidebar.themes.subtitle" = "Colours and visual style.";
-"sidebar.agentWatchers.subtitle" = "Floating overlay for your live Claude Code sessions.";
 "sidebar.performance.subtitle" = "Fine-tune CPU usage by disabling features you don't need.";
 "sidebar.settings.subtitle" = "Proxy, refresh interval, and other global preferences.";
 "popover.settings.preview" = "Preview";
@@ -643,7 +581,6 @@
 "popoverBlock.weeklyPaceTile" = "Weekly pacing tile";
 "popoverBlock.sessionPaceMini" = "Session pacing (mini)";
 "popoverBlock.weeklyPaceMini" = "Weekly pacing (mini)";
-"popoverBlock.watchers" = "Agent watchers";
 "popoverBlock.timestamp" = "Updated timestamp";
 "popoverBlock.openTokenEaterButton" = "Open TokenEater button";
 "popoverBlock.quitButton" = "Quit button";
@@ -685,8 +622,6 @@
 "contextmenu.refresh" = "Refresh now";
 "contextmenu.open" = "Open TokenEater...";
 "contextmenu.variant" = "Popover layout";
-"contextmenu.watchers.enable" = "Enable Agent Watchers";
-"contextmenu.watchers.disable" = "Disable Agent Watchers";
 "contextmenu.settings" = "Settings";
 
 "pacing.session.label.short" = "Session";
@@ -724,12 +659,7 @@
 "onboarding.card.notifications.test" = "Send test";
 "onboarding.card.notifications.opensettings" = "Open Settings";
 
-/* Card 3 - Watchers */
-"onboarding.card.watchers.title" = "Agent Watchers";
-"onboarding.card.watchers.status.on" = "on - live overlay";
-"onboarding.card.watchers.status.off" = "off - tiles paused";
-
-/* Card 4 - Connect */
+/* Card 3 - Connect */
 "onboarding.card.connect.title" = "Connect";
 "onboarding.card.connect.status.idle" = "tap to authorize";
 "onboarding.card.connect.status.connecting" = "talking to keychain...";

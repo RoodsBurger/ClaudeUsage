@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Compact ticker layout - two chips for Session + Weekly (mini rings +
-/// values + subtitles), a grid of pace tiles, watchers, and a timestamp.
+/// values + subtitles), a grid of pace tiles, and a timestamp.
 /// Everything except the footer lives in `compact.middle` so the user can
 /// reorder freely and hide what they don't need.
 struct CompactLayoutView: View {
@@ -113,8 +113,6 @@ struct CompactLayoutView: View {
                         }
                     case .singlePaceTile(let id):
                         paceTile(for: id)
-                    case .watchers:
-                        PopoverWatchersToggle()
                     case .timestamp:
                         PopoverTimestamp()
                     case .openButton:
@@ -137,7 +135,6 @@ struct CompactLayoutView: View {
         case singleChip(PopoverBlockID)
         case paceTilePair(PopoverBlockID, PopoverBlockID)
         case singlePaceTile(PopoverBlockID)
-        case watchers
         case timestamp
         case openButton
         case quitButton
@@ -171,8 +168,6 @@ struct CompactLayoutView: View {
                     out.append(.singlePaceTile(id))
                     i += 1
                 }
-            case .watchers:
-                out.append(.watchers); i += 1
             case .timestamp:
                 out.append(.timestamp); i += 1
             case .openTokenEaterButton:

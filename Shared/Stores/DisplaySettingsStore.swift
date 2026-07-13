@@ -2,7 +2,7 @@ import Foundation
 
 /// Display / menu-bar domain slice of the user settings. Extracted from
 /// SettingsStore as part of the fat-store split, same pattern as
-/// `PacingSettingsStore`, `NotificationSettingsStore`, and `OverlaySettingsStore`.
+/// `PacingSettingsStore` and `NotificationSettingsStore`.
 ///
 /// Owns the menu-bar visibility + style, the pinned metrics set, the reset /
 /// pacing display formats, the smart-color settings (with the shared-file mirror

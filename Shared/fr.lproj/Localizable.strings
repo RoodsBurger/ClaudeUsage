@@ -409,7 +409,6 @@
 "settings.section.reset.action" = "Réinitialiser";
 "settings.display.reset.confirm" = "Réinitialiser tous les réglages d'affichage ?";
 "settings.popover.reset.confirm" = "Réinitialiser tous les réglages du popover ?";
-"settings.watchers.reset.confirm" = "Réinitialiser tous les réglages des watchers ?";
 "settings.notifications.reset.confirm" = "Réinitialiser toutes les notifs ?";
 "settings.performance.reset.confirm" = "Réinitialiser tous les réglages de performance ?";
 "theme.default" = "Par défaut";
@@ -490,72 +489,13 @@
 "settings.smartColor.profile.balanced.hint" = "Réglage par défaut.";
 "settings.smartColor.profile.vigilant.hint" = "Lit les premiers signaux comme du risque.";
 
-/* Session Overlay */
-"settings.overlay.title" = "Overlay de session";
-"settings.overlay.toggle" = "Afficher l'overlay de session";
-
-/* Agent Watchers */
-"settings.watchers.description" = "Un overlay flottant qui montre vos sessions Claude Code actives. Survolez pour agrandir, cliquez pour basculer vers une session.";
-"settings.watchers.trigger" = "Zone de survol";
-"settings.watchers.trigger.minimal" = "Minimal";
-"settings.watchers.trigger.narrow" = "Étroite";
-"settings.watchers.trigger.medium" = "Moyenne";
-"settings.watchers.trigger.wide" = "Large";
-"settings.watchers.trigger.hint" = "Distance du bord où la souris doit arriver pour ouvrir l'overlay. Minimal garde le reste de l'écran pleinement cliquable ; une fois l'overlay ouvert la zone de survol s'élargit pour que la souris puisse respirer sans refermer l'overlay.";
-"settings.watchers.legend" = "Légende des statuts";
-"settings.watchers.legend.hint" = "Signal coloré sur chaque tuile de session.";
-"settings.watchers.legend.simple" = "Simple";
-"settings.watchers.legend.detailed" = "Détaillé";
-"settings.watchers.behavior.hint" = "Comment l'overlay apparaît et où il vit à l'écran.";
-"settings.watchers.style.hint" = "Traitement visuel de chaque tuile de session.";
-"settings.watchers.terminalSetup" = "Setup terminal";
-"settings.watchers.terminalSetup.hint" = "Helpers pour tmux, WezTerm et Kitty au même endroit.";
-"settings.watchers.terminalSetup.sheet.hint" = "Colle le snippet correspondant dans ta config terminal pour que TokenEater détecte les sessions correctement.";
-"settings.watchers.animations" = "Animations";
-"settings.watchers.idle" = "Idle - en attente d'une action";
-"settings.watchers.thinking" = "Thinking - génère une réponse";
-"settings.watchers.executing" = "Executing - exécute un outil";
-"settings.watchers.waiting" = "Waiting - attend votre action";
-"settings.watchers.subagent" = "Subagent - sous-agent en cours";
-"settings.watchers.compacting" = "Compacting - compresse le contexte";
-"settings.watchers.detailed" = "Mode détaillé";
-"settings.watchers.simple.idle" = "Idle - en attente d'une action";
-"settings.watchers.simple.working" = "Working - Claude travaille";
-"settings.watchers.behavior" = "Comportement";
-"settings.watchers.dock" = "Effet Dock";
-"settings.watchers.leftside" = "Côté gauche";
-"settings.watchers.size" = "Taille des cartes";
-"settings.watchers.size.reset" = "Réinitialiser";
-"settings.watchers.tmux.title" = "Configuration tmux";
-"settings.watchers.tmux.hint" = "Si vous utilisez tmux, ajoutez cette ligne à votre ~/.tmux.conf pour que TokenEater puisse basculer vers le bon pane au clic :";
-"settings.watchers.tmux.copy" = "Copier";
-"settings.watchers.kitty.title" = "Configuration Kitty";
-"settings.watchers.kitty.hint" = "Si vous utilisez Kitty, ajoutez cette ligne à votre kitty.conf pour que TokenEater puisse basculer vers le bon onglet au clic :";
-"settings.watchers.kitty.copy" = "Copier";
-"settings.watchers.wezterm.title" = "Configuration WezTerm";
-"settings.watchers.wezterm.hint" = "Si vous utilisez WezTerm, ajoutez cette ligne à votre ~/.wezterm.lua pour que TokenEater puisse basculer vers le bon pane au clic :";
-"settings.watchers.wezterm.copy" = "Copier";
-"settings.watchers.style" = "Style de l'overlay";
-"settings.watchers.style.frost" = "Frost";
-"settings.watchers.style.neon" = "Neon";
-"settings.watchers.display" = "Mode d'affichage";
-"settings.watchers.display.branchPriority" = "Branche prioritaire";
-"settings.watchers.display.projectAndBranch" = "Projet + Branche";
-"settings.watchers.scanrate" = "Fréquence de scan";
-"settings.watchers.visibility" = "Visibilité";
-"settings.watchers.display.branchPriority.hint" = "Affiche la branche git en titre quand elle n'est pas par défaut, sinon le nom du projet.";
-"settings.watchers.display.projectAndBranch.hint" = "Affiche toujours le nom du projet en titre, avec la branche à côté du statut.";
-
 /* Performance */
 "sidebar.performance" = "Performance";
 "settings.performance.description" = "Si TokenEater consomme trop de CPU, désactivez les fonctionnalités gourmandes ici.";
 "settings.performance.dashboard" = "Dashboard";
 "settings.performance.gradient" = "Dégradé animé";
-"settings.performance.watchers" = "Agent Watchers";
-"settings.performance.animations" = "Animations des watchers";
 "settings.performance.monitor" = "Session Monitor";
 "settings.performance.monitor.toggle" = "Détection des sessions";
-"settings.performance.monitor.warning" = "Désactiver coupe entièrement l'overlay Agent Watchers.";
 
 /* Sidebar */
 "sidebar.dashboard" = "Tableau de bord";
@@ -602,7 +542,6 @@
 "sidebar.pacing" = "Pacing";
 "sidebar.pacing.subtitle" = "Smart Color, sensibilité et ton rythme jours ouvrés.";
 "sidebar.popover" = "Popover";
-"sidebar.agentWatchers" = "Watchers";
 "sidebar.notifications" = "Notifications";
 "sidebar.notifications.subtitle" = "Choisis quels événements déclenchent une notif. Toggles indépendants.";
 "sidebar.settings" = "Réglages";
@@ -614,7 +553,6 @@
 /* Section subtitles */
 "sidebar.display.subtitle" = "Choisissez les métriques qui s'affichent dans la barre de menus et leur apparence.";
 "sidebar.themes.subtitle" = "Couleurs et style visuel.";
-"sidebar.agentWatchers.subtitle" = "Overlay flottant pour vos sessions Claude Code actives.";
 "sidebar.performance.subtitle" = "Réglez la consommation CPU en désactivant ce dont vous n'avez pas besoin.";
 "sidebar.settings.subtitle" = "Proxy, intervalle de rafraîchissement et autres préférences globales.";
 "popover.settings.preview" = "Aperçu";
@@ -643,7 +581,6 @@
 "popoverBlock.weeklyPaceTile" = "Tuile pacing hebdo";
 "popoverBlock.sessionPaceMini" = "Pacing session (mini)";
 "popoverBlock.weeklyPaceMini" = "Pacing hebdo (mini)";
-"popoverBlock.watchers" = "Agent watchers";
 "popoverBlock.timestamp" = "Horodatage de mise à jour";
 "popoverBlock.openTokenEaterButton" = "Bouton Open TokenEater";
 "popoverBlock.quitButton" = "Bouton Quit";
@@ -685,8 +622,6 @@
 "contextmenu.refresh" = "Rafraîchir maintenant";
 "contextmenu.open" = "Ouvrir TokenEater...";
 "contextmenu.variant" = "Layout du popover";
-"contextmenu.watchers.enable" = "Activer les Agent Watchers";
-"contextmenu.watchers.disable" = "Désactiver les Agent Watchers";
 "contextmenu.settings" = "Réglages";
 
 "pacing.session.label.short" = "Session";
@@ -724,12 +659,7 @@
 "onboarding.card.notifications.test" = "Envoyer un test";
 "onboarding.card.notifications.opensettings" = "Ouvrir les Réglages";
 
-/* Card 3 - Watchers */
-"onboarding.card.watchers.title" = "Agent Watchers";
-"onboarding.card.watchers.status.on" = "on - overlay live";
-"onboarding.card.watchers.status.off" = "off - tuiles en pause";
-
-/* Card 4 - Connect */
+/* Card 3 - Connect */
 "onboarding.card.connect.title" = "Connecter";
 "onboarding.card.connect.status.idle" = "clique pour autoriser";
 "onboarding.card.connect.status.connecting" = "discussion avec le keychain...";

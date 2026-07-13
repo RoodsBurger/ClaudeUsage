@@ -17,7 +17,6 @@ final class StatusBarController: NSObject {
     private let usageStore: UsageStore
     private let themeStore: ThemeStore
     private let settingsStore: SettingsStore
-    private let sessionStore: SessionStore
     private let vendorStatusStore: VendorStatusStore
     private let tokenFileMonitor: TokenFileMonitorProtocol
 
@@ -25,14 +24,12 @@ final class StatusBarController: NSObject {
         usageStore: UsageStore,
         themeStore: ThemeStore,
         settingsStore: SettingsStore,
-        sessionStore: SessionStore,
         vendorStatusStore: VendorStatusStore,
         tokenFileMonitor: TokenFileMonitorProtocol = TokenFileMonitor()
     ) {
         self.usageStore = usageStore
         self.themeStore = themeStore
         self.settingsStore = settingsStore
-        self.sessionStore = sessionStore
         self.vendorStatusStore = vendorStatusStore
         self.tokenFileMonitor = tokenFileMonitor
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -438,19 +435,6 @@ final class StatusBarController: NSObject {
         variantItem.submenu = variantSub
         menu.addItem(variantItem)
 
-        // Watchers toggle
-        let watchersLabel = settingsStore.overlayEnabled
-            ? String(localized: "contextmenu.watchers.disable")
-            : String(localized: "contextmenu.watchers.enable")
-        let watchers = NSMenuItem(
-            title: watchersLabel,
-            action: #selector(contextToggleWatchers),
-            keyEquivalent: ""
-        )
-        watchers.target = self
-        watchers.state = settingsStore.overlayEnabled ? .on : .off
-        menu.addItem(watchers)
-
         menu.addItem(.separator())
 
         // Settings submenu (direct section shortcuts)
@@ -498,10 +482,6 @@ final class StatusBarController: NSObject {
         guard let raw = sender.representedObject as? String,
               let variant = PopoverVariant(rawValue: raw) else { return }
         settingsStore.popoverConfig.activeVariant = variant
-    }
-
-    @objc private func contextToggleWatchers() {
-        settingsStore.overlayEnabled.toggle()
     }
 
     @objc private func contextOpenSection(_ sender: NSMenuItem) {
@@ -590,7 +570,6 @@ final class StatusBarController: NSObject {
             .environmentObject(usageStore)
             .environmentObject(themeStore)
             .environmentObject(settingsStore)
-            .environmentObject(sessionStore)
             .environmentObject(vendorStatusStore)
 
         let isOnboarding = !settingsStore.hasCompletedOnboarding

@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Secondary navigation column displayed inside the Settings space. Lists the
-/// six settings sub-sections (general, display, themes, popover, agentWatchers,
+/// five settings sub-sections (general, display, themes, popover,
 /// performance). Slimmer than the primary sidebar (160pt vs 180pt) and uses
 /// the settings module accent only.
 struct SettingsSubSidebar: View {

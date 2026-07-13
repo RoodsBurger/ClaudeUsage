@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// Single-page onboarding. Brand header + body split: left = 2x2 grid of
+/// Single-page onboarding. Brand header + body split: left = grid of
 /// cards (the actions to take), right = hero with description, progress,
-/// and the Finish CTA. Each of the 4 cards owns a state machine that
+/// and the Finish CTA. Each of the 3 cards owns a state machine that
 /// talks to `OnboardingViewModel`.
 ///
 /// The chrome (rounded background, modal radius) is provided by the parent
@@ -52,7 +52,6 @@ struct OnboardingView: View {
                 ConnectCard(viewModel: viewModel)
             }
             GridRow {
-                WatchersCard(viewModel: viewModel)
                 NotificationsCard(viewModel: viewModel)
             }
         }

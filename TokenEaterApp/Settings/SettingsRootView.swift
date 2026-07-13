@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Settings space -> hosts the secondary sidebar (`SettingsSubSidebar`) and
 /// dispatches to the correct configuration screen based on `selection`.
-/// The six screens (general / display / themes / popover / agent watchers /
+/// The five screens (general / display / themes / popover /
 /// performance) remain in their existing files -> this view is just the
 /// router.
 struct SettingsRootView: View {
@@ -50,8 +50,6 @@ struct SettingsRootView: View {
             // PopoverSectionView owns its own scroll (editor list) + needs
             // full height for the split layout.
             PopoverSectionView()
-        case .agentWatchers:
-            scrolling { AgentWatchersSectionView() }
         case .notifications:
             scrolling { NotificationsSectionView() }
         }

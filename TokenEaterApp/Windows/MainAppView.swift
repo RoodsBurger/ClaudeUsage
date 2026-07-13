@@ -4,7 +4,6 @@ struct MainAppView: View {
     @EnvironmentObject private var usageStore: UsageStore
     @EnvironmentObject private var themeStore: ThemeStore
     @EnvironmentObject private var settingsStore: SettingsStore
-    @EnvironmentObject private var sessionStore: SessionStore
 
     @State private var selectedSpace: AppSpace = .monitoring
     @State private var selectedSettingsSection: SettingsSection = .general

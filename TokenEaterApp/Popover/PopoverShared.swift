@@ -318,41 +318,6 @@ struct CopyDiagnosticButton: View {
     }
 }
 
-// MARK: - Watchers toggle
-
-struct PopoverWatchersToggle: View {
-    @EnvironmentObject private var settingsStore: SettingsStore
-
-    var body: some View {
-        Button {
-            withAnimation(.easeInOut(duration: 0.2)) {
-                settingsStore.overlayEnabled.toggle()
-            }
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: settingsStore.overlayEnabled ? "eye.fill" : "eye.slash")
-                    .font(.system(size: 11))
-                    .foregroundStyle(settingsStore.overlayEnabled ? .blue : .white.opacity(0.25))
-                    .frame(width: 18)
-                Text(String(localized: "sidebar.agentWatchers"))
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.5))
-                Spacer()
-                Circle()
-                    .fill(settingsStore.overlayEnabled ? .blue : .white.opacity(0.12))
-                    .frame(width: 6, height: 6)
-            }
-            .padding(.vertical, 6)
-            .padding(.horizontal, 10)
-            .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(settingsStore.overlayEnabled ? .blue.opacity(0.08) : .white.opacity(0.03))
-            )
-        }
-        .buttonStyle(.plain)
-    }
-}
-
 // MARK: - Updated timestamp
 
 struct PopoverTimestamp: View {

@@ -5,13 +5,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     var usageStore: UsageStore!
     var themeStore: ThemeStore!
     var settingsStore: SettingsStore!
-    var sessionStore: SessionStore!
     var vendorStatusStore: VendorStatusStore!
 
     private var statusBarController: StatusBarController?
-    private var overlayWindowController: OverlayWindowController?
-    private var monitorCancellable: AnyCancellable?
-    private var cancellables = Set<AnyCancellable>()
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
@@ -38,46 +34,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             usageStore: usageStore,
             themeStore: themeStore,
             settingsStore: settingsStore,
-            sessionStore: sessionStore,
             vendorStatusStore: vendorStatusStore
         )
-        // Apply persisted watcher scan settings before the first tick uses them.
-        sessionStore.setScanInterval(settingsStore.watcherScanInterval.seconds)
-        sessionStore.setVisibility(settingsStore.watcherVisibility.seconds)
-        if settingsStore.overlayEnabled {
-            sessionStore.startMonitoring()
-        }
-        overlayWindowController = OverlayWindowController(
-            sessionStore: sessionStore,
-            settingsStore: settingsStore
-        )
-
-        monitorCancellable = settingsStore.overlay.$overlayEnabled
-            .dropFirst()
-            .sink { [weak self] enabled in
-                guard let self else { return }
-                if enabled {
-                    self.sessionStore.startMonitoring()
-                } else {
-                    self.sessionStore.stopMonitoring()
-                }
-            }
-
-        settingsStore.overlay.$watcherScanInterval
-            .dropFirst()
-            .removeDuplicates()
-            .sink { [weak self] interval in
-                self?.sessionStore.setScanInterval(interval.seconds)
-            }
-            .store(in: &cancellables)
-
-        settingsStore.overlay.$watcherVisibility
-            .dropFirst()
-            .removeDuplicates()
-            .sink { [weak self] visibility in
-                self?.sessionStore.setVisibility(visibility.seconds)
-            }
-            .store(in: &cancellables)
     }
 }
 
@@ -88,7 +46,6 @@ struct TokenEaterApp: App {
     private let usageStore: UsageStore
     private let themeStore: ThemeStore
     private let settingsStore: SettingsStore
-    private let sessionStore: SessionStore
     private let vendorStatusStore: VendorStatusStore
 
     init() {
@@ -100,14 +57,12 @@ struct TokenEaterApp: App {
         self.usageStore = UsageStore()
         self.themeStore = ThemeStore()
         self.settingsStore = SettingsStore()
-        self.sessionStore = SessionStore()
         self.vendorStatusStore = VendorStatusStore()
 
         NotificationService().setupDelegate()
         appDelegate.usageStore = usageStore
         appDelegate.themeStore = themeStore
         appDelegate.settingsStore = settingsStore
-        appDelegate.sessionStore = sessionStore
         appDelegate.vendorStatusStore = vendorStatusStore
     }
 
@@ -117,4 +72,3 @@ struct TokenEaterApp: App {
         }
     }
 }
-
