@@ -15,6 +15,14 @@ extension Color {
 
         self.init(red: r, green: g, blue: b)
     }
+
+    /// Literal-hex init for `DS.Pastel`, e.g. `Color(hex: 0x86D6A0)`.
+    init(hex: UInt32) {
+        let r = Double((hex & 0xFF0000) >> 16) / 255.0
+        let g = Double((hex & 0x00FF00) >> 8) / 255.0
+        let b = Double(hex & 0x0000FF) / 255.0
+        self.init(red: r, green: g, blue: b)
+    }
 }
 
 extension Color {
@@ -42,6 +50,15 @@ extension NSColor {
         let r = CGFloat((rgbValue & 0xFF0000) >> 16) / 255.0
         let g = CGFloat((rgbValue & 0x00FF00) >> 8) / 255.0
         let b = CGFloat(rgbValue & 0x0000FF) / 255.0
+        self.init(srgbRed: r, green: g, blue: b, alpha: 1.0)
+    }
+
+    /// Literal-hex init for `DS.Pastel`'s NSColor variants, e.g. the menu bar's
+    /// risk-dot colors.
+    convenience init(hex: UInt32) {
+        let r = CGFloat((hex & 0xFF0000) >> 16) / 255.0
+        let g = CGFloat((hex & 0x00FF00) >> 8) / 255.0
+        let b = CGFloat(hex & 0x0000FF) / 255.0
         self.init(srgbRed: r, green: g, blue: b, alpha: 1.0)
     }
 }

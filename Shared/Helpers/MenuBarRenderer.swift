@@ -82,6 +82,15 @@ enum MenuBarRenderer {
         let outageHealth: VendorHealth
         let nextPollSeconds: Int?
 
+        /// True when the status item's current effective appearance resolves
+        /// to `.darkAqua` - drives adaptive text color (`DS.Pastel.NS.textOnDark`
+        /// vs `.textOnLight`) and, in `.risk` colorMode, which pastel variant
+        /// (plain vs deepened) colors each metric's risk dot. Menu bar text
+        /// must stay legible against the actual desktop showing through the
+        /// translucent bar, which can differ from the app's own light/dark
+        /// appearance - see `StatusBarController`.
+        let menuBarIsDark: Bool
+
         /// Fixed sample usage data for the settings live preview: every
         /// availability flag is true so no configured pin ever vanishes, and
         /// the percentages span the ok/warning/critical zones so risk
@@ -99,7 +108,8 @@ enum MenuBarRenderer {
             pacingMargin: Double = 10,
             resetDisplayFormat: ResetDisplayFormat = .relative,
             sessionPacingDisplayMode: PacingDisplayMode = .dotDelta,
-            weeklyPacingDisplayMode: PacingDisplayMode = .dotDelta
+            weeklyPacingDisplayMode: PacingDisplayMode = .dotDelta,
+            menuBarIsDark: Bool = true
         ) -> RenderData {
             RenderData(
                 menuBarConfig: config,
@@ -149,7 +159,8 @@ enum MenuBarRenderer {
                 extraCreditsCurrency: "USD",
                 outageActive: false,
                 outageHealth: .healthy,
-                nextPollSeconds: nil
+                nextPollSeconds: nil,
+                menuBarIsDark: menuBarIsDark
             )
         }
     }
@@ -217,31 +228,13 @@ enum MenuBarRenderer {
         )
     }
 
-    private static func metricColor(pct: Int, resetDate: Date?, windowDuration: TimeInterval, data: RenderData) -> NSColor {
-        gaugeColor(
-            pct: pct,
-            resetDate: resetDate,
-            windowDuration: windowDuration,
-            monochrome: data.menuBarConfig.colorMode == .monochrome,
-            smartEnabled: data.smartColorEnabled,
-            thresholds: data.thresholds,
-            pacingMargin: data.pacingMargin,
-            smartColorProfile: data.smartColorProfile
-        )
-    }
-
-    private static func pacingColor(_ zone: PacingZone, hasData: Bool, data: RenderData) -> NSColor {
-        if data.menuBarConfig.colorMode == .monochrome { return .labelColor }
-        return hasData ? zone.semanticNSColor : .tertiaryLabelColor
-    }
-
-    /// 0/1/2 risk rank for a metric's own zone, independent of `colorMode` -
-    /// `highestRisk` selection is driven by real usage risk even when the
-    /// display renders monochrome.
-    private static func zoneRank(pct: Int, resetDate: Date?, windowDuration: TimeInterval, data: RenderData) -> Int {
-        let mode = GaugeColorResolver.mode(smartColorEnabled: data.smartColorEnabled, windowDuration: windowDuration)
-        let zone = GaugeColorResolver.zone(
-            mode: mode,
+    /// The `RiskZone` a percent-based metric currently sits in, independent of
+    /// `colorMode` - used both for `highestRisk` selection and for the
+    /// `.risk`-mode dot color. Text itself no longer carries risk color (see
+    /// `textColor`); this is the single place a metric's zone is resolved.
+    private static func metricZone(pct: Int, resetDate: Date?, windowDuration: TimeInterval, data: RenderData) -> RiskZone {
+        GaugeColorResolver.zone(
+            mode: GaugeColorResolver.mode(smartColorEnabled: data.smartColorEnabled, windowDuration: windowDuration),
             utilization: pct,
             resetDate: resetDate,
             windowDuration: windowDuration,
@@ -249,7 +242,31 @@ enum MenuBarRenderer {
             pacingMargin: data.pacingMargin,
             profile: data.smartColorProfile
         )
-        switch zone {
+    }
+
+    /// Adaptive text color for every metric's label/value/separator/countdown
+    /// - near-white on a dark menu bar, near-black on a light one, so text
+    /// stays legible over whatever wallpaper shows through the translucent
+    /// bar. Risk color moved to `appendDot`; this never varies with `colorMode`.
+    private static func textColor(_ data: RenderData) -> NSColor {
+        data.menuBarIsDark ? DS.Pastel.NS.textOnDark : DS.Pastel.NS.textOnLight
+    }
+
+    /// Prepends a small (~7pt) filled circle in `color` - the sole carrier of
+    /// risk information now that metric text is adaptive-colored. Callers
+    /// only invoke this in `.risk` colorMode.
+    private static func appendDot(_ color: NSColor, to str: NSMutableAttributedString) {
+        str.append(NSAttributedString(string: "\u{25CF} ", attributes: [
+            .font: NSFont.systemFont(ofSize: 7, weight: .bold),
+            .foregroundColor: color,
+        ]))
+    }
+
+    /// 0/1/2 risk rank for a metric's own zone, independent of `colorMode` -
+    /// `highestRisk` selection is driven by real usage risk even when the
+    /// display renders monochrome.
+    private static func zoneRank(pct: Int, resetDate: Date?, windowDuration: TimeInterval, data: RenderData) -> Int {
+        switch metricZone(pct: pct, resetDate: resetDate, windowDuration: windowDuration, data: data) {
         case .ok: return 0
         case .warning: return 1
         case .critical: return 2
@@ -394,7 +411,7 @@ enum MenuBarRenderer {
         let str = NSMutableAttributedString()
         let sepAttrs: [NSAttributedString.Key: Any] = [
             .font: NSFont.systemFont(ofSize: 10, weight: .regular),
-            .foregroundColor: NSColor.tertiaryLabelColor,
+            .foregroundColor: textColor(data),
         ]
         for (i, pin) in pins.enumerated() {
             if i > 0 {
@@ -472,10 +489,13 @@ enum MenuBarRenderer {
         }
     }
 
-    private static let countdownAttributes: [NSAttributedString.Key: Any] = [
-        .font: NSFont.monospacedDigitSystemFont(ofSize: 10, weight: .medium),
-        .foregroundColor: NSColor.secondaryLabelColor,
-    ]
+    private static let countdownFont = NSFont.monospacedDigitSystemFont(ofSize: 10, weight: .medium)
+
+    /// Countdown text attributes - adaptive color, so this is a function of
+    /// `data` (menu bar appearance) rather than a static constant.
+    private static func countdownAttributes(_ data: RenderData) -> [NSAttributedString.Key: Any] {
+        [.font: countdownFont, .foregroundColor: textColor(data)]
+    }
 
     /// `label + value%` for a simple percentage metric (5h/7d/Sonnet/Design/
     /// Fable), plus an optional countdown span honoring `resetDisplayFormat`.
@@ -492,6 +512,10 @@ enum MenuBarRenderer {
         worstCase: Bool
     ) -> NSAttributedString {
         let str = NSMutableAttributedString()
+        if data.menuBarConfig.colorMode == .risk {
+            let zone = metricZone(pct: pct, resetDate: resetDate, windowDuration: windowDuration, data: data)
+            appendDot(zone.dotColor(menuBarIsDark: data.menuBarIsDark), to: str)
+        }
         appendPrefix(pin, to: str, data: data)
 
         let displayPct: Int
@@ -502,10 +526,9 @@ enum MenuBarRenderer {
         } else {
             displayPct = pct
         }
-        let color = metricColor(pct: pct, resetDate: resetDate, windowDuration: windowDuration, data: data)
         str.append(NSAttributedString(string: "\(displayPct)%", attributes: [
             .font: NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .bold),
-            .foregroundColor: color,
+            .foregroundColor: textColor(data),
         ]))
 
         if pin.showCountdown {
@@ -513,7 +536,7 @@ enum MenuBarRenderer {
                 ? worstCaseCountdownText(format: data.resetDisplayFormat, windowDuration: windowDuration)
                 : ResetCountdownFormatter.display(relative: relative, absolute: absolute, format: data.resetDisplayFormat)
             if !text.isEmpty {
-                str.append(NSAttributedString(string: " \(text)", attributes: countdownAttributes))
+                str.append(NSAttributedString(string: " \(text)", attributes: countdownAttributes(data)))
             }
         }
         return str
@@ -521,7 +544,8 @@ enum MenuBarRenderer {
 
     /// The widest string the given `ResetDisplayFormat` can produce for the
     /// pin's window, in placeholder digits, so the fixed-width slot never
-    /// shrinks as the live countdown drains.
+    /// shrinks as the live countdown drains. Only the font affects the
+    /// measured width, so this measures with a color-less attribute set.
     private static func worstCaseCountdownText(format: ResetDisplayFormat, windowDuration: TimeInterval) -> String {
         let isSession = windowDuration <= 5 * 3600
         // Candidate sets mirror ResetCountdownFormatter's output shapes:
@@ -529,12 +553,13 @@ enum MenuBarRenderer {
         // absolute "20:30" same-day, "Thu 19:00" cross-day, weekly "Apr 24 19:00".
         let relativeCandidates = isSession ? ["8h88", "88min"] : ["88min", "88h 88", "8d 88h"]
         let absoluteCandidates = isSession ? ["88:88", "Wed 88:88"] : ["88:88", "Wed 88:88", "May 88 88:88"]
+        let measureAttrs: [NSAttributedString.Key: Any] = [.font: countdownFont]
         switch format {
-        case .relative: return widest(relativeCandidates, attributes: countdownAttributes)
-        case .absolute: return widest(absoluteCandidates, attributes: countdownAttributes)
+        case .relative: return widest(relativeCandidates, attributes: measureAttrs)
+        case .absolute: return widest(absoluteCandidates, attributes: measureAttrs)
         case .both:
-            let rel = widest(relativeCandidates, attributes: countdownAttributes)
-            let abs = widest(absoluteCandidates, attributes: countdownAttributes)
+            let rel = widest(relativeCandidates, attributes: measureAttrs)
+            let abs = widest(absoluteCandidates, attributes: measureAttrs)
             return "\(rel) - \(abs)"
         }
     }
@@ -550,12 +575,15 @@ enum MenuBarRenderer {
     /// value style still falls back to a plain percentage.
     private static func buildExtraCreditsMetric(_ pin: PinnedMetricConfig, data: RenderData, worstCase: Bool) -> NSAttributedString {
         let str = NSMutableAttributedString()
+        if data.menuBarConfig.colorMode == .risk {
+            let zone = metricZone(pct: data.extraCreditsPct, resetDate: nil, windowDuration: 0, data: data)
+            appendDot(zone.dotColor(menuBarIsDark: data.menuBarIsDark), to: str)
+        }
         appendPrefix(pin, to: str, data: data)
 
-        let color = metricColor(pct: data.extraCreditsPct, resetDate: nil, windowDuration: 0, data: data)
         let valueAttributes: [NSAttributedString.Key: Any] = [
             .font: NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .bold),
-            .foregroundColor: color,
+            .foregroundColor: textColor(data),
         ]
         let text: String
         switch pin.value {
@@ -601,16 +629,23 @@ enum MenuBarRenderer {
         data: RenderData
     ) -> NSAttributedString {
         let str = NSMutableAttributedString()
+        // Same dot logic as a percent metric's `RiskZone`, mapped through
+        // `PacingZone`. Always appended (never conditioned on `hasData`) so
+        // the pin's width doesn't change once real pacing data arrives -
+        // falls back to the adaptive text color when there's no zone yet.
+        if data.menuBarConfig.colorMode == .risk {
+            let dotColor = hasData ? zone.dotColor(menuBarIsDark: data.menuBarIsDark) : textColor(data)
+            appendDot(dotColor, to: str)
+        }
         appendPrefix(pin, to: str, data: data)
 
-        let color = pacingColor(zone, hasData: hasData, data: data)
         let dotAttrs: [NSAttributedString.Key: Any] = [
             .font: NSFont.systemFont(ofSize: 11, weight: .bold),
-            .foregroundColor: color,
+            .foregroundColor: textColor(data),
         ]
         let deltaAttrs: [NSAttributedString.Key: Any] = [
             .font: NSFont.monospacedDigitSystemFont(ofSize: 10, weight: .bold),
-            .foregroundColor: color,
+            .foregroundColor: textColor(data),
         ]
         let sign = delta >= 0 ? "+" : ""
         switch mode {
@@ -668,11 +703,16 @@ enum MenuBarRenderer {
             format: data.resetDisplayFormat
         )
         let text = resolved.isEmpty ? "-" : resolved
-        let color = metricColor(pct: data.fiveHourPct, resetDate: data.fiveHourResetDate, windowDuration: windowDuration(for: .fiveHour), data: data)
-        return NSAttributedString(string: text, attributes: [
+        let str = NSMutableAttributedString()
+        if data.menuBarConfig.colorMode == .risk {
+            let zone = metricZone(pct: data.fiveHourPct, resetDate: data.fiveHourResetDate, windowDuration: windowDuration(for: .fiveHour), data: data)
+            appendDot(zone.dotColor(menuBarIsDark: data.menuBarIsDark), to: str)
+        }
+        str.append(NSAttributedString(string: text, attributes: [
             .font: NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .bold),
-            .foregroundColor: color,
-        ])
+            .foregroundColor: textColor(data),
+        ]))
+        return str
     }
 
     // MARK: - Prefix (icon / short label)
@@ -682,23 +722,23 @@ enum MenuBarRenderer {
         case .none:
             return
         case .shortLabel:
-            appendShortLabel(pin.id, to: str)
+            appendShortLabel(pin.id, to: str, data: data)
         case .symbol:
             if data.menuBarConfig.showIcon {
-                appendSymbol(pin.id.menuBarSymbolName, color: .secondaryLabelColor, to: str)
+                appendSymbol(pin.id.menuBarSymbolName, color: textColor(data), to: str)
                 str.append(NSAttributedString(string: " ", attributes: [.font: NSFont.systemFont(ofSize: 9)]))
             } else {
-                appendShortLabel(pin.id, to: str)
+                appendShortLabel(pin.id, to: str, data: data)
             }
         }
     }
 
-    private static func appendShortLabel(_ id: MetricID, to str: NSMutableAttributedString) {
+    private static func appendShortLabel(_ id: MetricID, to str: NSMutableAttributedString, data: RenderData) {
         let label = id.shortLabel
         guard !label.isEmpty else { return }
         str.append(NSAttributedString(string: "\(label) ", attributes: [
             .font: NSFont.systemFont(ofSize: 9, weight: .medium),
-            .foregroundColor: NSColor.secondaryLabelColor,
+            .foregroundColor: textColor(data),
         ]))
     }
 

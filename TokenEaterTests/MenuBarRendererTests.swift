@@ -169,7 +169,8 @@ private func makeRenderData(
     extraCreditsCurrency: String = "USD",
     outageActive: Bool = false,
     outageHealth: VendorHealth = .healthy,
-    nextPollSeconds: Int? = nil
+    nextPollSeconds: Int? = nil,
+    menuBarIsDark: Bool = true
 ) -> MenuBarRenderer.RenderData {
     MenuBarRenderer.RenderData(
         menuBarConfig: MenuBarConfig(
@@ -227,12 +228,18 @@ private func makeRenderData(
         extraCreditsCurrency: extraCreditsCurrency,
         outageActive: outageActive,
         outageHealth: outageHealth,
-        nextPollSeconds: nextPollSeconds
+        nextPollSeconds: nextPollSeconds,
+        menuBarIsDark: menuBarIsDark
     )
 }
 
 @Suite("MenuBarRenderer.buildLine")
 struct MenuBarBuildLineTests {
+
+    // These ordering/separator/selection tests are about pin logic, not the
+    // risk dot, so they force `.monochrome` to keep `line.string` a plain
+    // "label value" string - the dot's own presence/absence is covered by
+    // the dedicated dot-glyph tests below.
 
     @Test("all mode renders every visible pin in pinned order, separator-joined")
     func allModeOrderAndSeparator() {
@@ -242,6 +249,7 @@ struct MenuBarBuildLineTests {
                 .init(id: .sevenDay, prefix: .none, value: .percentUsed),
             ],
             displayMode: .all,
+            colorMode: .monochrome,
             separator: "|",
             fiveHourPct: 12,
             sevenDayPct: 77
@@ -258,6 +266,7 @@ struct MenuBarBuildLineTests {
                 .init(id: .sevenDay, prefix: .none, value: .percentUsed),
             ],
             displayMode: .all,
+            colorMode: .monochrome,
             separator: "\u{2022}",
             fiveHourPct: 5,
             sevenDayPct: 6
@@ -276,6 +285,7 @@ struct MenuBarBuildLineTests {
                 .init(id: .sevenDay, prefix: .none, value: .percentUsed),
             ],
             displayMode: .highestRisk,
+            colorMode: .monochrome,
             fiveHourPct: 30,
             sevenDayPct: 90
         )
@@ -291,6 +301,7 @@ struct MenuBarBuildLineTests {
                 .init(id: .fiveHour, prefix: .none, value: .percentUsed),
             ],
             displayMode: .highestRisk,
+            colorMode: .monochrome,
             fiveHourPct: 90,
             sevenDayPct: 90
         )
@@ -304,6 +315,7 @@ struct MenuBarBuildLineTests {
                 .init(id: .fiveHour, prefix: .none, value: .percentUsed),
             ],
             displayMode: .highestRisk,
+            colorMode: .monochrome,
             fiveHourPct: 99,
             sevenDayPct: 86
         )
@@ -323,6 +335,7 @@ struct MenuBarBuildLineTests {
             let data = makeRenderData(
                 pinned: pins,
                 displayMode: .rotate,
+                colorMode: .monochrome,
                 rotateIndex: index,
                 fiveHourPct: 11, sevenDayPct: 22, sonnetPct: 33
             )
@@ -335,6 +348,7 @@ struct MenuBarBuildLineTests {
         let ecData = makeRenderData(
             pinned: [.init(id: .extraCredits, prefix: .none, value: .dollars)],
             displayMode: .all,
+            colorMode: .monochrome,
             extraCreditsUsedMinorUnits: 4200,
             extraCreditsCurrency: "USD"
         )
@@ -347,6 +361,7 @@ struct MenuBarBuildLineTests {
         let fiveHourData = makeRenderData(
             pinned: [.init(id: .fiveHour, prefix: .none, value: .dollars)],
             displayMode: .all,
+            colorMode: .monochrome,
             fiveHourPct: 42
         )
         #expect(MenuBarRenderer.buildLine(data: fiveHourData).string == "42%")
@@ -357,6 +372,7 @@ struct MenuBarBuildLineTests {
         let data = makeRenderData(
             pinned: [.init(id: .fiveHour, prefix: .none, value: .percentRemaining)],
             displayMode: .all,
+            colorMode: .monochrome,
             fiveHourPct: 30
         )
         #expect(MenuBarRenderer.buildLine(data: data).string == "70%")
@@ -367,12 +383,13 @@ struct MenuBarBuildLineTests {
         let data = makeRenderData(
             pinned: [.init(id: .fiveHour, prefix: .none, value: .percentRemaining)],
             displayMode: .all,
+            colorMode: .monochrome,
             fiveHourPct: 140
         )
         #expect(MenuBarRenderer.buildLine(data: data).string == "0%")
     }
 
-    @Test("monochrome ignores risk zones - no zone color renders, values use labelColor")
+    @Test("monochrome ignores risk zones - no zone color and no dot renders, text uses the adaptive color")
     func monochromeIgnoresZones() {
         let data = makeRenderData(
             pinned: [
@@ -389,15 +406,16 @@ struct MenuBarBuildLineTests {
         line.enumerateAttribute(.foregroundColor, in: NSRange(location: 0, length: line.length)) { value, _, _ in
             if let color = value as? NSColor { colors.insert(color) }
         }
-        // The separator itself is intentionally a neutral gray in both color
-        // modes (never zone-colored), so this checks for the *absence* of
-        // zone colors rather than asserting every span is exactly labelColor.
         #expect(!colors.contains(RiskZone.ok.nsColor))
         #expect(!colors.contains(RiskZone.critical.nsColor))
-        #expect(colors.contains(NSColor.labelColor))
+        // Every span (value, separator) resolves to the single adaptive
+        // text color; `menuBarIsDark` defaults to true in this factory.
+        #expect(colors == [DS.Pastel.NS.textOnDark])
+        // No risk dot glyph in monochrome mode.
+        #expect(!line.string.contains("\u{25CF}"))
     }
 
-    @Test("risk color mode uses distinct colors for distinct zones")
+    @Test("risk color mode paints a zone-colored dot per metric; value text itself stays adaptive")
     func riskModeUsesZoneColors() {
         let data = makeRenderData(
             pinned: [
@@ -414,8 +432,78 @@ struct MenuBarBuildLineTests {
         line.enumerateAttribute(.foregroundColor, in: NSRange(location: 0, length: line.length)) { value, _, _ in
             if let color = value as? NSColor { colors.insert(color) }
         }
-        #expect(colors.contains(RiskZone.ok.nsColor))
-        #expect(colors.contains(RiskZone.critical.nsColor))
+        #expect(colors.contains(RiskZone.ok.dotColor(menuBarIsDark: true)))
+        #expect(colors.contains(RiskZone.critical.dotColor(menuBarIsDark: true)))
+        // The percentage text, separator, and any label all resolve to the
+        // single adaptive text color - only the dot varies by zone. Exactly
+        // 3 distinct colors total: the 2 zone dots + the 1 adaptive text color.
+        #expect(colors.contains(DS.Pastel.NS.textOnDark))
+        #expect(colors.count == 3)
+    }
+
+    @Test(".risk color mode prepends a small risk dot before each metric")
+    func riskModeEmitsDotGlyph() {
+        let data = makeRenderData(
+            pinned: [.init(id: .fiveHour, prefix: .none, value: .percentUsed)],
+            displayMode: .all,
+            colorMode: .risk,
+            fiveHourPct: 42
+        )
+        #expect(MenuBarRenderer.buildLine(data: data).string.contains("\u{25CF}"))
+    }
+
+    @Test(".monochrome color mode emits no risk dot")
+    func monochromeEmitsNoDotGlyph() {
+        let data = makeRenderData(
+            pinned: [.init(id: .fiveHour, prefix: .none, value: .percentUsed)],
+            displayMode: .all,
+            colorMode: .monochrome,
+            fiveHourPct: 42
+        )
+        #expect(!MenuBarRenderer.buildLine(data: data).string.contains("\u{25CF}"))
+    }
+
+    @Test("text color is adaptive: near-white on a dark menu bar, near-black on a light one")
+    func adaptiveTextColorFollowsMenuBarAppearance() {
+        func colors(_ line: NSAttributedString) -> Set<NSColor> {
+            var result = Set<NSColor>()
+            line.enumerateAttribute(.foregroundColor, in: NSRange(location: 0, length: line.length)) { value, _, _ in
+                if let color = value as? NSColor { result.insert(color) }
+            }
+            return result
+        }
+        let darkData = makeRenderData(
+            pinned: [.init(id: .fiveHour, prefix: .none, value: .percentUsed)],
+            colorMode: .monochrome,
+            fiveHourPct: 42,
+            menuBarIsDark: true
+        )
+        let lightData = makeRenderData(
+            pinned: [.init(id: .fiveHour, prefix: .none, value: .percentUsed)],
+            colorMode: .monochrome,
+            fiveHourPct: 42,
+            menuBarIsDark: false
+        )
+        #expect(colors(MenuBarRenderer.buildLine(data: darkData)) == [DS.Pastel.NS.textOnDark])
+        #expect(colors(MenuBarRenderer.buildLine(data: lightData)) == [DS.Pastel.NS.textOnLight])
+    }
+
+    @Test("risk dot uses the deepened pastel variant on a light menu bar")
+    func riskDotUsesDeepenedVariantOnLightBar() {
+        let data = makeRenderData(
+            pinned: [.init(id: .fiveHour, prefix: .none, value: .percentUsed)],
+            displayMode: .all,
+            colorMode: .risk,
+            fiveHourPct: 95, // critical
+            menuBarIsDark: false
+        )
+        var colors = Set<NSColor>()
+        let line = MenuBarRenderer.buildLine(data: data)
+        line.enumerateAttribute(.foregroundColor, in: NSRange(location: 0, length: line.length)) { value, _, _ in
+            if let color = value as? NSColor { colors.insert(color) }
+        }
+        #expect(colors.contains(RiskZone.critical.dotColor(menuBarIsDark: false)))
+        #expect(!colors.contains(RiskZone.critical.dotColor(menuBarIsDark: true)))
     }
 
     @Test("no visible pins renders an empty line")
@@ -434,6 +522,7 @@ struct MenuBarBuildLineTests {
             MenuBarRenderer.buildLine(data: makeRenderData(
                 pinned: [pin],
                 displayMode: .all,
+                colorMode: .monochrome,
                 fiveHourPct: 30,
                 resetDisplayFormat: format,
                 fiveHourReset: "1h39",
@@ -451,6 +540,7 @@ struct MenuBarBuildLineTests {
         let data = makeRenderData(
             pinned: [pin],
             displayMode: .all,
+            colorMode: .monochrome,
             fiveHourPct: 30,
             resetDisplayFormat: .both,
             fiveHourReset: "1h39",
@@ -510,6 +600,23 @@ struct MenuBarFixedWidthTests {
             fixedWidth: true
         )
         #expect(MenuBarRenderer.fixedWidthMeasurement(data: twoPins) >= MenuBarRenderer.fixedWidthMeasurement(data: onePin))
+    }
+
+    @Test("fixed-width measurement in .risk mode is wider than .monochrome - accounts for the dot")
+    func fixedWidthAccountsForDot() {
+        let riskData = makeRenderData(
+            pinned: [.init(id: .fiveHour, prefix: .none, value: .percentUsed)],
+            displayMode: .all,
+            colorMode: .risk,
+            fixedWidth: true
+        )
+        let monoData = makeRenderData(
+            pinned: [.init(id: .fiveHour, prefix: .none, value: .percentUsed)],
+            displayMode: .all,
+            colorMode: .monochrome,
+            fixedWidth: true
+        )
+        #expect(MenuBarRenderer.fixedWidthMeasurement(data: riskData) > MenuBarRenderer.fixedWidthMeasurement(data: monoData))
     }
 
     @Test("worst-case width is at least as wide as the natural rendered line")

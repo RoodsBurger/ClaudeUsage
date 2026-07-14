@@ -214,7 +214,7 @@ private struct PopoverHeaderRow: View {
 
             HStack(spacing: 6) {
                 Text("TokenEater")
-                    .font(.system(.headline, design: .rounded))
+                    .font(.headline)
                     .foregroundStyle(.primary)
                 if usageStore.planType != .unknown {
                     Text(usageStore.planType.displayLabel)
@@ -266,7 +266,7 @@ private struct PopoverMetricRowView: View {
 
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
-                        Capsule().fill(.quaternary)
+                        Capsule().fill(DS.Pastel.track)
                         Capsule()
                             .fill(row.zone.color)
                             .frame(width: geo.size.width * CGFloat(min(max(row.pct, 0), 100)) / 100)
@@ -342,7 +342,7 @@ private struct PopoverSpendSection: View {
             if limit > 0 {
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
-                        Capsule().fill(.quaternary)
+                        Capsule().fill(DS.Pastel.track)
                         Capsule()
                             .fill(tint)
                             .frame(width: geo.size.width * CGFloat(min(max(pct, 0), 100)) / 100)

@@ -11,6 +11,10 @@ final class StatusBarController: NSObject {
     private var localKeyMonitor: Any?
     private var appDeactivateObserver: NSObjectProtocol?
     private var spaceChangeObserver: NSObjectProtocol?
+    /// Re-renders the status item text/dot color when the menu bar's actual
+    /// background (translucent - shows the desktop through it) flips between
+    /// dark and light, independent of any periodic tick.
+    private var appearanceObservation: NSKeyValueObservation?
     private var cancellables = Set<AnyCancellable>()
     private var countdownCancellable: AnyCancellable?
     private var rotateCancellable: AnyCancellable?
@@ -72,7 +76,24 @@ final class StatusBarController: NSObject {
         // (and trackpad two-finger tap - macOS surfaces those as rightMouseUp)
         // to a contextual menu while keeping left-click tied to the popover.
         button.sendAction(on: [.leftMouseUp, .rightMouseUp])
+        // The menu bar is translucent - its actual on-screen background can
+        // be dark or light independent of the system's overall Light/Dark
+        // Mode setting (it shows the desktop picture through it). Watch the
+        // button's own effective appearance (not `NSApp`'s) and re-render
+        // immediately when it flips, on top of the periodic re-read every
+        // `updateMenuBarIcon()` tick already does.
+        appearanceObservation = button.observe(\.effectiveAppearance) { [weak self] _, _ in
+            DispatchQueue.main.async { self?.updateMenuBarIcon() }
+        }
         updateMenuBarIcon()
+    }
+
+    /// Whether the status item currently renders on a dark menu bar
+    /// background - drives `MenuBarRenderer`'s adaptive text/dot color.
+    /// Falls back to `true` (dark) if the button isn't available yet.
+    private var menuBarIsDark: Bool {
+        guard let button = statusItem.button else { return true }
+        return button.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
     }
 
     private func setupPopover() {
@@ -342,7 +363,8 @@ final class StatusBarController: NSObject {
             extraCreditsCurrency: usageStore.extraUsage?.currency ?? "USD",
             outageActive: settingsStore.statusShowMenuBarBadge && vendorStatusStore.isDegraded,
             outageHealth: vendorStatusStore.worstHealth,
-            nextPollSeconds: vendorStatusStore.nextPollDate.map { max(0, Int(ceil($0.timeIntervalSinceNow))) }
+            nextPollSeconds: vendorStatusStore.nextPollDate.map { max(0, Int(ceil($0.timeIntervalSinceNow))) },
+            menuBarIsDark: menuBarIsDark
         ))
         statusItem.button?.image = image
     }

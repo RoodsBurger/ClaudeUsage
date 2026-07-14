@@ -185,6 +185,55 @@ enum DS {
     }
 }
 
+// MARK: - Pastel palette (2026-07-13 design revision)
+
+/// The app's single palette: pastel risk colors on opaque dark surfaces.
+/// Hex literals live ONLY here (and inside the `Color(hex:)`/`NSColor(hex:)`
+/// inits in `Shared/Extensions/Extensions.swift`) - every other view or
+/// helper references `DS.Pastel` / `RiskZone` / `PacingZone`, never a raw hex
+/// value. See `docs/design/2026-07-13-native-overhaul-design.md` section 2.
+extension DS {
+    enum Pastel {
+        // Risk zones - pastel, for use on the app's dark surfaces.
+        static let green = Color(hex: 0x86D6A0)
+        static let amber = Color(hex: 0xF2C288)
+        static let coral = Color(hex: 0xEF9A8D)
+        static let blue  = Color(hex: 0x93B4EE)
+
+        // Deepened variants - contrast-boosted, for a LIGHT menu bar only.
+        static let greenDeep = Color(hex: 0x4FAE74)
+        static let amberDeep = Color(hex: 0xD99A4E)
+        static let coralDeep = Color(hex: 0xD46A58)
+        static let blueDeep  = Color(hex: 0x5B82D6)
+
+        // Opaque surfaces - window/popover chrome, no material or vibrancy.
+        static let base   = Color(hex: 0x161719) // window/popover background
+        static let card   = Color(hex: 0x1A1B1E) // elevated card
+        static let border = Color(hex: 0x2C2E33) // hairline
+        static let track  = Color(hex: 0x26282D) // gauge/bar track
+
+        /// NSColor mirrors, needed wherever AppKit (not SwiftUI) draws -
+        /// chiefly the menu bar's custom `NSAttributedString` rendering.
+        enum NS {
+            static let green = NSColor(hex: 0x86D6A0)
+            static let amber = NSColor(hex: 0xF2C288)
+            static let coral = NSColor(hex: 0xEF9A8D)
+            static let blue  = NSColor(hex: 0x93B4EE)
+
+            static let greenDeep = NSColor(hex: 0x4FAE74)
+            static let amberDeep = NSColor(hex: 0xD99A4E)
+            static let coralDeep = NSColor(hex: 0xD46A58)
+            static let blueDeep  = NSColor(hex: 0x5B82D6)
+
+            /// Adaptive menu bar text - near-white on a dark bar, near-black
+            /// on a light one. Replaces per-metric risk-colored text; the
+            /// risk signal moves to `RiskZone.dotColor`/`PacingZone.dotColor`.
+            static let textOnDark  = NSColor(hex: 0xF4F4F6)
+            static let textOnLight = NSColor(hex: 0x1C1C1E)
+        }
+    }
+}
+
 // MARK: - View modifiers
 
 extension View {

@@ -11,34 +11,50 @@ struct SemanticColorTests {
         #expect(RiskZone.allCases.count == 3)
     }
 
-    @Test("RiskZone.ok has green color")
+    @Test("RiskZone.ok has the pastel green color")
     func riskZoneOkIsGreen() {
-        #expect(RiskZone.ok.color == .green)
+        #expect(RiskZone.ok.color == DS.Pastel.green)
     }
 
-    @Test("RiskZone.warning has orange color")
+    @Test("RiskZone.warning has the pastel amber color")
     func riskZoneWarningIsOrange() {
-        #expect(RiskZone.warning.color == .orange)
+        #expect(RiskZone.warning.color == DS.Pastel.amber)
     }
 
-    @Test("RiskZone.critical has red color")
+    @Test("RiskZone.critical has the pastel coral color")
     func riskZoneCriticalIsRed() {
-        #expect(RiskZone.critical.color == .red)
+        #expect(RiskZone.critical.color == DS.Pastel.coral)
     }
 
-    @Test("RiskZone.ok has systemGreen NSColor")
+    @Test("RiskZone.ok has the pastel green NSColor")
     func riskZoneOkNSColorIsSystemGreen() {
-        #expect(RiskZone.ok.nsColor == .systemGreen)
+        #expect(RiskZone.ok.nsColor == DS.Pastel.NS.green)
     }
 
-    @Test("RiskZone.warning has systemOrange NSColor")
+    @Test("RiskZone.warning has the pastel amber NSColor")
     func riskZoneWarningNSColorIsSystemOrange() {
-        #expect(RiskZone.warning.nsColor == .systemOrange)
+        #expect(RiskZone.warning.nsColor == DS.Pastel.NS.amber)
     }
 
-    @Test("RiskZone.critical has systemRed NSColor")
+    @Test("RiskZone.critical has the pastel coral NSColor")
     func riskZoneCriticalNSColorIsSystemRed() {
-        #expect(RiskZone.critical.nsColor == .systemRed)
+        #expect(RiskZone.critical.nsColor == DS.Pastel.NS.coral)
+    }
+
+    // MARK: - RiskZone.dotColor (menu bar)
+
+    @Test("dotColor uses the plain pastel on a dark menu bar")
+    func dotColorOnDarkBarUsesPastel() {
+        #expect(RiskZone.ok.dotColor(menuBarIsDark: true) == DS.Pastel.NS.green)
+        #expect(RiskZone.warning.dotColor(menuBarIsDark: true) == DS.Pastel.NS.amber)
+        #expect(RiskZone.critical.dotColor(menuBarIsDark: true) == DS.Pastel.NS.coral)
+    }
+
+    @Test("dotColor uses the deepened variant on a light menu bar")
+    func dotColorOnLightBarUsesDeepenedVariant() {
+        #expect(RiskZone.ok.dotColor(menuBarIsDark: false) == DS.Pastel.NS.greenDeep)
+        #expect(RiskZone.warning.dotColor(menuBarIsDark: false) == DS.Pastel.NS.amberDeep)
+        #expect(RiskZone.critical.dotColor(menuBarIsDark: false) == DS.Pastel.NS.coralDeep)
     }
 
     // MARK: - RiskZone.forPercent tests
@@ -96,43 +112,61 @@ struct SemanticColorTests {
 
     // MARK: - PacingZone semantic colors
 
-    @Test("PacingZone.chill has green semanticColor")
+    @Test("PacingZone.chill has the pastel green semanticColor")
     func pacingZoneChillIsGreen() {
-        #expect(PacingZone.chill.semanticColor == .green)
+        #expect(PacingZone.chill.semanticColor == DS.Pastel.green)
     }
 
-    @Test("PacingZone.onTrack has blue semanticColor")
+    @Test("PacingZone.onTrack has the pastel blue semanticColor")
     func pacingZoneOnTrackIsBlue() {
-        #expect(PacingZone.onTrack.semanticColor == .blue)
+        #expect(PacingZone.onTrack.semanticColor == DS.Pastel.blue)
     }
 
-    @Test("PacingZone.warning has orange semanticColor")
+    @Test("PacingZone.warning has the pastel amber semanticColor")
     func pacingZoneWarningIsOrange() {
-        #expect(PacingZone.warning.semanticColor == .orange)
+        #expect(PacingZone.warning.semanticColor == DS.Pastel.amber)
     }
 
-    @Test("PacingZone.hot has red semanticColor")
+    @Test("PacingZone.hot has the pastel coral semanticColor")
     func pacingZoneHotIsRed() {
-        #expect(PacingZone.hot.semanticColor == .red)
+        #expect(PacingZone.hot.semanticColor == DS.Pastel.coral)
     }
 
-    @Test("PacingZone.chill has systemGreen semanticNSColor")
+    @Test("PacingZone.chill has the pastel green semanticNSColor")
     func pacingZoneChillNSColorIsSystemGreen() {
-        #expect(PacingZone.chill.semanticNSColor == .systemGreen)
+        #expect(PacingZone.chill.semanticNSColor == DS.Pastel.NS.green)
     }
 
-    @Test("PacingZone.onTrack has systemBlue semanticNSColor")
+    @Test("PacingZone.onTrack has the pastel blue semanticNSColor")
     func pacingZoneOnTrackNSColorIsSystemBlue() {
-        #expect(PacingZone.onTrack.semanticNSColor == .systemBlue)
+        #expect(PacingZone.onTrack.semanticNSColor == DS.Pastel.NS.blue)
     }
 
-    @Test("PacingZone.warning has systemOrange semanticNSColor")
+    @Test("PacingZone.warning has the pastel amber semanticNSColor")
     func pacingZoneWarningNSColorIsSystemOrange() {
-        #expect(PacingZone.warning.semanticNSColor == .systemOrange)
+        #expect(PacingZone.warning.semanticNSColor == DS.Pastel.NS.amber)
     }
 
-    @Test("PacingZone.hot has systemRed semanticNSColor")
+    @Test("PacingZone.hot has the pastel coral semanticNSColor")
     func pacingZoneHotNSColorIsSystemRed() {
-        #expect(PacingZone.hot.semanticNSColor == .systemRed)
+        #expect(PacingZone.hot.semanticNSColor == DS.Pastel.NS.coral)
+    }
+
+    // MARK: - PacingZone.dotColor (menu bar)
+
+    @Test("PacingZone dotColor uses the plain pastel on a dark menu bar")
+    func pacingDotColorOnDarkBarUsesPastel() {
+        #expect(PacingZone.chill.dotColor(menuBarIsDark: true) == DS.Pastel.NS.green)
+        #expect(PacingZone.onTrack.dotColor(menuBarIsDark: true) == DS.Pastel.NS.blue)
+        #expect(PacingZone.warning.dotColor(menuBarIsDark: true) == DS.Pastel.NS.amber)
+        #expect(PacingZone.hot.dotColor(menuBarIsDark: true) == DS.Pastel.NS.coral)
+    }
+
+    @Test("PacingZone dotColor uses the deepened variant on a light menu bar")
+    func pacingDotColorOnLightBarUsesDeepenedVariant() {
+        #expect(PacingZone.chill.dotColor(menuBarIsDark: false) == DS.Pastel.NS.greenDeep)
+        #expect(PacingZone.onTrack.dotColor(menuBarIsDark: false) == DS.Pastel.NS.blueDeep)
+        #expect(PacingZone.warning.dotColor(menuBarIsDark: false) == DS.Pastel.NS.amberDeep)
+        #expect(PacingZone.hot.dotColor(menuBarIsDark: false) == DS.Pastel.NS.coralDeep)
     }
 }
