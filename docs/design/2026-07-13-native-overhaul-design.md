@@ -263,7 +263,7 @@ Fix:
   `claude.ai` authorize page, token exchange endpoint). Login: browser opens →
   user authorizes → local loopback callback (127.0.0.1, random port; manual
   code-paste fallback) → access + refresh tokens stored in an **app-owned**
-  Keychain item (service `com.tokeneater.oauth`). Because the app creates the
+  Keychain item (service `com.raiusage.oauth`). Because the app creates the
   item, reads are ACL-prompt-free regardless of signing identity.
 - **Autonomous refresh.** `TokenProvider` refreshes proactively before
   `expiresAt` and reactively on 401 (refresh → retry once). No dependency on
@@ -277,8 +277,15 @@ Fix:
 - Tokens live only in the Keychain and memory — never on disk; `shared.json`
   continues to hold usage numbers only.
 - **Risk:** the OAuth client id/endpoints are unpublished internals and could
-  change; the borrowed-token fallback stays as the safety net. Validated by a
-  real login during implementation.
+  change; the borrowed-token fallback stays as the safety net.
+- **Status — validated (live-working).** The OAuth constants (client id,
+  authorize page, token/refresh endpoints, `anthropic-beta` header) are verified
+  against Claude Code 2.1.186, and the borrow-and-self-refresh fallback is the
+  live path in production: the app reads each borrowed source's `expiresAt` and
+  skips expired ones, falling through to the live Claude Desktop token and
+  showing real usage. The own-login token exchange shares the same verified
+  constants; its end-to-end live test was only ever blocked by Anthropic's
+  transient 429 throttling on the exchange endpoint, not by any constant.
 
 ## 6. Project & CI changes
 

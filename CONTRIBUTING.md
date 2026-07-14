@@ -57,9 +57,9 @@ If you're not sure about something, don't stress, I'd rather give feedback in a 
 Examples:
 
 ```
-feat: add keyboard shortcut to toggle agent watchers
+feat: add rotate mode to the menu bar engine
 fix: refresh slider hidden under popover edge
-chore: bump Sparkle to 2.6.4
+chore: drop DS tokens orphaned by the reskin
 ```
 
 ### Tests
@@ -75,7 +75,7 @@ xcodebuild -project TokenEater.xcodeproj -scheme TokenEaterTests \
   test
 ```
 
-For SwiftUI or widget changes, manual testing matters more, build a Release version and try it. The *Build + Nuke + Install* one-liner in [`AGENTS.md`](AGENTS.md) is what I use locally
+For SwiftUI changes, manual testing matters more, build a Release version and try it. The *Build + Install* one-liner in [`AGENTS.md`](AGENTS.md) is what I use locally
 
 > **External contributors**: that one-liner hardcodes my Apple Developer Team ID (`DEVELOPMENT_TEAM=S7B8M9JYF4`), so it won't work on your machine as-is. Two options:
 >

@@ -13,7 +13,6 @@
 <p align="center">
   <img src="https://img.shields.io/badge/macOS-14%2B-111?logo=apple&logoColor=white" alt="macOS 14+">
   <img src="https://img.shields.io/badge/Swift-5.9-F05138?logo=swift&logoColor=white" alt="Swift 5.9">
-  <img src="https://img.shields.io/badge/WidgetKit-native-007AFF?logo=apple&logoColor=white" alt="WidgetKit">
   <img src="https://img.shields.io/badge/Claude-Pro%20%2F%20Max%20%2F%20Team-D97706" alt="Claude Pro / Max / Team">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License">
   <img src="https://img.shields.io/github/v/release/AThevon/TokenEater?color=F97316" alt="Release">
@@ -26,19 +25,15 @@
 
 ## What is RaiUsage?
 
-A native macOS menu bar app + desktop widgets + floating overlay that tracks your Claude AI usage in real-time.
+A native macOS menu bar app with a dashboard window and a quick-glance popover that tracks your Claude AI usage in real-time. Pastel, minimal, native.
 
-- **Menu bar** — Live percentages, color-coded thresholds, detailed popover dashboard with three layout variants (Classic / Compact / Focus).
-- **Dashboard** — Three-space layout (Monitoring / History / Settings) with flippable tiles surfacing 7d sparklines, peak day, and a pacing-vs-equilibrium graph.
-- **History** — Tokens-over-time browser sourced from Claude Code's local JSONL logs. Filter by model family (Opus / Sonnet / Haiku), switch range (24h / 7d / 30d / 90d), hover bars for daily breakdown, identify your heaviest day and top project at a glance.
-- **Widgets** — Native WidgetKit widgets (usage gauges, progress bars, pacing) with reactive refresh.
-- **Agent Watchers** — Floating overlay showing active Claude Code sessions with dock-like hover effect. Click to jump to the right terminal (Terminal.app, iTerm2, tmux, Kitty, WezTerm). Frost or Neon style, with per-session context fraction.
-- **Smart Color** — Risk-aware coloring that combines absolute usage, projection rate, and pacing into a continuous risk score with early-window confidence damping. Three temperaments (Confident / Balanced / Suspicious) to dial sensitivity to your appetite for risk.
-- **Smart pacing** — Are you burning through tokens or cruising? Four zones: chill, on track, warning, hot.
-- **Themes** — 4 presets + full custom colors. Configurable warning/critical thresholds.
-- **Notifications** — Granular per-surface (5h / 7d / Sonnet / Design) and per-event toggles (escalation, recovery, pacing, scheduled reset reminders, extra credits, token expiry).
-
-See all features in detail on the [website](https://tokeneater.vercel.app).
+- **Menu bar** — Live percentages with color-coded thresholds. A fully configurable status item: pin any metrics, choose prefix/value/countdown per pin, pick all-pins / highest-risk / rotate display, and monochrome or risk colors.
+- **Popover** — A single quick-glance popover with the metrics, pacing chips, and extra-credits spend you choose to show; reorderable.
+- **Dashboard** — Sidebar window with Monitoring / History / Settings. Monitoring shows a hero session tile plus a grid of metric tiles that inline-expand to 7d sparklines, peak day, and a pacing-vs-equilibrium graph.
+- **History** — Tokens-over-time browser sourced from Claude Code's local JSONL logs. Filter by model family, switch range (24h / 7d / 30d / 90d), hover bars for daily breakdown, identify your heaviest day and top project at a glance.
+- **Smart Color** — Risk-aware coloring that combines absolute usage, projection rate, and pacing into a continuous risk score with early-window confidence damping. Three temperaments (Patient / Balanced / Vigilant) to dial sensitivity to your appetite for risk.
+- **Smart pacing** — Are you burning through tokens or cruising? Four zones: chill, on track, warning, hot. Optional workweek pacing counts only your active days.
+- **Notifications** — Granular per-surface (5h / 7d / Sonnet / Design) and per-event toggles (escalation, recovery, pacing, scheduled reset reminders, extra credits, token expiry, service status).
 
 ## Install
 
@@ -60,14 +55,12 @@ brew install --cask tokeneater
 
 ### First Setup
 
-**Prerequisites:** [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed and authenticated (`claude` then `/login`). Requires a **Pro, Max, or Team plan**.
+Requires a **Pro, Max, or Team plan**.
 
-1. Open RaiUsage — a guided setup walks you through connecting your account
-2. Right-click on desktop > **Edit Widgets** > search "RaiUsage"
+1. Open RaiUsage — the single-screen onboarding walks you through connecting
+2. Choose **Sign in with Claude** (an app-owned OAuth login that refreshes on its own), or **Use Claude Code's session** to borrow the token Claude Code already has on this Mac
 
 ## Update
-
-RaiUsage checks for updates automatically. When a new version is available, a modal lets you download and install it in-app — macOS will ask for your admin password to replace the app in `/Applications`.
 
 If you installed via Homebrew: `brew update && brew upgrade --cask tokeneater`
 
@@ -97,17 +90,16 @@ cp -R "build/Build/Products/Release/RaiUsage.app" /Applications/
 ## Architecture
 
 ```
-TokenEaterApp/           App host (settings, OAuth, menu bar, overlay)
-TokenEaterWidget/        Widget Extension (WidgetKit, reactive refresh)
+TokenEaterApp/           App host (settings, OAuth, menu bar, popover, dashboard)
 Shared/                  Shared code (services, stores, models, pacing)
   ├── Models/            Pure Codable structs
-  ├── Services/          Protocol-based I/O (API, TokenProvider, SharedFile, Notification, SessionMonitor, SessionHistory)
+  ├── Services/          Protocol-based I/O (API, TokenProvider, OAuth, SharedFile, Notification, SessionHistory)
   ├── Repositories/      Orchestration (UsageRepository)
-  ├── Stores/            ObservableObject state containers (Usage, Theme, Settings, History, MonitoringInsights, Session, Update)
-  └── Helpers/           Pure functions (PacingCalculator, MenuBarRenderer, JSONLParser, SmartColor)
+  ├── Stores/            ObservableObject state containers (Usage, Settings, History, MonitoringInsights, VendorStatus)
+  └── Helpers/           Pure functions (PacingCalculator, MenuBarRenderer, SmartColor)
 ```
 
-The app reads Claude Code's OAuth token silently from the macOS Keychain (`kSecUseAuthenticationUISkip`), calls the Anthropic usage API, and writes results to a shared JSON file. A `TokenFileMonitor` watches the credential files with a `DispatchSource` filesystem watcher and triggers immediate refresh. The widget reads the shared file — it never touches the network or Keychain. The Agent Watchers overlay scans running Claude Code processes every 2s using macOS system APIs and tail-reads their JSONL logs.
+The app signs in via its own OAuth login or borrows Claude Code's token silently from the macOS Keychain (`kSecUseAuthenticationUISkip`), calls the Anthropic usage API, and writes results to a shared JSON file. A `TokenFileMonitor` watches the credential files with a `DispatchSource` filesystem watcher and triggers an immediate refresh.
 
 ## How it works
 
@@ -121,7 +113,7 @@ Returns `utilization` (0–100) and `resets_at` for each limit bucket.
 
 ## Security & Privacy
 
-RaiUsage reads an **OAuth access token** from the Claude Code keychain entry - the same standard token that Claude Code itself uses. At first launch, macOS will prompt you to allow this access; this is normal macOS behavior for any app reading a keychain item it didn't create.
+RaiUsage authenticates with an **OAuth access token** — either its own "Sign in with Claude" login (stored in an app-owned keychain item it creates, so no ACL prompt) or, if you choose to borrow it, the same standard token Claude Code itself uses. When borrowing, macOS prompts you once to allow reading that keychain item; this is normal macOS behavior for any app reading a keychain item it didn't create.
 
 **What the app does with the token:**
 - Calls `GET /api/oauth/usage` (your current usage stats)
@@ -129,9 +121,9 @@ RaiUsage reads an **OAuth access token** from the Claude Code keychain entry - t
 
 **What the app cannot do:** send messages, read conversations, modify your account, or access anything beyond read-only usage data.
 
-The token never leaves your machine except for these two API calls to `api.anthropic.com`. The widget reads a local JSON file and has no network or keychain access at all.
+The token never leaves your machine except for these two API calls to `api.anthropic.com`. It lives only in the Keychain and memory, never on disk; the shared JSON file holds usage numbers only.
 
-Anthropic does not currently offer a third-party OAuth flow or scoped API tokens - reading the existing token from the keychain is the only option. If scoped tokens become available, RaiUsage will adopt them immediately. The entire codebase is open source and auditable: keychain access is in [`SecurityCLIReader.swift`](Shared/Services/SecurityCLIReader.swift) (primary) and [`TokenProvider.swift`](Shared/Services/TokenProvider.swift) (Security-framework fallback), API calls in [`APIClient.swift`](Shared/Services/APIClient.swift).
+The entire codebase is open source and auditable: token resolution is in [`TokenProvider.swift`](Shared/Services/TokenProvider.swift) and [`SecurityCLIReader.swift`](Shared/Services/SecurityCLIReader.swift), the OAuth login in [`OAuthService.swift`](Shared/Services/OAuthService.swift), API calls in [`APIClient.swift`](Shared/Services/APIClient.swift).
 
 ## Troubleshooting
 
