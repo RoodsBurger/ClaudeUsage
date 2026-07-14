@@ -1,0 +1,62 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build + package DMG
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate project
+        run: xcodegen generate
+
+      - name: Build (Release, ad-hoc signed)
+        run: |
+          xcodebuild \
+            -project TokenEater.xcodeproj \
+            -scheme TokenEaterApp \
+            -configuration Release \
+            -derivedDataPath build \
+            -destination 'platform=macOS' \
+            CODE_SIGN_IDENTITY="-" CODE_SIGN_STYLE=Manual CODE_SIGNING_REQUIRED=NO \
+            build
+
+      - name: Package DMG
+        run: |
+          STAGING="dmg-staging"
+          mkdir -p "$STAGING"
+          cp -R build/Build/Products/Release/RaiUsage.app "$STAGING/"
+          ln -s /Applications "$STAGING/Applications"
+          hdiutil create \
+            -volname "RaiUsage" \
+            -srcfolder "$STAGING" \
+            -ov -format UDZO \
+            "RaiUsage-${GITHUB_REF_NAME}.dmg"
+
+      # No paid Apple Developer account, so the DMG is ad-hoc signed and NOT
+      # notarized. Users must right-click > Open on first launch.
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            "RaiUsage-${GITHUB_REF_NAME}.dmg" \
+            --title "RaiUsage ${GITHUB_REF_NAME}" \
+            --notes "RaiUsage ${GITHUB_REF_NAME}
+
+          This build is ad-hoc signed and **not notarized** (no paid Apple Developer account).
+          On first launch, macOS Gatekeeper will block it: **right-click the app > Open**, then
+          confirm — or go to **System Settings > Privacy & Security > Open Anyway**. You only
+          need to do this once."

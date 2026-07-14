@@ -15,8 +15,11 @@ DEST="/Applications/$APP"
 
 # 1. Xcode check
 if ! xcode-select -p 2>/dev/null | grep -q "Xcode.app"; then
-  echo "error: Xcode.app required (App Store), then:" >&2
+  echo "error: building from source requires Xcode.app (App Store), then:" >&2
   echo "  sudo xcode-select -s /Applications/Xcode.app/Contents/Developer" >&2
+  echo "" >&2
+  echo "No Xcode? Download the prebuilt DMG instead:" >&2
+  echo "  https://github.com/RoodsBurger/ClaudeUsage/releases/latest" >&2
   exit 1
 fi
 

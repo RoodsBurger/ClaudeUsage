@@ -36,7 +36,13 @@ RaiUsage is based on [TokenEater](https://github.com/AThevon/TokenEater) — cle
 
 ## Install
 
-RaiUsage is built from source — one script does everything (build, install to `/Applications`, launch).
+### Download DMG (no Xcode needed)
+
+Grab the latest `RaiUsage-vX.Y.Z.dmg` from [Releases](https://github.com/RoodsBurger/ClaudeUsage/releases/latest), open it, and drag RaiUsage to Applications.
+
+The DMG is ad-hoc signed and **not notarized** (no paid Apple Developer account), so on first launch Gatekeeper blocks it: **right-click the app > Open**, then confirm — or **System Settings > Privacy & Security > Open Anyway**. Once only.
+
+### Build from source
 
 **Requirements:** macOS 14+, [Xcode](https://apps.apple.com/app/xcode/id497799835) (App Store, opened once), and [Homebrew](https://brew.sh).
 
@@ -46,7 +52,7 @@ cd ClaudeUsage
 ./build.sh
 ```
 
-The script installs [XcodeGen](https://github.com/yonaskolb/XcodeGen) if missing, builds Release, copies the app to `/Applications`, and launches it. Local builds are ad-hoc signed (not notarized); built on your own machine they open directly — if Gatekeeper ever objects, right-click the app > **Open** once.
+The script installs [XcodeGen](https://github.com/yonaskolb/XcodeGen) if missing, builds Release, copies the app to `/Applications`, and launches it. Built on your own machine it opens directly — if Gatekeeper ever objects, right-click > **Open** once.
 
 ### First Setup
 
@@ -56,6 +62,8 @@ Requires a **Pro, Max, or Team plan**.
 2. Choose **Sign in with Claude** (an app-owned OAuth login that refreshes on its own), or **Use Claude Code's session** to borrow the token Claude Code already has on this Mac
 
 ## Update
+
+DMG installs: download the newer DMG from [Releases](https://github.com/RoodsBurger/ClaudeUsage/releases/latest) and replace the app. From source:
 
 ```bash
 cd ClaudeUsage
