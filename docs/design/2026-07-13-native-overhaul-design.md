@@ -117,10 +117,17 @@ The status-item text must stay legible over any wallpaper. Rendering:
   bar, the deepened variant on a light bar). `colorMode = .risk` shows dots;
   `colorMode = .monochrome` shows none (adaptive text only).
 
-Everything below still holds (SF Symbols hierarchical, `.rounded` only for the app
-name + hero numbers, `.monospacedDigit()` on all numerics, 14pt inset, `Divider()`
-separation in the popover, `RoundedRectangle` cards) — recolored to the palette
-above and made opaque.
+Everything below still holds (SF Symbols hierarchical, `.monospacedDigit()` on all
+numerics, 14pt inset, `Divider()` separation in the popover, `RoundedRectangle`
+cards) — recolored to the palette above.
+
+### Typography — minimal & modern (owner design review)
+
+**Drop `.rounded` entirely** (it reads playful, not minimal). Use the **default
+system font (SF Pro)** everywhere, including the app name and hero numbers.
+Restrained weights: hero/big numbers `.medium` (never `.bold`/`.heavy`/`.black`),
+section labels `.regular`/`.medium`, secondary `.regular`. `.monospacedDigit()`
+stays on every numeric. Clean and quiet — no chunky or decorative type.
 
 ### Motion — minimal & restrained (owner design review)
 
