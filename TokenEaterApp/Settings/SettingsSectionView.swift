@@ -88,9 +88,8 @@ struct SettingsSectionView: View {
                 }
             }
 
-            Divider()
-
             signInWithClaudeBlock
+                .padding(.vertical, 2)
         } header: {
             Text(String(localized: "settings.tab.connection"))
         }
