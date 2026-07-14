@@ -105,6 +105,18 @@ struct MenuBarConfig: Codable, Equatable, Sendable {
         separator = try container.decodeIfPresent(String.self, forKey: .separator) ?? defaults.separator
         fixedWidth = try container.decodeIfPresent(Bool.self, forKey: .fixedWidth) ?? defaults.fixedWidth
     }
+
+    /// First-run defaults for enterprise plans, where the 5h/weekly windows
+    /// are typically untracked and the org spend pool is the metric that
+    /// matters: the Extra Credits pin in dollars (prefixed "Org" via the
+    /// enterprise short label) plus Design. Applied only when no config was
+    /// ever saved - see `DisplaySettingsStore.applyEnterpriseDefaultsIfFirstRun`.
+    static var enterpriseDefault: MenuBarConfig {
+        MenuBarConfig(pinned: [
+            .init(id: .extraCredits, value: .dollars),
+            .init(id: .design),
+        ])
+    }
 }
 
 extension MetricID {

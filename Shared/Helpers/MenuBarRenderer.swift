@@ -77,6 +77,10 @@ enum MenuBarRenderer {
         let extraCreditsLimitMinorUnits: Double
         let extraCreditsCurrency: String
 
+        /// True on enterprise plans: the Extra Credits pin's short label
+        /// renders as "Org" (the pool reads as "Organization usage" there).
+        let isEnterprise: Bool
+
         // Outage badge - set by StatusBarController from VendorStatusStore.
         let outageActive: Bool
         let outageHealth: VendorHealth
@@ -109,7 +113,8 @@ enum MenuBarRenderer {
             resetDisplayFormat: ResetDisplayFormat = .relative,
             sessionPacingDisplayMode: PacingDisplayMode = .dotDelta,
             weeklyPacingDisplayMode: PacingDisplayMode = .dotDelta,
-            menuBarIsDark: Bool = true
+            menuBarIsDark: Bool = true,
+            isEnterprise: Bool = false
         ) -> RenderData {
             RenderData(
                 menuBarConfig: config,
@@ -157,6 +162,7 @@ enum MenuBarRenderer {
                 extraCreditsUsedMinorUnits: 14_250,  // $142.50
                 extraCreditsLimitMinorUnits: 50_000, // $500
                 extraCreditsCurrency: "USD",
+                isEnterprise: isEnterprise,
                 outageActive: false,
                 outageHealth: .healthy,
                 nextPollSeconds: nil,
@@ -743,7 +749,7 @@ enum MenuBarRenderer {
     }
 
     private static func appendShortLabel(_ id: MetricID, to str: NSMutableAttributedString, data: RenderData) {
-        let label = id.shortLabel
+        let label = id.shortLabel(isEnterprise: data.isEnterprise)
         guard !label.isEmpty else { return }
         str.append(NSAttributedString(string: "\(label) ", attributes: [
             .font: NSFont.systemFont(ofSize: 9, weight: .medium),

@@ -51,6 +51,24 @@ enum MetricID: String, CaseIterable, Codable, Sendable {
         case .cowork: return "Cw"
         }
     }
+
+    /// Enterprise-aware display label: the Extra Credits pool reads
+    /// "Organization usage" on enterprise plans, where it is the org-level
+    /// spend meter rather than a personal top-up. Every other metric (and
+    /// every other plan) keeps `label`.
+    func label(planType: PlanType) -> String {
+        if self == .extraCredits, planType == .enterprise {
+            return String(localized: "metric.orgUsage")
+        }
+        return label
+    }
+
+    /// Enterprise-aware menu-bar prefix: the Extra Credits pin shows "Org"
+    /// instead of "EC" on enterprise plans, matching the label rename.
+    func shortLabel(isEnterprise: Bool) -> String {
+        if self == .extraCredits, isEnterprise { return "Org" }
+        return shortLabel
+    }
 }
 
 enum PacingDisplayMode: String, CaseIterable {

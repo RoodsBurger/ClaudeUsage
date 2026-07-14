@@ -9,6 +9,8 @@ import SwiftUI
 /// shared storage, no coupling.
 struct PopoverSectionView: View {
     @EnvironmentObject private var settingsStore: SettingsStore
+    /// Read-only, for the enterprise-aware spend-section label.
+    @EnvironmentObject private var usageStore: UsageStore
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -110,11 +112,18 @@ struct PopoverSectionView: View {
 
     // MARK: - Sections
 
+    /// Enterprise renames the spend section to "Organization usage".
+    private var spendToggleLabel: String {
+        usageStore.planType == .enterprise
+            ? String(localized: "metric.orgUsage")
+            : String(localized: "settings.popover.showSpend")
+    }
+
     private var sectionsSection: some View {
         Section {
             Toggle(String(localized: "settings.popover.showPacing"), isOn: $settingsStore.display.popoverConfig.showPacing)
                 .tint(DS.Pastel.green)
-            Toggle(String(localized: "settings.popover.showSpend"), isOn: $settingsStore.display.popoverConfig.showSpend)
+            Toggle(spendToggleLabel, isOn: $settingsStore.display.popoverConfig.showSpend)
                 .tint(DS.Pastel.green)
             Toggle(String(localized: "settings.popover.showTimestamp"), isOn: $settingsStore.display.popoverConfig.showTimestamp)
                 .tint(DS.Pastel.green)
@@ -135,6 +144,7 @@ struct PopoverSectionView: View {
 /// preview shouldn't host a live "Quit" button or read the real account's data.
 private struct PopoverPreviewCard: View {
     @EnvironmentObject private var settingsStore: SettingsStore
+    @EnvironmentObject private var usageStore: UsageStore
     let config: PopoverConfig
 
     private var rows: [PopoverMetricRow] {
@@ -214,7 +224,9 @@ private struct PopoverPreviewCard: View {
     private var spendMock: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text(String(localized: "dashboard.extra.title"))
+                Text(usageStore.planType == .enterprise
+                     ? String(localized: "metric.orgUsage")
+                     : String(localized: "dashboard.extra.title"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer()

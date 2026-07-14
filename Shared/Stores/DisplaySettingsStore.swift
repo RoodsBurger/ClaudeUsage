@@ -127,6 +127,23 @@ final class DisplaySettingsStore: ObservableObject {
         }
     }
 
+    /// One-shot enterprise defaults for a fresh install: when the plan type
+    /// first resolves to `.enterprise` and the user has never saved a menu-bar
+    /// or popover config, seed the enterprise-flavored defaults (org spend +
+    /// design). Each config is checked independently, so a config the user
+    /// already saved - before or after the plan was known - is never migrated.
+    /// Assigning through the `@Published` property persists via its `didSet`,
+    /// which also makes the seeding itself one-shot. No-op for every other plan.
+    func applyEnterpriseDefaultsIfFirstRun(planType: PlanType) {
+        guard planType == .enterprise else { return }
+        if UserDefaults.standard.data(forKey: "menuBarConfig") == nil {
+            menuBarConfig = .enterpriseDefault
+        }
+        if UserDefaults.standard.data(forKey: "popoverConfig") == nil {
+            popoverConfig = .enterpriseDefault
+        }
+    }
+
     private func saveMenuBarConfig() {
         guard let data = try? JSONEncoder().encode(menuBarConfig) else { return }
         UserDefaults.standard.set(data, forKey: "menuBarConfig")

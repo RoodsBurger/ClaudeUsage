@@ -40,10 +40,22 @@ struct MonitoringView: View {
                 if vendorStatusStore.isDegraded, let status = vendorStatusStore.claudeStatus {
                     outageCard(status)
                 }
-                heroTile
+                // Enterprise swaps the session hero for the org-spend hero
+                // (the 5h window is typically untracked there and the spend
+                // pool is the metric that matters). Everyone else keeps the
+                // session hero unchanged.
+                if let extra = usageStore.extraUsage,
+                   EnterprisePresentation.usesSpendHero(planType: usageStore.planType, extraUsage: extra) {
+                    spendHeroTile(extra)
+                } else {
+                    heroTile
+                }
                 metricsGrid
                 pacingRow
-                if let extra = usageStore.extraUsage, extra.isEnabled {
+                // The bottom spend card is redundant with the spend hero on
+                // enterprise; every other plan keeps it (gated on isEnabled).
+                if let extra = usageStore.extraUsage,
+                   EnterprisePresentation.showsSpendCard(planType: usageStore.planType, extraUsage: extra) {
                     extraUsageTile(extra)
                 }
                 footerPills
@@ -325,6 +337,89 @@ struct MonitoringView: View {
         .foregroundStyle(.tertiary)
     }
 
+    // MARK: - Hero tile (enterprise org spend)
+
+    /// Enterprise hero: the org's monthly spend pool replaces the session
+    /// ring. Reuses the extra-credits data and the same windowless threshold
+    /// ladder as the bottom spend card, so the color always agrees with the
+    /// menu bar and popover.
+    private func spendHeroTile(_ extra: ExtraUsage) -> some View {
+        let used = extra.usedCredits ?? 0
+        let limit = extra.monthlyLimit ?? 0
+        let pct = extra.percent
+        let currency = extra.currency ?? "USD"
+        let tint = RiskZone.forPercent(pct, thresholds: settingsStore.thresholds).color
+        let usedText = CurrencyFormatter.formatMinorUnits(used, currencyCode: currency, locale: Locale(identifier: "en_US"))
+        let limitText = CurrencyFormatter.formatMinorUnits(limit, currencyCode: currency, locale: Locale(identifier: "en_US"))
+
+        return VStack(alignment: .leading, spacing: DS.Spacing.md) {
+            HStack(spacing: DS.Spacing.xs) {
+                Circle()
+                    .fill(tint)
+                    .frame(width: 6, height: 6)
+                Text(String(localized: "metric.orgUsage").uppercased())
+                    .font(DS.Typography.micro)
+                    .tracking(1.5)
+                    .foregroundStyle(.secondary)
+            }
+
+            HStack(alignment: .firstTextBaseline, spacing: DS.Spacing.xs) {
+                Text(usedText)
+                    .font(.system(size: 48, weight: .medium))
+                    .monospacedDigit()
+                    .foregroundStyle(tint)
+                    .contentTransition(.numericText(value: used))
+                    .animation(DS.Motion.easeInOut, value: used)
+                if limit > 0 {
+                    Text(String(localized: "dashboard.extra.separator"))
+                        .font(.system(size: 22, weight: .medium))
+                        .foregroundStyle(.tertiary)
+                    Text(limitText)
+                        .font(.system(size: 22, weight: .medium))
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            if limit > 0 {
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(DS.Pastel.track)
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(tint)
+                            .frame(width: geo.size.width * CGFloat(min(max(pct, 0), 100)) / 100)
+                    }
+                }
+                .frame(height: 6)
+                HStack(spacing: DS.Spacing.xs) {
+                    Text("\(pct)%")
+                        .font(DS.Typography.metricInline)
+                        .monospacedDigit()
+                        .foregroundStyle(tint)
+                    Spacer()
+                    Text(String(localized: "dashboard.extra.monthly"))
+                        .font(DS.Typography.label)
+                        .foregroundStyle(.tertiary)
+                }
+            } else {
+                Text(String(localized: "dashboard.extra.noLimit"))
+                    .font(DS.Typography.label)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .padding(DS.Spacing.lg)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: DS.Radius.cardLg, style: .continuous)
+                .fill(DS.Pastel.card)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: DS.Radius.cardLg, style: .continuous)
+                .stroke(DS.Pastel.border, lineWidth: 1)
+        )
+    }
+
     // MARK: - Metrics grid
 
     private var metricsGrid: some View {
@@ -369,8 +464,29 @@ struct MonitoringView: View {
 
     private var secondaryTiles: [TileDescriptor] {
         let weekWindow: TimeInterval = 7 * 86_400
-        var tiles: [TileDescriptor] = [
-            TileDescriptor(
+        let plan = usageStore.planType
+        var tiles: [TileDescriptor] = []
+        // On enterprise the spend hero replaces the session hero, so a TRACKED
+        // 5h window re-enters the grid as a normal tile; untracked stays hidden.
+        // Non-enterprise never reaches this branch - the session data lives in
+        // the hero there, exactly as before.
+        if EnterprisePresentation.usesSpendHero(planType: plan, extraUsage: usageStore.extraUsage),
+           EnterprisePresentation.isTracked(usageStore.lastUsage?.fiveHour) {
+            tiles.append(TileDescriptor(
+                id: "session",
+                label: String(localized: "metric.session"),
+                icon: "clock.fill",
+                pct: usageStore.fiveHourPct,
+                resetText: usageStore.fiveHourReset.isEmpty ? nil : usageStore.fiveHourReset,
+                resetDate: usageStore.lastUsage?.fiveHour?.resetsAtDate,
+                windowDuration: 5 * 3600
+            ))
+        }
+        // Window tiles hide only when enterprise AND untracked (no reset
+        // timestamp, zero utilization) - see EnterprisePresentation. Every
+        // other plan keeps every tile unconditionally, as before.
+        if EnterprisePresentation.showsWindowTile(planType: plan, bucket: usageStore.lastUsage?.sevenDay) {
+            tiles.append(TileDescriptor(
                 id: "weekly",
                 label: String(localized: "metric.weekly"),
                 icon: "calendar",
@@ -378,8 +494,10 @@ struct MonitoringView: View {
                 resetText: usageStore.sevenDayReset,
                 resetDate: usageStore.lastUsage?.sevenDay?.resetsAtDate,
                 windowDuration: weekWindow
-            ),
-            TileDescriptor(
+            ))
+        }
+        if EnterprisePresentation.showsWindowTile(planType: plan, bucket: usageStore.lastUsage?.sevenDaySonnet) {
+            tiles.append(TileDescriptor(
                 id: "sonnet",
                 label: String(localized: "metric.sonnet"),
                 icon: "text.quote",
@@ -387,9 +505,10 @@ struct MonitoringView: View {
                 resetText: usageStore.sonnetReset.isEmpty ? nil : usageStore.sonnetReset,
                 resetDate: usageStore.lastUsage?.sevenDaySonnet?.resetsAtDate,
                 windowDuration: weekWindow
-            )
-        ]
-        if usageStore.hasDesign {
+            ))
+        }
+        if usageStore.hasDesign,
+           EnterprisePresentation.showsWindowTile(planType: plan, bucket: usageStore.lastUsage?.sevenDayDesign) {
             tiles.append(TileDescriptor(
                 id: "design",
                 label: String(localized: "metric.design"),
@@ -400,7 +519,8 @@ struct MonitoringView: View {
                 windowDuration: weekWindow
             ))
         }
-        if usageStore.hasOpus {
+        if usageStore.hasOpus,
+           EnterprisePresentation.showsWindowTile(planType: plan, bucket: usageStore.lastUsage?.sevenDayOpus) {
             tiles.append(TileDescriptor(
                 id: "opus",
                 label: "Opus",
@@ -411,7 +531,8 @@ struct MonitoringView: View {
                 windowDuration: weekWindow
             ))
         }
-        if usageStore.hasCowork {
+        if usageStore.hasCowork,
+           EnterprisePresentation.showsWindowTile(planType: plan, bucket: usageStore.lastUsage?.sevenDayCowork) {
             tiles.append(TileDescriptor(
                 id: "cowork",
                 label: "Cowork",
@@ -422,7 +543,8 @@ struct MonitoringView: View {
                 windowDuration: weekWindow
             ))
         }
-        if usageStore.hasFable {
+        if usageStore.hasFable,
+           EnterprisePresentation.showsWindowTile(planType: plan, bucket: usageStore.lastUsage?.sevenDayFable) {
             tiles.append(TileDescriptor(
                 id: "fable",
                 label: String(localized: "metric.fable"),

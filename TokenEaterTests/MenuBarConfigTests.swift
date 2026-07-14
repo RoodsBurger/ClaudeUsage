@@ -89,6 +89,19 @@ struct MenuBarConfigTests {
         #expect(decoded == original)
     }
 
+    @Test("enterpriseDefault pins org spend in dollars plus design")
+    func enterpriseDefault() {
+        let config = MenuBarConfig.enterpriseDefault
+        #expect(config.pinned.map(\.id) == [.extraCredits, .design])
+        #expect(config.pinned.first?.value == .dollars)
+        // Every non-pin field matches the standard defaults.
+        #expect(config.displayMode == MenuBarConfig().displayMode)
+        #expect(config.colorMode == MenuBarConfig().colorMode)
+        #expect(config.showIcon == MenuBarConfig().showIcon)
+        #expect(config.separator == MenuBarConfig().separator)
+        #expect(config.fixedWidth == MenuBarConfig().fixedWidth)
+    }
+
     @Test("menuBarPinnable excludes sessionReset, opus and cowork")
     func pinnableExcludesSessionReset() {
         #expect(!MetricID.menuBarPinnable.contains(.sessionReset))

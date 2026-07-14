@@ -94,4 +94,20 @@ struct PopoverConfigTests {
         #expect(config.visibleMetrics(available: available) == [.opus, .sonnet, .cowork, .fable, .design])
     }
 
+    // MARK: - Enterprise first-run defaults
+
+    @Test("enterpriseDefault shows only the design row")
+    func enterpriseDefaultMetrics() {
+        let config = PopoverConfig.enterpriseDefault
+        #expect(config.visibleMetrics(available: Set(MetricID.popoverDefaultOrder)) == [.design])
+        #expect(config.metricOrder == PopoverConfig().metricOrder)
+    }
+
+    @Test("enterpriseDefault keeps spend and timestamp on, pacing off")
+    func enterpriseDefaultSections() {
+        let config = PopoverConfig.enterpriseDefault
+        #expect(config.showSpend == true)
+        #expect(config.showTimestamp == true)
+        #expect(config.showPacing == false)
+    }
 }

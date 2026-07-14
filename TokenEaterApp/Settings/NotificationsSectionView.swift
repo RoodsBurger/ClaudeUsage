@@ -6,6 +6,8 @@ import SwiftUI
 /// toggle per event.
 struct NotificationsSectionView: View {
     @EnvironmentObject private var settingsStore: SettingsStore
+    /// Read-only, for the enterprise-aware "Organization usage" group title.
+    @EnvironmentObject private var usageStore: UsageStore
 
     @State private var notifTestCooldown = false
 
@@ -214,7 +216,10 @@ struct NotificationsSectionView: View {
             Toggle(String(localized: "settings.notifications.extra"), isOn: $settingsStore.notification.extraCredits)
                 .tint(DS.Pastel.green)
         } header: {
-            Text(String(localized: "settings.notifications.group.extra"))
+            // Enterprise renames the pool to "Organization usage".
+            Text(usageStore.planType == .enterprise
+                 ? String(localized: "metric.orgUsage")
+                 : String(localized: "settings.notifications.group.extra"))
         } footer: {
             Text(String(localized: "settings.notifications.group.extra.hint"))
         }

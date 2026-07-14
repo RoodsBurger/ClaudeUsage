@@ -167,6 +167,7 @@ private func makeRenderData(
     extraCreditsUsedMinorUnits: Double = 4200,
     extraCreditsLimitMinorUnits: Double = 500_000,
     extraCreditsCurrency: String = "USD",
+    isEnterprise: Bool = false,
     outageActive: Bool = false,
     outageHealth: VendorHealth = .healthy,
     nextPollSeconds: Int? = nil,
@@ -226,6 +227,7 @@ private func makeRenderData(
         extraCreditsUsedMinorUnits: extraCreditsUsedMinorUnits,
         extraCreditsLimitMinorUnits: extraCreditsLimitMinorUnits,
         extraCreditsCurrency: extraCreditsCurrency,
+        isEnterprise: isEnterprise,
         outageActive: outageActive,
         outageHealth: outageHealth,
         nextPollSeconds: nextPollSeconds,
@@ -534,6 +536,34 @@ struct MenuBarBuildLineTests {
             #expect(MenuBarRenderer.buildLine(data: data).length == 0, "\(mode)")
             #expect(MenuBarRenderer.renderUncached(data).isTemplate == true, "\(mode)")
         }
+    }
+
+    @Test("Extra Credits short label reads Org on enterprise, EC elsewhere")
+    func enterpriseShortLabel() {
+        let pin = PinnedMetricConfig(id: .extraCredits, prefix: .shortLabel, value: .percentUsed)
+        let normal = makeRenderData(pinned: [pin], colorMode: .monochrome, isEnterprise: false)
+        let enterprise = makeRenderData(pinned: [pin], colorMode: .monochrome, isEnterprise: true)
+        #expect(MenuBarRenderer.buildLine(data: normal).string == "EC 30%")
+        #expect(MenuBarRenderer.buildLine(data: enterprise).string == "Org 30%")
+    }
+
+    @Test("enterprise leaves every other pin's short label unchanged")
+    func enterpriseLeavesOtherLabelsAlone() {
+        let pins: [PinnedMetricConfig] = [
+            .init(id: .fiveHour, prefix: .shortLabel, value: .percentUsed),
+            .init(id: .sevenDay, prefix: .shortLabel, value: .percentUsed),
+        ]
+        let normal = makeRenderData(pinned: pins, colorMode: .monochrome, isEnterprise: false)
+        let enterprise = makeRenderData(pinned: pins, colorMode: .monochrome, isEnterprise: true)
+        #expect(MenuBarRenderer.buildLine(data: normal).string == MenuBarRenderer.buildLine(data: enterprise).string)
+    }
+
+    @Test("enterprise worst-case width still covers the live rendered line")
+    func enterpriseWorstCaseCoversNatural() {
+        let pin = PinnedMetricConfig(id: .extraCredits, prefix: .shortLabel, value: .dollars)
+        let data = makeRenderData(pinned: [pin], fixedWidth: true, isEnterprise: true)
+        let naturalWidth = MenuBarRenderer.buildLine(data: data).size().width
+        #expect(MenuBarRenderer.fixedWidthMeasurement(data: data) >= naturalWidth)
     }
 
     @Test("same countdown pin renders three distinct strings across the three formats")

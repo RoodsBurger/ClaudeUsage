@@ -10,6 +10,9 @@ import SwiftUI
 /// bindings via `ForEach($...)` stay AttributeGraph-safe.
 struct MenuBarSectionView: View {
     @EnvironmentObject private var settingsStore: SettingsStore
+    /// Read-only, for enterprise-aware labels (Extra Credits -> "Organization
+    /// usage" / "Org") in the pin rows, add-menu, and the live preview.
+    @EnvironmentObject private var usageStore: UsageStore
 
     /// Local buffer for the separator field only - it needs length clamping
     /// (1-2 chars) before writing back, which a direct binding can't express.
@@ -103,7 +106,8 @@ struct MenuBarSectionView: View {
             pacingMargin: Double(settingsStore.pacingMargin),
             resetDisplayFormat: settingsStore.resetDisplayFormat,
             sessionPacingDisplayMode: settingsStore.sessionPacingDisplayMode,
-            weeklyPacingDisplayMode: settingsStore.weeklyPacingDisplayMode
+            weeklyPacingDisplayMode: settingsStore.weeklyPacingDisplayMode,
+            isEnterprise: usageStore.planType == .enterprise
         )
     }
 
@@ -144,7 +148,7 @@ struct MenuBarSectionView: View {
                 .foregroundStyle(.secondary)
                 .frame(width: 18)
 
-            Text(metric.label)
+            Text(metric.label(planType: usageStore.planType))
                 .font(.system(size: 12, weight: .medium))
                 .lineLimit(1)
                 .frame(minWidth: 60, alignment: .leading)
@@ -197,7 +201,7 @@ struct MenuBarSectionView: View {
     private var addMetricMenu: some View {
         Menu {
             ForEach(availableToAdd, id: \.self) { metric in
-                Button(metric.label) {
+                Button(metric.label(planType: usageStore.planType)) {
                     settingsStore.display.menuBarConfig.pinned.append(.init(id: metric))
                 }
             }

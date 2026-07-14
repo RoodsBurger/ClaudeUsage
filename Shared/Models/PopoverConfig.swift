@@ -57,6 +57,19 @@ struct PopoverConfig: Codable, Equatable, Sendable {
         metricOrder.filter { !hiddenMetrics.contains($0) && available.contains($0) }
     }
 
+    /// First-run defaults for enterprise plans, where the 5h/weekly windows
+    /// are typically untracked: only the Design row shows, plus the spend
+    /// section (rendered as "Organization usage") and the updated timestamp.
+    /// Applied only when no config was ever saved - see
+    /// `DisplaySettingsStore.applyEnterpriseDefaultsIfFirstRun`.
+    static var enterpriseDefault: PopoverConfig {
+        PopoverConfig(
+            hiddenMetrics: Set(MetricID.popoverDefaultOrder).subtracting([.design]),
+            showPacing: false,
+            showSpend: true,
+            showTimestamp: true
+        )
+    }
 }
 
 extension MetricID {

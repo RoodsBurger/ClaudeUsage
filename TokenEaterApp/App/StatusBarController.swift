@@ -278,6 +278,17 @@ final class StatusBarController: NSObject {
                 self?.statusItem.isVisible = visible
             }
             .store(in: &cancellables)
+
+        // Enterprise first-run defaults: when the profile fetch resolves the
+        // plan type, seed the enterprise menu-bar/popover defaults if the user
+        // has never saved a config. No-op for every other plan and for any
+        // already-saved config - see `applyEnterpriseDefaultsIfFirstRun`.
+        usageStore.$planType
+            .removeDuplicates()
+            .sink { [weak self] plan in
+                self?.settingsStore.display.applyEnterpriseDefaultsIfFirstRun(planType: plan)
+            }
+            .store(in: &cancellables)
     }
 
     private func bootstrapRefresh() {
@@ -429,6 +440,7 @@ final class StatusBarController: NSObject {
             extraCreditsUsedMinorUnits: usageStore.extraUsage?.usedCredits ?? 0,
             extraCreditsLimitMinorUnits: usageStore.extraUsage?.monthlyLimit ?? 0,
             extraCreditsCurrency: usageStore.extraUsage?.currency ?? "USD",
+            isEnterprise: usageStore.planType == .enterprise,
             outageActive: settingsStore.statusShowMenuBarBadge && vendorStatusStore.isDegraded,
             outageHealth: vendorStatusStore.worstHealth,
             nextPollSeconds: vendorStatusStore.nextPollDate.map { max(0, Int(ceil($0.timeIntervalSinceNow))) },

@@ -179,6 +179,72 @@ struct DisplaySettingsStoreTests {
         #expect(second.menuBarConfig.pinned.isEmpty)
     }
 
+    // MARK: - Enterprise first-run defaults
+
+    @Test("fresh install + enterprise plan seeds enterprise defaults and persists them")
+    func enterpriseFirstRunSeedsDefaults() {
+        clean(); defer { clean() }
+        let store = DisplaySettingsStore()
+        store.applyEnterpriseDefaultsIfFirstRun(planType: .enterprise)
+        #expect(store.menuBarConfig == .enterpriseDefault)
+        #expect(store.popoverConfig == .enterpriseDefault)
+        // Persisted: a fresh instance decodes the seeded configs.
+        let second = DisplaySettingsStore()
+        #expect(second.menuBarConfig == .enterpriseDefault)
+        #expect(second.popoverConfig == .enterpriseDefault)
+    }
+
+    @Test("non-enterprise plans never seed or save anything")
+    func nonEnterprisePlansAreNoOps() {
+        clean(); defer { clean() }
+        let store = DisplaySettingsStore()
+        for plan in [PlanType.pro, .max, .team, .free, .unknown] {
+            store.applyEnterpriseDefaultsIfFirstRun(planType: plan)
+        }
+        #expect(store.menuBarConfig == MenuBarConfig())
+        #expect(store.popoverConfig == PopoverConfig())
+        #expect(UserDefaults.standard.data(forKey: "menuBarConfig") == nil)
+        #expect(UserDefaults.standard.data(forKey: "popoverConfig") == nil)
+    }
+
+    @Test("configs saved before the plan resolved are never migrated")
+    func savedConfigsAreNeverMigrated() {
+        clean(); defer { clean() }
+        let store = DisplaySettingsStore()
+        // User edits while the plan is still unknown - both configs save.
+        store.menuBarConfig.separator = "|"
+        store.popoverConfig.showPacing = false
+
+        store.applyEnterpriseDefaultsIfFirstRun(planType: .enterprise)
+        #expect(store.menuBarConfig.separator == "|")
+        #expect(store.menuBarConfig.pinned == MenuBarConfig().pinned)
+        #expect(store.popoverConfig.showPacing == false)
+        #expect(store.popoverConfig.hiddenMetrics.isEmpty)
+    }
+
+    @Test("each config is checked independently - only the never-saved one is seeded")
+    func partialSaveSeedsOnlyMissingConfig() {
+        clean(); defer { clean() }
+        let store = DisplaySettingsStore()
+        store.menuBarConfig.separator = "|" // menu bar saved, popover untouched
+
+        store.applyEnterpriseDefaultsIfFirstRun(planType: .enterprise)
+        #expect(store.menuBarConfig.separator == "|")
+        #expect(store.menuBarConfig.pinned == MenuBarConfig().pinned)
+        #expect(store.popoverConfig == .enterpriseDefault)
+    }
+
+    @Test("seeding is one-shot: later user edits survive a second plan resolution")
+    func seedingIsOneShot() {
+        clean(); defer { clean() }
+        let store = DisplaySettingsStore()
+        store.applyEnterpriseDefaultsIfFirstRun(planType: .enterprise)
+        store.menuBarConfig.pinned = [.init(id: .fiveHour)]
+
+        store.applyEnterpriseDefaultsIfFirstRun(planType: .enterprise)
+        #expect(store.menuBarConfig.pinned == [.init(id: .fiveHour)])
+    }
+
     @Test("child change relays objectWillChange to SettingsStore parent")
     func relaysToParent() {
         clean(); defer { clean() }

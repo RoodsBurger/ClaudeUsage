@@ -385,6 +385,7 @@ struct PopoverMetricRowView: View {
 
 private struct PopoverSpendSection: View {
     @EnvironmentObject private var settingsStore: SettingsStore
+    @EnvironmentObject private var usageStore: UsageStore
     let extra: ExtraUsage
 
     private var used: Double { extra.usedCredits ?? 0 }
@@ -392,10 +393,18 @@ private struct PopoverSpendSection: View {
     private var pct: Int { extra.percent }
     private var tint: Color { RiskZone.forPercent(pct, thresholds: settingsStore.thresholds).color }
 
+    /// Enterprise renames the pool to "Organization usage" - it is the
+    /// org-level spend meter there, not a personal top-up.
+    private var title: String {
+        usageStore.planType == .enterprise
+            ? String(localized: "metric.orgUsage")
+            : String(localized: "dashboard.extra.title")
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text(String(localized: "dashboard.extra.title"))
+                Text(title)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer()

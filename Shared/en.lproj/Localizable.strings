@@ -16,6 +16,7 @@
 "dashboard.extra.monthly" = "this month";
 "dashboard.extra.noLimit" = "Monthly limit not set";
 "metric.extraCredits" = "Extra Credits";
+"metric.orgUsage" = "Organization usage";
 "metric.sessionReset" = "Session reset countdown";
 "metric.weekly" = "Weekly";
 "metric.sonnet" = "Sonnet";
