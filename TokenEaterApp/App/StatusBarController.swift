@@ -619,6 +619,14 @@ final class StatusBarController: NSObject {
         panel.makeKey()
         NSApp.activate(ignoringOtherApps: true)
         startPopoverDismissMonitors()
+
+        // Native selected tint while the popover is open (matches system menu
+        // bar apps). Deferred one runloop turn: the click's own mouse-up event
+        // would immediately clear a highlight set synchronously here.
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.popoverPanel?.isVisible == true else { return }
+            self.statusItem.button?.highlight(true)
+        }
     }
 
     func showDashboard() {
@@ -780,6 +788,7 @@ final class StatusBarController: NSObject {
 
     /// Close the popover and tear down every dismissal monitor/observer.
     private func dismissPopover() {
+        statusItem.button?.highlight(false)
         popoverPanel?.orderOut(nil)
         popoverHostingController?.view.removeFromSuperview()
         popoverHostingController = nil
