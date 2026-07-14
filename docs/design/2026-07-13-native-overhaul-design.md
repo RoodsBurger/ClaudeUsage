@@ -97,8 +97,11 @@ header); its session-scanning half goes with the overlay.
 | risk critical (coral) | `#EF9A8D` | `#D46A58` |
 | info / on-track (blue) | `#93B4EE` | `#5B82D6` |
 
-Surfaces (opaque, no material/vibrancy, no glow): window/popover base `#161719`,
-card/elevated `#1A1B1E`, hairline border `#2C2E33`, gauge track `#26282D`. Text
+Surfaces: **app windows** are opaque solid dark (no wash-out) — window base
+`#161719`, card/elevated `#1A1B1E`, hairline `#2C2E33`, gauge track `#26282D`.
+The **popover** is the exception: it keeps the **native macOS translucent window
+material** (RaiDrive-style vibrancy), not a solid fill — its cards/tracks still
+use the tokens above for contrast over the material. No glow anywhere. Text
 keeps SwiftUI `.primary` / `.secondary` / `.tertiary` (resolve white-ish on the
 dark surfaces). `RiskZone.color`/`.nsColor` and `PacingZone.semanticColor` return
 these pastels (chill→green, onTrack→blue, warning→amber, hot→coral).
