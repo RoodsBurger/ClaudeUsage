@@ -9,8 +9,8 @@ struct PacingSectionView: View {
 
     @State private var showSmartColorPopover = false
     @State private var showWorkweekPopover = false
-    /// Local Double mirrors for the percent sliders - `Slider` needs a
-    /// `BinaryFloatingPoint` binding, the stores hold `Int`.
+    /// Local Double mirrors for the percent sliders - `PercentSlider` takes a
+    /// `Double` binding, the stores hold `Int`.
     /// @State + .onChange instead of Binding(get:set:), per the SwiftUI rules.
     @State private var warningSlider: Double
     @State private var criticalSlider: Double
@@ -571,14 +571,11 @@ struct PacingSectionView: View {
     // MARK: - Sliders + previews
 
     private func percentSlider(label: String, value: Binding<Double>, range: ClosedRange<Double>) -> some View {
-        // Plain HStack + labelsHidden: a Slider inside a grouped Form reserves
-        // the form's implicit label column even with no label, squeezing the
-        // track to half the row. labelsHidden() releases it to fill the row.
+        // PercentSlider draws its own tinted track, so the pastel fill renders
+        // identically on every macOS build (native Slider's .tint does not).
         HStack(spacing: 12) {
             Text(label)
-            Slider(value: value, in: range, step: 5)
-                .labelsHidden()
-                .tint(DS.Pastel.green)
+            PercentSlider(value: value, range: range, accessibilityLabelText: label)
                 .frame(maxWidth: .infinity)
             Text("\(Int(value.wrappedValue))%")
                 .monospacedDigit()
