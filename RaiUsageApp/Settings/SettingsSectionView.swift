@@ -186,34 +186,52 @@ struct SettingsSectionView: View {
         }
     }
 
+    private var canAddRemoteInstance: Bool {
+        !newRemoteHost.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !newRemoteUser.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    /// New-instance form. Labels are hidden so the placeholders render inside
+    /// the fields (a macOS Form would otherwise pull each placeholder out as a
+    /// leading label and wrap the narrow "SSH user" one). Fields stack; Add
+    /// sits on its own trailing row next to any validation error.
     private var addRemoteInstanceRow: some View {
         VStack(alignment: .leading, spacing: 8) {
             TextField(String(localized: "settings.remote.nickname.placeholder"), text: $newRemoteNickname)
                 .textFieldStyle(.roundedBorder)
+                .labelsHidden()
+
             HStack(spacing: 8) {
                 TextField(String(localized: "settings.remote.host.placeholder"), text: $newRemoteHost)
                     .textFieldStyle(.roundedBorder)
+                    .labelsHidden()
                 TextField(String(localized: "settings.remote.user.placeholder"), text: $newRemoteUser)
                     .textFieldStyle(.roundedBorder)
-                    .frame(width: 120)
+                    .labelsHidden()
+                    .frame(width: 150)
+            }
+
+            HStack(spacing: 8) {
+                if let remoteAddError {
+                    Label(remoteAddError, systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundStyle(DS.Pastel.coral)
+                        .transition(.opacity)
+                } else {
+                    Text(String(localized: "settings.remote.hint"))
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 8)
                 Button(String(localized: "settings.remote.add")) {
                     addRemoteInstance()
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(DS.Pastel.green)
                 .controlSize(.small)
-                .disabled(newRemoteHost.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                          || newRemoteUser.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .disabled(!canAddRemoteInstance)
             }
-            if let remoteAddError {
-                Text(remoteAddError)
-                    .font(.caption)
-                    .foregroundStyle(DS.Pastel.coral)
-            }
-            Text(String(localized: "settings.remote.hint"))
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-                .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.vertical, 2)
     }
