@@ -41,15 +41,9 @@ enum DS {
         // at 0.15 when used as fill.
         static let accentStats    = Color(hex: "#32CE6A") // brand green -> data, confidence
 
-        // Brand green variants (for pressed / light states on primary actions)
-        static let brandPrimary  = Color(hex: "#32CE6A")
-        static let brandPressed  = Color(hex: "#28A554")
-        static let brandLight    = Color(hex: "#5EDDA0")
-
         // Semantic states (notifications, banners, errors).
         // Re-use site tokens so the app feels consistent with the landing page.
         static let semanticWarning = Color(hex: "#FFB347")
-        static let semanticError   = Color(hex: "#F87171")
     }
 
     // MARK: - Spacing
