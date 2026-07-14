@@ -104,8 +104,7 @@ struct MainAppView: View {
     // MARK: - Onboarding
 
     private var onboardingContent: some View {
-        OnboardingView()
+        OnboardingHeroView()
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(DS.Palette.bgElevated)
     }
 }

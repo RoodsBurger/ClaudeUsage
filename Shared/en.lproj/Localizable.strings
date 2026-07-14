@@ -379,9 +379,6 @@
 "onboarding.mode.simple" = "Simple";
 "onboarding.mode.detailed" = "Detailed";
 
-/* Onboarding - Connection (kept: referenced by OnboardingViewModel) */
-"onboarding.connection.failed.notoken" = "Couldn't read the token. Make sure Claude Code is installed and you're signed in.";
-
 /* Settings - Onboarding reset */
 "settings.onboarding.reset" = "Run setup again";
 
@@ -529,50 +526,12 @@
 "pacing.session.label.short" = "Session";
 "pacing.weekly.label.short" = "Weekly";
 
-/* MARK: - Onboarding (rework 2026-04) */
+/* MARK: - Onboarding hero (single screen, rework 2026-07) */
 
-"onboarding.hero.label" = "SETUP";
-"onboarding.hero.title" = "Hey, you're here";
-"onboarding.hero.subtitle" = "Couple of permissions and RaiUsage is live";
-"onboarding.progress.label %lld %lld" = "%lld / %lld ready";
-"onboarding.finish" = "Finish";
-
-"onboarding.badge.required" = "REQUIRED";
-"onboarding.badge.optional" = "OPTIONAL";
-
-/* Card 1 - Claude Code */
-"onboarding.card.claudecode.title" = "Claude Code";
-"onboarding.card.claudecode.checking" = "checking...";
-"onboarding.card.claudecode.status.checking" = "auto-detecting";
-"onboarding.card.claudecode.status.detected" = "detected on your machine";
-"onboarding.card.claudecode.status.notfound" = "not found - install + retry";
-"onboarding.card.claudecode.notfound.step1" = "install via brew install claude";
-"onboarding.card.claudecode.notfound.step2" = "sign in once: run claude";
-"onboarding.card.claudecode.notfound.step3" = "come back, hit retry";
-"onboarding.card.claudecode.retry" = "Retry";
-
-/* Card 2 - Notifications */
-"onboarding.card.notifications.title" = "Notifications";
-"onboarding.card.notifications.status.off" = "off - flick to allow";
-"onboarding.card.notifications.status.on" = "on - heads-up enabled";
-"onboarding.card.notifications.status.denied" = "blocked at system level";
-"onboarding.card.notifications.authorized.scene" = "click to send a test";
-"onboarding.card.notifications.denied.scene" = "blocked - open Notifications settings to enable";
-"onboarding.card.notifications.test" = "Send test";
-"onboarding.card.notifications.opensettings" = "Open Settings";
-
-/* Card 3 - Connect */
-"onboarding.card.connect.title" = "Connect";
-"onboarding.card.connect.status.idle" = "tap to authorize";
-"onboarding.card.connect.status.connecting" = "talking to keychain...";
-"onboarding.card.connect.status.success" = "connected";
-"onboarding.card.connect.status.failed" = "access denied";
-"onboarding.card.connect.connecting" = "authorizing...";
-"onboarding.card.connect.success.scene" = "connected - finish unlocked";
-"onboarding.card.connect.failed.scene" = "access denied";
-"onboarding.card.connect.authorize" = "Authorize";
-"onboarding.card.connect.retry" = "Retry";
-"onboarding.card.connect.idle.scene" = "macOS will ask once.\nTap Always Allow when it does.";
+"onboarding.hero.caption" = "Live Claude usage, right in your menu bar.";
+"onboarding.hero.done" = "Done";
+"onboarding.hero.notifications" = "Enable notifications";
+"onboarding.hero.notifications.enabled" = "Notifications enabled";
 
 /* Vendor Status Banner */
 "status.banner.degraded" = "Claude is degraded";

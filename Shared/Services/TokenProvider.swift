@@ -61,12 +61,11 @@ final class TokenProvider: TokenProviderProtocol, @unchecked Sendable {
     /// `currentToken()` would then resolve to nil.
     ///
     /// The config.json source stays a presence check (`readEncryptedToken`)
-    /// rather than a decrypt-and-inspect: `checkClaudeCode()` calls this
-    /// before `bootstrap()` loads the decryption key, so decrypting here would
-    /// wrongly hide a present Claude Desktop config during onboarding. A
-    /// config credential that decrypts to a dead, non-refreshable token is
-    /// therefore still counted here - a narrower version of the same
-    /// inconsistency, deferred.
+    /// rather than a decrypt-and-inspect, so a present Claude Desktop config
+    /// is never hidden just because its decryption key hasn't been loaded
+    /// yet. A config credential that decrypts to a dead, non-refreshable
+    /// token is therefore still counted here - a narrower version of the
+    /// same inconsistency, deferred.
     func hasTokenSource() -> Bool {
         if oauthTokenStore.load() != nil { return true }
         if cachedToken != nil { return true }

@@ -28,54 +28,6 @@ struct OnboardingViewModelTests {
         )
     }
 
-    @Test("canFinish is false when both gates are pending")
-    func gatingBothPending() {
-        let vm = makeViewModel()
-        vm.claudeCodeStatus = .checking
-        vm.connectionStatus = .idle
-        #expect(vm.canFinish == false)
-    }
-
-    @Test("canFinish is false when only Claude Code is detected")
-    func gatingOnlyClaudeCode() {
-        let vm = makeViewModel()
-        vm.claudeCodeStatus = .detected
-        vm.connectionStatus = .idle
-        #expect(vm.canFinish == false)
-    }
-
-    @Test("canFinish is false when only Connect succeeded")
-    func gatingOnlyConnect() {
-        let vm = makeViewModel()
-        vm.claudeCodeStatus = .notFound
-        vm.connectionStatus = .success(UsageResponse())
-        #expect(vm.canFinish == false)
-    }
-
-    @Test("canFinish is true when Claude Code detected + Connect success")
-    func gatingBothSuccess() {
-        let vm = makeViewModel()
-        vm.claudeCodeStatus = .detected
-        vm.connectionStatus = .success(UsageResponse())
-        #expect(vm.canFinish == true)
-    }
-
-    @Test("canFinish is true when Claude Code detected + Connect rateLimited")
-    func gatingRateLimitedCountsAsConnected() {
-        let vm = makeViewModel()
-        vm.claudeCodeStatus = .detected
-        vm.connectionStatus = .rateLimited
-        #expect(vm.canFinish == true)
-    }
-
-    @Test("canFinish is false when Connect failed")
-    func gatingFailedDoesNotCount() {
-        let vm = makeViewModel()
-        vm.claudeCodeStatus = .detected
-        vm.connectionStatus = .failed("nope")
-        #expect(vm.canFinish == false)
-    }
-
     // MARK: - Sign in with Claude
 
     @Test("signInWithClaude sets browserOpenedWaiting synchronously before the browser callback resolves")

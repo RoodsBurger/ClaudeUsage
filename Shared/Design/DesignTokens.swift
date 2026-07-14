@@ -88,12 +88,10 @@ enum DS {
     /// Centralised so the onboarding (and future panels) read from a single
     /// source instead of magic numbers in `MainAppView`.
     enum Layout {
-        /// Onboarding window - 16:10 macbook-style ratio. Sized to feel
-        /// present on a MacBook display without going fullscreen. The user
-        /// passes through this once at first launch (and again if they
-        /// reset onboarding from Settings). Designed to fit a 2x2 cards
-        /// grid next to a left-side hero column.
-        static let onboardingWindow = CGSize(width: 1080, height: 675)
+        /// Onboarding window - compact, single-column hero screen (logo,
+        /// title, caption, connect CTAs). The user passes through this once
+        /// at first launch (and again if they reset onboarding from Settings).
+        static let onboardingWindow = CGSize(width: 520, height: 560)
 
         /// Horizontal inset for a Settings section's header (title/subtitle/
         /// trailing action), matching the leading/trailing margin
