@@ -36,11 +36,19 @@ RaiUsage is based on [TokenEater](https://github.com/AThevon/TokenEater) — cle
 
 ## Install
 
+### Quick install (recommended, no Xcode, no Open Anyway)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/RoodsBurger/RaiUsage/main/install.sh | bash
+```
+
+Downloads the latest release, installs RaiUsage to `/Applications`, and launches it. Because `curl` doesn't quarantine the download, Gatekeeper doesn't prompt — no "Open Anyway" step. Re-run the same command to update. To review it first: [`install.sh`](install.sh).
+
 ### Download DMG (no Xcode needed)
 
 Grab the latest `RaiUsage-vX.Y.Z.dmg` from [Releases](https://github.com/RoodsBurger/RaiUsage/releases/latest), open it, and drag RaiUsage to Applications.
 
-The DMG is ad-hoc signed and **not notarized** (no paid Apple Developer account), so the first launch shows *"Apple could not verify RaiUsage is free of malware"*. Click **Done** (not "Move to Trash"), then **System Settings > Privacy & Security >** scroll to Security **> Open Anyway**, launch again and confirm. Once per machine. If Open Anyway doesn't appear (managed Macs), run `xattr -cr /Applications/RaiUsage.app` in Terminal instead.
+The DMG is ad-hoc signed and **not notarized** (no paid Apple Developer account), so downloading it in a browser quarantines it and the first launch shows *"Apple could not verify RaiUsage is free of malware"*. Click **Done** (not "Move to Trash"), then **System Settings > Privacy & Security >** scroll to Security **> Open Anyway**, launch again and confirm. Once per machine. If Open Anyway doesn't appear (managed Macs), run `xattr -cr /Applications/RaiUsage.app` in Terminal instead. (The `curl` one-liner above avoids all of this.)
 
 ### Build from source
 
@@ -63,7 +71,7 @@ Requires a **Pro, Max, or Team plan**.
 
 ## Update
 
-DMG installs: download the newer DMG from [Releases](https://github.com/RoodsBurger/RaiUsage/releases/latest) and replace the app. From source:
+Easiest: re-run the quick-install one-liner, or use the app's built-in updater (Settings > Updates). DMG installs: download the newer DMG from [Releases](https://github.com/RoodsBurger/RaiUsage/releases/latest) and replace the app. From source:
 
 ```bash
 cd RaiUsage
