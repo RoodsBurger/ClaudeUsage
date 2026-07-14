@@ -174,7 +174,7 @@ struct MonitoringView: View {
             withAnimation(.easeInOut(duration: 0.15)) { heroExpanded.toggle() }
         } label: {
             VStack(alignment: .leading, spacing: DS.Spacing.md) {
-                heroFrontContent(pct: pct, gaugeColor: gaugeColor, gaugeGradient: gaugeGradient, zone: zone)
+                heroFrontContent(pct: pct, gaugeColor: gaugeColor, gaugeGradient: gaugeGradient)
 
                 if heroExpanded {
                     Rectangle()
@@ -204,7 +204,7 @@ struct MonitoringView: View {
     }
 
     @ViewBuilder
-    private func heroFrontContent(pct: Int, gaugeColor: Color, gaugeGradient: LinearGradient, zone: PacingZone?) -> some View {
+    private func heroFrontContent(pct: Int, gaugeColor: Color, gaugeGradient: LinearGradient) -> some View {
         HStack(alignment: .center, spacing: DS.Spacing.lg) {
             // Left -> labels + meta
             VStack(alignment: .leading, spacing: DS.Spacing.sm) {
@@ -254,19 +254,12 @@ struct MonitoringView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            // Right -> ring + zone glyph. Flat: no ambient glow wash behind it.
-            ZStack {
-                RingGauge(
-                    percentage: pct,
-                    gradient: gaugeGradient,
-                    size: 140
-                )
-
-                Image(systemName: zoneGlyph(for: zone))
-                    .font(.system(size: 40, weight: .medium))
-                    .foregroundStyle(zone.map { $0.semanticColor } ?? gaugeColor)
-                    .animation(DS.Motion.easeInOut, value: zone)
-            }
+            // Right -> clean ring, no center glyph. The big % carries the meaning.
+            RingGauge(
+                percentage: pct,
+                gradient: gaugeGradient,
+                size: 140
+            )
             .frame(width: 160, height: 160)
         }
     }

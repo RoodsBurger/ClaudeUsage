@@ -295,10 +295,10 @@ private struct PopoverHeaderRow: View {
                 if usageStore.planType != .unknown {
                     Text(usageStore.planType.displayLabel)
                         .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(.blue)
+                        .foregroundStyle(DS.Pastel.blue)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(Capsule().fill(Color.blue.opacity(0.12)))
+                        .background(Capsule().fill(DS.Pastel.blue.opacity(0.12)))
                 }
             }
 

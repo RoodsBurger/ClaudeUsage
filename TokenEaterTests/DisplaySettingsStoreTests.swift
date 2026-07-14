@@ -8,9 +8,9 @@ struct DisplaySettingsStoreTests {
 
     private let displayKeys = [
         "showMenuBar", "launchInBackground", "pinnedMetrics", "resetDisplayFormat",
-        "smartColorEnabled", "smartResetColor", "smartColorProfile",
+        "smartColorEnabled", "smartColorProfile",
         "sessionPacingDisplayMode", "weeklyPacingDisplayMode",
-        "pacingDisplayMode", "menuBarConfig", "popoverConfig", "showSessionReset",
+        "menuBarConfig", "popoverConfig",
         "warningThreshold", "criticalThreshold",
     ]
     private func clean() { displayKeys.forEach { UserDefaults.standard.removeObject(forKey: $0) } }

@@ -1,9 +1,6 @@
 /* Menu Bar */
-"menubar.refresh" = "Refresh";
 "menubar.settings" = "Settings";
 "menubar.quit" = "Quit";
-"menubar.hide" = "Hide from menu bar";
-"menubar.show" = "Show in menu bar";
 "menubar.updated" = "Updated %@";
 
 /* Metrics */
@@ -12,7 +9,6 @@
 "metric.serviceStatus" = "Service status";
 "metric.opus" = "Opus";
 "metric.cowork" = "Cowork";
-"settings.group.design" = "Claude Design";
 
 /* Extra usage (paid credits pool) */
 "dashboard.extra.title" = "Extra credits";
@@ -21,47 +17,24 @@
 "dashboard.extra.noLimit" = "Monthly limit not set";
 "metric.extraCredits" = "Extra Credits";
 "metric.sessionReset" = "Session reset countdown";
-"settings.pacing.style" = "Pacing style";
-"settings.group.session" = "Session (5h)";
-"settings.group.weekly" = "Weekly";
-"settings.group.sonnet" = "Sonnet";
 "metric.weekly" = "Weekly";
 "metric.sonnet" = "Sonnet";
-"metric.reset" = "Resets in %@";
 
 /* Settings */
-"settings.subtitle" = "Monitor your Claude usage";
-"settings.test" = "Test";
-"settings.refresh" = "Refresh";
 "settings.refresh.title" = "Refresh";
 "settings.refresh.interval" = "Polling interval";
 "settings.refresh.warning" = "Below 5 min may trigger API rate limits (429)";
-"settings.guide" = "Guide";
-"settings.testing" = "Testing...";
-"settings.clickbehavior" = "Menu Bar Click";
-"settings.clickbehavior.popover" = "Quick Glance";
-"settings.clickbehavior.dashboard" = "Dashboard";
 "settings.menubar.toggle" = "Show in menu bar";
 "settings.menubar.preview" = "Live preview";
-"settings.metric.format" = "Format";
 "settings.menubar.color.mono" = "Monochrome";
-"settings.menubar.title" = "Menu bar";
 "settings.tab.connection" = "Connection";
-"settings.tab.display" = "Display";
-"settings.session.reset" = "Show reset countdown";
 "pacing.session.label" = "Session pacing";
 "pacing.weekly.label" = "Weekly pacing";
-"pacing.sonnet.label" = "Sonnet pacing";
-"settings.display.sonnet" = "Display Sonnet";
 "settings.metrics.pinned" = "Pinned metrics";
 "settings.metrics.pinned.footer" = "Choose which metrics appear in the menu bar.";
-"settings.pacing.display" = "Pacing display";
-"settings.pacing.dot" = "Dot only";
-"settings.pacing.dotdelta" = "Dot + delta (%)";
 "settings.tab.proxy" = "Proxy";
 "settings.proxy.toggle" = "Enable SOCKS5 proxy";
 "settings.proxy.footer" = "Useful behind a corporate firewall via an SSH tunnel.";
-"settings.proxy.config" = "Proxy configuration";
 "settings.proxy.host" = "Host";
 "settings.proxy.port" = "Port";
 "settings.proxy.hint" = "Example: ssh -D 1080 user@bastion then enable the proxy here.";
@@ -85,10 +58,7 @@
 "settings.general.replayOnboarding.action" = "Replay";
 
 /* Connect */
-"connect.button" = "Connect";
-"connect.subtitle" = "Auto-detect Claude Code OAuth token";
 "connect.oauth.success" = "Connected via Claude Code";
-"connect.method.oauth" = "Claude Code (auto)";
 "connect.noclaudecode" = "Claude Code not detected. Install it and sign in first.";
 
 /* Connect - Sign in with Claude (own OAuth login) */
@@ -101,7 +71,6 @@
 "connect.signin.cancel" = "Cancel";
 "connect.signin.success" = "Signed in with Claude";
 "connect.signin.signout" = "Sign out";
-"connect.signin.connectedas" = "Signed in as %@";
 "connect.secondary.title" = "Use Claude Code's session";
 "connect.secondary.subtitle" = "Borrow the token Claude Code already has signed in on this Mac";
 "connect.oauth.error.statemismatch" = "Sign-in didn't match - please try again.";
@@ -112,30 +81,17 @@
 "connect.oauth.error.listenerfailed" = "Couldn't open the local sign-in listener. Try pasting the code manually.";
 "connect.oauth.error.persistencefailed" = "Couldn't save your sign-in. Check Keychain access and try again.";
 
-/* Guide */
-"guide.title" = "Setup Guide";
-"guide.oauth.title" = "Claude Code";
-"guide.oauth.badge" = "Recommended";
-"guide.oauth.step1" = "Install **Claude Code** (Anthropic's CLI)";
-"guide.oauth.step2" = "Open RaiUsage and click **Connect**";
-"guide.oauth.step3" = "Done - token refreshes automatically";
-
 /* Errors - API */
 "error.notoken" = "No OAuth token found. Install Claude Code and click Connect.";
 "error.tokenexpired" = "OAuth token expired - relaunch Claude Code to refresh it";
-"error.invalidurl" = "Invalid URL";
 "error.invalidresponse" = "Invalid server response";
 "error.http" = "HTTP error %d";
 "error.ratelimited" = "Rate limited";
 "error.network" = "Network error: %@";
 "error.network.generic" = "Network error - couldn't reach the usage API. Check your connection.";
 "error.invalidresponse.short" = "Invalid response";
-"error.keychainlocked" = "Keychain locked - will retry automatically";
 "error.unsupportedplan" = "Usage data not available - Claude Pro or Team plan required";
-"error.banner.keychain" = "Keychain locked";
-"error.banner.keychain.hint" = "Will retry automatically - or open Settings to re-authorize";
 "error.banner.reauth" = "Authorization needed";
-"error.banner.reauth.hint" = "Token expired and automatic recovery failed";
 "error.banner.reauth.button" = "Re-authorize";
 "error.banner.apiunavailable" = "Usage API throttled by Anthropic";
 "error.banner.apiunavailable.hint" = "This is a rate limit on Anthropic's usage API, not your token or setup. Nothing for you to fix - RaiUsage keeps retrying and refreshes as soon as the limit clears (known issue: anthropics/claude-code#31637).";
@@ -181,7 +137,6 @@
 "pacing.weekly.hot.3" = "Torching the week";
 
 "pacing.label" = "Pacing";
-"pacing.reset" = "reset %@";
 
 /* Pacing Margin */
 "settings.pacing.margin" = "Pacing Sensitivity";
@@ -293,7 +248,6 @@
 "notif.body.status.claude.down" = "Anthropic reports a major outage";
 "notif.title.status.claude.restored" = "Claude is back";
 "notif.body.status.claude.restored" = "Service restored";
-"settings.notifications.title" = "Notifications";
 "settings.notifications.status" = "Status";
 "settings.notifications.on" = "Enabled";
 "settings.notifications.off" = "Disabled";
@@ -336,13 +290,8 @@
 "sidebar.serviceStatus" = "Service Status";
 "sidebar.serviceStatus.subtitle" = "Outage monitoring for Claude";
 "settings.status.master" = "Monitoring";
-"settings.status.group.polling" = "Polling";
-"settings.status.group.polling.hint" = "How often to check Claude's status. Checks speed up automatically during an outage.";
 "settings.status.interval.label" = "Check every";
-"settings.status.interval.minutes" = "%d min";
-"settings.status.group.display" = "Display";
 "settings.status.badge" = "Show outage badge in menu bar during outage";
-"settings.status.reset.confirm" = "Reset Service Status settings?";
 
 /* Relative Time */
 "relative.now" = "now";
@@ -357,14 +306,11 @@
 "settings.section.reset" = "Reset to Defaults";
 "settings.section.reset.cancel" = "Cancel";
 "settings.section.reset.action" = "Reset";
-"settings.display.reset.confirm" = "Reset all display settings?";
 "settings.notifications.reset.confirm" = "Reset all notification toggles?";
 
 /* Dashboard */
 "dashboard.tier" = "Tier";
 "dashboard.org" = "Organization";
-"dashboard.pacing.reset.days" = "Resets in %dd %dh";
-"dashboard.pacing.reset.hours" = "Resets in %dh";
 "dashboard.hero.session.label" = "Session · 5h window";
 "dashboard.hero.resetsIn" = "Resets in";
 "pacing.zone.chill" = "Chill";
@@ -375,15 +321,7 @@
 /* Durations */
 "duration.days.hours" = "%dd %dh";
 
-/* Onboarding */
-"onboarding.mode.simple" = "Simple";
-"onboarding.mode.detailed" = "Detailed";
-
-/* Settings - Onboarding reset */
-"settings.onboarding.reset" = "Run setup again";
-
 /* Reset time display */
-"settings.reset.format" = "Reset display";
 "settings.reset.format.relative" = "Relative (1h39)";
 "settings.reset.format.absolute" = "Absolute (20:30)";
 "settings.reset.format.both" = "Both";
@@ -420,13 +358,9 @@
 "settings.smartColor.profile.vigilant.hint" = "Reads early signals as risk.";
 
 /* Sidebar */
-"sidebar.dashboard" = "Dashboard";
-"sidebar.stats" = "Stats";
 "sidebar.monitoring" = "Monitoring";
 "sidebar.history" = "History";
 "sidebar.general" = "General";
-"history.placeholder.title" = "History coming soon";
-"history.placeholder.subtitle" = "Your Claude Code session history will live here -> per-model token breakdown, daily charts, and usage patterns across your local JSONL files.";
 
 /* History view */
 "history.sessions.label" = "sessions";
@@ -471,7 +405,6 @@
 "sidebar.display.subtitle" = "Choose which metrics appear in the menu bar and how they look.";
 "sidebar.popover.subtitle" = "Choose which metrics and sections appear in the popover, and reorder them.";
 "sidebar.settings.subtitle" = "Proxy, refresh interval, and other global preferences.";
-"settings.group.extra" = "Extra metrics in menu bar";
 
 "menubar.updated.never" = "never";
 
@@ -523,8 +456,6 @@
 "contextmenu.open" = "Open RaiUsage...";
 "contextmenu.settings" = "Settings";
 
-"pacing.session.label.short" = "Session";
-"pacing.weekly.label.short" = "Weekly";
 
 /* MARK: - Onboarding hero (single screen, rework 2026-07) */
 

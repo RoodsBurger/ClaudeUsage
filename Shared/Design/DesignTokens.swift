@@ -18,32 +18,8 @@ enum DS {
     // MARK: - Palette (Chrome)
 
     enum Palette {
-        // Three-tier depth hierarchy. All R=G=B for a strictly neutral grey
-        // ramp -> no blue / warm tint, just luminance steps.
-        // L0 (window) -> bgBase.
-        // L1 (outer panels: Settings content + SubSidebar siblings, Stats Hero, pacing, settings.* sections) -> bgElevated.
-        // L2 (innermost: nested metric tiles inside grids) -> bgPanel.
-        static let bgBase     = Color(hex: "#0E0E0E") // L0
-        static let bgElevated = Color(hex: "#141414") // L1
-        static let bgPanel    = Color(hex: "#1A1A1A") // L2
-        static let bgOverlay  = Color(hex: "#1C1C1C")
-        static let bgHover    = Color(hex: "#202020")
-        static let bgActive   = Color(hex: "#242424")
-
-        // Glass
-        static let glassBorder   = Color.white.opacity(0.08) // bumped from 0.06 for clearer panel edges
+        // Faint hairline for popover sub-panel edges.
         static let glassBorderLo = Color.white.opacity(0.04)
-
-        // Text -> exact site values
-        static let textDisabled  = Color(hex: "#63636E").opacity(0.4)
-
-        // Module accents -> hues already native to the site. Opacity capped
-        // at 0.15 when used as fill.
-        static let accentStats    = Color(hex: "#32CE6A") // brand green -> data, confidence
-
-        // Semantic states (notifications, banners, errors).
-        // Re-use site tokens so the app feels consistent with the landing page.
-        static let semanticWarning = Color(hex: "#FFB347")
     }
 
     // MARK: - Spacing
@@ -57,8 +33,6 @@ enum DS {
         static let md:   CGFloat = 16
         static let lg:   CGFloat = 24
         static let xl:   CGFloat = 32
-        static let xxl:  CGFloat = 48
-        static let xxxl: CGFloat = 64
     }
 
     // MARK: - Radii
@@ -68,12 +42,8 @@ enum DS {
     /// "pill-y" without going full sharp-edged.
     enum Radius {
         static let input:  CGFloat = 6
-        static let small:  CGFloat = 6
         static let card:   CGFloat = 8
         static let cardLg: CGFloat = 12
-        static let modal:  CGFloat = 16
-        static let pill:   CGFloat = 100
-        static let tile:   CGFloat = 10
     }
 
     // MARK: - Layout
@@ -97,58 +67,21 @@ enum DS {
 
     // MARK: - Native design constants (stage-2 language)
 
-    /// Standard inset spacing for panels and cards.
-    static let inset: CGFloat = 14
-
     /// Icon disc sizes for various contexts.
     enum IconDisc {
         static let standard: CGFloat = 32
         static let hero: CGFloat = 72
     }
 
-    // MARK: - Shadows
-
-    /// Shadow token -> deep but soft, glass-compatible.
-    /// Low alpha + large blur so shadows never look hard on dark chrome.
-    struct ShadowToken {
-        let radius: CGFloat
-        let y: CGFloat
-        let alpha: Double
-
-        var color: Color { Color.black.opacity(alpha) }
-    }
-
-    enum Shadow {
-        static let flat   = ShadowToken(radius: 0,  y: 0,  alpha: 0)
-        static let subtle = ShadowToken(radius: 12, y: 4,  alpha: 0.12)
-        static let lift   = ShadowToken(radius: 24, y: 8,  alpha: 0.20)
-        static let elev   = ShadowToken(radius: 48, y: 16, alpha: 0.32)
-    }
-
     // MARK: - Motion
 
     enum Duration {
-        static let fast:  Double = 0.18   // micro hover, cursor changes
-        static let base:  Double = 0.24   // default transitions
-        static let slow:  Double = 0.40   // section changes, slide-ins
-        static let xslow: Double = 0.60   // rare, hero entrances
+        static let base: Double = 0.24   // default transitions
     }
 
     enum Motion {
-        // Standard easings
-        static let easeOut   = Animation.easeOut(duration: Duration.base)
-        static let easeIn    = Animation.easeIn(duration: Duration.base)
-        static let easeInOut = Animation.easeInOut(duration: Duration.base)
-
-        // Arc-like "liquid" springs
-        static let springSnap   = Animation.spring(response: 0.30, dampingFraction: 0.90) // hover / press
-        static let springLiquid = Animation.spring(response: 0.50, dampingFraction: 0.80) // section change
-        static let springSoft   = Animation.spring(response: 0.70, dampingFraction: 0.85) // modal entry
-
-        // Live metrics pulse (2s, never-ending, subtle)
-        static let shimmerPulse = Animation
-            .easeInOut(duration: 2.0)
-            .repeatForever(autoreverses: true)
+        static let easeInOut  = Animation.easeInOut(duration: Duration.base)
+        static let springSnap = Animation.spring(response: 0.30, dampingFraction: 0.90) // hover / press
     }
 
     // MARK: - Typography
@@ -158,13 +91,11 @@ enum DS {
     /// mentionnée dans le MASTER.md -> on ship le font avec le bundle quand on
     /// veut le basculer, sans toucher aux call sites.
     enum Typography {
-        static let display      = Font.system(size: 34, weight: .bold).leading(.tight)
         static let title1       = Font.system(size: 22, weight: .semibold)
         static let title2       = Font.system(size: 17, weight: .semibold)
         static let body         = Font.system(size: 13, weight: .regular)
         static let label        = Font.system(size: 11, weight: .medium)
         static let micro        = Font.system(size: 10, weight: .medium)
-        static let metricLarge  = Font.system(size: 28, weight: .semibold, design: .monospaced)
         static let metricInline = Font.system(size: 13, weight: .regular, design: .monospaced)
     }
 }
@@ -218,52 +149,3 @@ extension DS {
     }
 }
 
-// MARK: - View modifiers
-
-extension View {
-    /// Apply a `DS.Shadow` token directly.
-    func dsShadow(_ token: DS.ShadowToken) -> some View {
-        self.shadow(color: token.color, radius: token.radius, x: 0, y: token.y)
-    }
-
-    /// Standard glass surface : `bgElevated` at partial alpha, `.ultraThinMaterial`
-    /// underneath for the blur, a soft inner border on top.
-    func dsGlass(radius: CGFloat = DS.Radius.card) -> some View {
-        self
-            .background(
-                RoundedRectangle(cornerRadius: radius)
-                    .fill(DS.Palette.bgElevated.opacity(0.72))
-                    .background(
-                        .ultraThinMaterial,
-                        in: RoundedRectangle(cornerRadius: radius)
-                    )
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: radius)
-                    .stroke(DS.Palette.glassBorder, lineWidth: 1)
-            )
-    }
-
-    /// Cursor-aware highlight ready for card hover. Pass a bound CGPoint
-    /// updated via `.onContinuousHover`; the overlay draws a soft radial
-    /// spotlight that follows the cursor, Arc-style.
-    func dsSpotlight(at point: CGPoint?, tint: Color = .white) -> some View {
-        self.overlay {
-            GeometryReader { geo in
-                if let p = point {
-                    RadialGradient(
-                        colors: [tint.opacity(0.08), .clear],
-                        center: UnitPoint(
-                            x: p.x / max(geo.size.width, 1),
-                            y: p.y / max(geo.size.height, 1)
-                        ),
-                        startRadius: 0,
-                        endRadius: 140
-                    )
-                    .blendMode(.plusLighter)
-                    .allowsHitTesting(false)
-                }
-            }
-        }
-    }
-}

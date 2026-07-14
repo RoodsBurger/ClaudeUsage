@@ -77,14 +77,14 @@ struct OnboardingHeroView: View {
             successBlock
         } else {
             switch viewModel.oauthSignInStatus {
-            case .idle:
+            case .idle, .success:
+                // `.success` is handled by the `isConnected` branch above; folded
+                // here to keep the switch exhaustive without rendering it twice.
                 idleBlock
             case .browserOpenedWaiting:
                 waitingBlock
             case .manualCodePaste:
                 manualPasteBlock
-            case .success:
-                successBlock
             case .failed(let error):
                 failedBlock(error)
             }

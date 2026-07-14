@@ -3,8 +3,9 @@ import Foundation
 import UserNotifications
 
 private let settingsKeys = [
-    "showMenuBar", "launchInBackground", "pinnedMetrics", "pacingDisplayMode",
-    "hasCompletedOnboarding", "proxyEnabled", "proxyHost", "proxyPort",
+    "showMenuBar", "launchInBackground", "pinnedMetrics",
+    "hasCompletedOnboarding", "launchAtLoginEnabled", "refreshInterval",
+    "proxyEnabled", "proxyHost", "proxyPort",
     "outageMonitoringEnabled", "statusPollInterval", "statusShowMenuBarBadge",
     "notifVendorDegraded", "notifVendorRestored"
 ]

@@ -111,7 +111,7 @@ struct ResetSectionButton: View {
                     .font(.system(size: 12))
             }
             .buttonStyle(.plain)
-            .foregroundStyle(.red)
+            .foregroundStyle(DS.Pastel.coral)
             .alert(confirmTitle, isPresented: $showAlert) {
                 Button(String(localized: "settings.section.reset.cancel"), role: .cancel) { }
                 Button(String(localized: "settings.section.reset.action"), role: .destructive) {

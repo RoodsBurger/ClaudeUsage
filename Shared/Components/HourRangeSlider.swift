@@ -1,10 +1,10 @@
 import SwiftUI
 
-/// Dual-thumb range slider over a 0...24h track, in the RaiUsageSlider visual
-/// language (capsule track, tint-filled active span between the thumbs, white
-/// thumbs that scale + halo on hover/drag). Drives the "active hours" window for
-/// workweek pacing: the user sees and drags their work window directly instead
-/// of picking from a native menu. Snaps to whole hours, keeps a 1h minimum gap.
+/// Dual-thumb range slider over a 0...24h track: a capsule track, a tint-filled
+/// active span between the thumbs, and white thumbs that scale + halo on
+/// hover/drag. Drives the "active hours" window for workweek pacing: the user
+/// sees and drags their work window directly instead of picking from a native
+/// menu. Snaps to whole hours, keeps a 1h minimum gap.
 struct HourRangeSlider: View {
     @Binding var startHour: Int   // 0...23
     @Binding var endHour: Int     // 1...24
