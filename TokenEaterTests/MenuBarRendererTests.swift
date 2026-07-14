@@ -170,6 +170,7 @@ private func makeRenderData(
     isEnterprise: Bool = false,
     fiveHourActivityTokens: Int? = 301_000,
     sevenDayActivityTokens: Int? = 2_450_000,
+    monthlyPacingZone: PacingZone? = nil,
     outageActive: Bool = false,
     outageHealth: VendorHealth = .healthy,
     nextPollSeconds: Int? = nil,
@@ -232,6 +233,7 @@ private func makeRenderData(
         isEnterprise: isEnterprise,
         fiveHourActivityTokens: fiveHourActivityTokens,
         sevenDayActivityTokens: sevenDayActivityTokens,
+        monthlyPacingZone: monthlyPacingZone,
         outageActive: outageActive,
         outageHealth: outageHealth,
         nextPollSeconds: nextPollSeconds,
@@ -898,5 +900,46 @@ struct MenuBarActivityPinTests {
         let line = MenuBarRenderer.buildLine(data: data).string
         #expect(line.hasPrefix("\u{25CF} "))
         #expect(line.hasSuffix("12k"))
+    }
+}
+
+@Suite("MenuBarRenderer monthly pacing dot (enterprise EC pin)")
+struct MenuBarMonthlyPacingDotTests {
+
+    private func dotColors(isEnterprise: Bool, monthlyZone: PacingZone?, pct: Int = 5) -> Set<NSColor> {
+        let data = makeRenderData(
+            pinned: [.init(id: .extraCredits, prefix: .none, value: .dollars)],
+            colorMode: .risk,
+            extraCreditsPct: pct,
+            isEnterprise: isEnterprise,
+            monthlyPacingZone: monthlyZone
+        )
+        let line = MenuBarRenderer.buildLine(data: data)
+        var colors = Set<NSColor>()
+        line.enumerateAttribute(.foregroundColor, in: NSRange(location: 0, length: line.length)) { value, _, _ in
+            if let color = value as? NSColor { colors.insert(color) }
+        }
+        return colors
+    }
+
+    @Test("enterprise EC pin's dot carries the monthly pacing zone")
+    func enterpriseDotUsesMonthlyZone() {
+        // pct 5 sits in the ok threshold zone - a hot monthly pace must win.
+        let colors = dotColors(isEnterprise: true, monthlyZone: .hot)
+        #expect(colors.contains(PacingZone.hot.dotColor(menuBarIsDark: true)))
+        #expect(!colors.contains(RiskZone.ok.dotColor(menuBarIsDark: true)))
+    }
+
+    @Test("enterprise without monthly pacing falls back to the threshold ladder")
+    func enterpriseFallsBackWithoutMonthlyZone() {
+        let colors = dotColors(isEnterprise: true, monthlyZone: nil)
+        #expect(colors.contains(RiskZone.ok.dotColor(menuBarIsDark: true)))
+    }
+
+    @Test("personal plans ignore the monthly zone entirely")
+    func personalIgnoresMonthlyZone() {
+        let colors = dotColors(isEnterprise: false, monthlyZone: .hot)
+        #expect(colors.contains(RiskZone.ok.dotColor(menuBarIsDark: true)))
+        #expect(!colors.contains(PacingZone.hot.dotColor(menuBarIsDark: true)))
     }
 }

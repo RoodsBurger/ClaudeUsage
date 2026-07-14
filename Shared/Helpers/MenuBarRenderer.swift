@@ -88,6 +88,13 @@ enum MenuBarRenderer {
         let fiveHourActivityTokens: Int?
         let sevenDayActivityTokens: Int?
 
+        /// Monthly-budget pacing zone ($used vs the pool's monthly limit).
+        /// Only populated on enterprise; when present it drives the Extra
+        /// Credits pin's risk dot and its highestRisk rank in place of the
+        /// static threshold ladder - the org's real constraint is the monthly
+        /// budget pace, not the raw percentage.
+        let monthlyPacingZone: PacingZone?
+
         // Outage badge - set by StatusBarController from VendorStatusStore.
         let outageActive: Bool
         let outageHealth: VendorHealth
@@ -172,6 +179,7 @@ enum MenuBarRenderer {
                 isEnterprise: isEnterprise,
                 fiveHourActivityTokens: 301_000,
                 sevenDayActivityTokens: 2_450_000,
+                monthlyPacingZone: isEnterprise ? .onTrack : nil,
                 outageActive: false,
                 outageHealth: .healthy,
                 nextPollSeconds: nil,
@@ -471,6 +479,11 @@ enum MenuBarRenderer {
         case .fable:
             return zoneRank(pct: data.fablePct, resetDate: data.fableResetDate, windowDuration: windowDuration(for: .fable), data: data)
         case .extraCredits:
+            // Enterprise re-bases the pin's risk on the monthly-budget pace
+            // when it is available; the threshold ladder covers everyone else.
+            if data.isEnterprise, let zone = data.monthlyPacingZone {
+                return pacingRank(zone)
+            }
             return zoneRank(pct: data.extraCreditsPct, resetDate: nil, windowDuration: 0, data: data)
         case .sessionPacing:
             return data.hasSessionPacing ? pacingRank(data.sessionPacingZone) : 0
@@ -610,8 +623,15 @@ enum MenuBarRenderer {
     private static func buildExtraCreditsMetric(_ pin: PinnedMetricConfig, data: RenderData, worstCase: Bool) -> NSAttributedString {
         let str = NSMutableAttributedString()
         if data.menuBarConfig.colorMode == .risk {
-            let zone = metricZone(pct: data.extraCreditsPct, resetDate: nil, windowDuration: 0, data: data)
-            appendDot(zone.dotColor(menuBarIsDark: data.menuBarIsDark), to: str)
+            // Enterprise: the dot carries the monthly-budget pacing zone when
+            // available (same slot the session zone fills for personal pins);
+            // everyone else keeps the static threshold ladder.
+            if data.isEnterprise, let monthlyZone = data.monthlyPacingZone {
+                appendDot(monthlyZone.dotColor(menuBarIsDark: data.menuBarIsDark), to: str)
+            } else {
+                let zone = metricZone(pct: data.extraCreditsPct, resetDate: nil, windowDuration: 0, data: data)
+                appendDot(zone.dotColor(menuBarIsDark: data.menuBarIsDark), to: str)
+            }
         }
         appendPrefix(pin, to: str, data: data)
 

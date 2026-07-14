@@ -212,7 +212,7 @@ struct MonitoringView: View {
                     Rectangle()
                         .fill(DS.Pastel.border)
                         .frame(height: 1)
-                    heroPacingSection(zone: zone, pacing: pacing)
+                    heroPacingSection(label: String(localized: "dashboard.hero.session.label"), zone: zone, pacing: pacing)
                 }
 
                 heroDisclosureRow
@@ -298,12 +298,14 @@ struct MonitoringView: View {
 
     /// Inline pacing detail, revealed below the front content when the hero
     /// is expanded. Left as a simple vertical stack (subtitle + delta, the
-    /// pacing graph, the zone label) - no flip, no blur.
+    /// pacing graph, the zone label) - no flip, no blur. Shared by the
+    /// session hero and the enterprise spend hero (monthly pacing), which
+    /// pass their own `label`.
     @ViewBuilder
-    private func heroPacingSection(zone: PacingZone?, pacing: PacingResult?) -> some View {
+    private func heroPacingSection(label: String, zone: PacingZone?, pacing: PacingResult?) -> some View {
         VStack(alignment: .leading, spacing: DS.Spacing.sm) {
             HStack(spacing: DS.Spacing.xs) {
-                Text((String(localized: "dashboard.hero.session.label") + " · " + String(localized: "pacing.label")).uppercased())
+                Text((label + " · " + String(localized: "pacing.label")).uppercased())
                     .font(DS.Typography.micro)
                     .tracking(1.5)
                     .foregroundStyle(.secondary)
@@ -362,7 +364,9 @@ struct MonitoringView: View {
     /// Enterprise hero: the org's monthly spend pool replaces the session
     /// ring. Reuses the extra-credits data and the same windowless threshold
     /// ladder as the bottom spend card, so the color always agrees with the
-    /// menu bar and popover.
+    /// menu bar and popover. Expands exactly like the session hero, revealing
+    /// the monthly-budget pacing graph ($pace vs elapsed month) instead of
+    /// the 5h pacing.
     private func spendHeroTile(_ extra: ExtraUsage) -> some View {
         let used = extra.usedCredits ?? 0
         let limit = extra.monthlyLimit ?? 0
@@ -371,8 +375,44 @@ struct MonitoringView: View {
         let tint = RiskZone.forPercent(pct, thresholds: settingsStore.thresholds).color
         let usedText = CurrencyFormatter.formatMinorUnits(used, currencyCode: currency, locale: Locale(identifier: "en_US"))
         let limitText = CurrencyFormatter.formatMinorUnits(limit, currencyCode: currency, locale: Locale(identifier: "en_US"))
+        let pacing = usageStore.monthlyPacing
+        let border = heroHover ? tint.opacity(0.4) : DS.Pastel.border
 
-        return VStack(alignment: .leading, spacing: DS.Spacing.md) {
+        return Button {
+            withAnimation(.easeInOut(duration: 0.15)) { heroExpanded.toggle() }
+        } label: {
+            VStack(alignment: .leading, spacing: DS.Spacing.md) {
+                spendHeroFront(used: used, usedText: usedText, limitText: limitText, limit: limit, pct: pct, tint: tint)
+
+                if heroExpanded {
+                    Rectangle()
+                        .fill(DS.Pastel.border)
+                        .frame(height: 1)
+                    heroPacingSection(label: String(localized: "metric.orgUsage"), zone: pacing?.zone, pacing: pacing)
+                }
+
+                heroDisclosureRow
+            }
+            .padding(DS.Spacing.lg)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: DS.Radius.cardLg, style: .continuous)
+                    .fill(DS.Pastel.card)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: DS.Radius.cardLg, style: .continuous)
+                    .stroke(border, lineWidth: 1)
+            )
+        }
+        .buttonStyle(CardPressStyle(isHovered: heroHover, accent: tint, cornerRadius: DS.Radius.cardLg))
+        .onHover { hovering in
+            withAnimation(DS.Motion.springSnap) { heroHover = hovering }
+        }
+    }
+
+    @ViewBuilder
+    private func spendHeroFront(used: Double, usedText: String, limitText: String, limit: Double, pct: Int, tint: Color) -> some View {
+        VStack(alignment: .leading, spacing: DS.Spacing.md) {
             HStack(spacing: DS.Spacing.xs) {
                 Circle()
                     .fill(tint)
@@ -428,16 +468,6 @@ struct MonitoringView: View {
                     .foregroundStyle(.tertiary)
             }
         }
-        .padding(DS.Spacing.lg)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: DS.Radius.cardLg, style: .continuous)
-                .fill(DS.Pastel.card)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: DS.Radius.cardLg, style: .continuous)
-                .stroke(DS.Pastel.border, lineWidth: 1)
-        )
     }
 
     // MARK: - Metrics grid
@@ -636,21 +666,43 @@ struct MonitoringView: View {
                 pacingCard(pacing: pacing, label: String(localized: "pacing.weekly.label"), icon: "calendar.badge.clock", showWorkweekBadge: true)
                     .frame(maxWidth: .infinity)
             }
+            // Enterprise: the org's real constraint is the monthly budget, so
+            // its pacing card joins the row (the session/weekly cards are
+            // typically absent there - untracked windows produce no pacing).
+            if usageStore.planType == .enterprise, let pacing = usageStore.monthlyPacing {
+                pacingCard(
+                    pacing: pacing,
+                    label: String(localized: "pacing.monthly.label"),
+                    icon: "creditcard.fill",
+                    showWorkweekBadge: true,
+                    period: monthPeriod(endingAt: pacing.resetDate)
+                )
+                .frame(maxWidth: .infinity)
+            }
         }
     }
 
-    private func pacingCard(pacing: PacingResult, label: String, icon: String, showWorkweekBadge: Bool = false) -> some View {
+    /// The calendar-month span ending at `resetDate` (the next month start),
+    /// so the workweek hatch and now-marker map onto the real month length.
+    private func monthPeriod(endingAt resetDate: Date?) -> TimeInterval {
+        guard let resetDate,
+              let monthStart = Calendar.current.date(byAdding: .month, value: -1, to: resetDate)
+        else { return 30 * 86_400 }
+        return resetDate.timeIntervalSince(monthStart)
+    }
+
+    private func pacingCard(pacing: PacingResult, label: String, icon: String, showWorkweekBadge: Bool = false, period: TimeInterval = 7 * 24 * 3600) -> some View {
         let tint = pacing.zone.semanticColor
         let sign = pacing.delta >= 0 ? "+" : ""
         let schedule = settingsStore.pacingSchedule
         let offRanges: [ClosedRange<Double>] = (showWorkweekBadge && schedule.isActive)
-            ? (pacing.resetDate.map { schedule.offDayRanges(resetDate: $0) } ?? [])
+            ? (pacing.resetDate.map { schedule.offDayRanges(resetDate: $0, period: period) } ?? [])
             : []
         let nowInOffDay = showWorkweekBadge && schedule.isOffDay(Date())
         // Calendar-time position for the "now" marker so it aligns with the
         // off-day hatch (#194). nil keeps the active-time expected position.
         let markerFraction: Double? = (showWorkweekBadge && schedule.isActive)
-            ? pacing.resetDate.map { schedule.nowFraction(resetDate: $0) }
+            ? pacing.resetDate.map { schedule.nowFraction(resetDate: $0, period: period) }
             : nil
         return VStack(alignment: .leading, spacing: DS.Spacing.sm) {
             HStack(alignment: .top, spacing: DS.Spacing.xs) {

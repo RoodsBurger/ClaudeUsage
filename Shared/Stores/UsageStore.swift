@@ -14,6 +14,10 @@ final class UsageStore: ObservableObject {
     @Published var pacingResult: PacingResult?
     @Published var fiveHourPacing: PacingResult?
     @Published var sonnetPacing: PacingResult?
+    /// Monthly-budget pacing over the Extra Usage pool ($used vs monthly
+    /// limit, calendar-month window). Computed whenever the pool reports a
+    /// positive limit; enterprise surfaces are the only consumers.
+    @Published var monthlyPacing: PacingResult?
     @Published var lastUpdate: Date?
     @Published var isLoading = false
     @Published var errorState: AppErrorState = .none
@@ -394,6 +398,7 @@ final class UsageStore: ObservableObject {
         refreshResetCountdown()
 
         applyPacing(PacingCalculator.calculateAll(from: usage, margin: Double(pacingMargin), activeDays: pacingSchedule.effectiveActiveDays, activeHours: pacingSchedule.effectiveHours))
+        updateMonthlyPacing()
     }
 
     func refreshResetCountdown() {
@@ -421,6 +426,19 @@ final class UsageStore: ObservableObject {
     func recalculatePacing() {
         guard let usage = lastUsage else { return }
         applyPacing(PacingCalculator.calculateAll(from: usage, margin: Double(pacingMargin), activeDays: pacingSchedule.effectiveActiveDays, activeHours: pacingSchedule.effectiveHours))
+        updateMonthlyPacing()
+    }
+
+    /// Monthly-budget pacing from the Extra Usage pool, honoring the same
+    /// margin and workweek schedule as the window pacing. Shared by the
+    /// refresh path and the settings-driven recalculation so they never drift.
+    private func updateMonthlyPacing() {
+        monthlyPacing = PacingCalculator.calculateMonthly(
+            extraUsage: lastUsage?.extraUsage,
+            margin: Double(pacingMargin),
+            activeDays: pacingSchedule.effectiveActiveDays,
+            activeHours: pacingSchedule.effectiveHours
+        )
     }
 
     /// Builds metric snapshots + pacing zones from the latest API response and

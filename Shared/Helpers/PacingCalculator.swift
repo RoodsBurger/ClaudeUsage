@@ -17,6 +17,13 @@ enum PacingCalculator {
         .warning: ["pacing.weekly.warning.1", "pacing.weekly.warning.2", "pacing.weekly.warning.3"],
         .hot:     ["pacing.weekly.hot.1", "pacing.weekly.hot.2", "pacing.weekly.hot.3"],
     ]
+    /// Monthly-budget flavor (enterprise org spend vs its monthly limit).
+    private static let monthlyMessages: [PacingZone: [String]] = [
+        .chill:   ["pacing.monthly.chill.1", "pacing.monthly.chill.2", "pacing.monthly.chill.3"],
+        .onTrack: ["pacing.monthly.ontrack.1", "pacing.monthly.ontrack.2", "pacing.monthly.ontrack.3"],
+        .warning: ["pacing.monthly.warning.1", "pacing.monthly.warning.2", "pacing.monthly.warning.3"],
+        .hot:     ["pacing.monthly.hot.1", "pacing.monthly.hot.2", "pacing.monthly.hot.3"],
+    ]
 
     static func calculate(from usage: UsageResponse, margin: Double = 10, now: Date = Date(), activeDays: Set<Int> = PacingSchedule.allDays, activeHours: (start: Int, end: Int)? = nil) -> PacingResult? {
         calculate(from: usage, bucket: .sevenDay, margin: margin, now: now, activeDays: activeDays, activeHours: activeHours)
@@ -40,6 +47,54 @@ enum PacingCalculator {
             }
         }
         return results
+    }
+
+    /// Monthly-budget pacing (enterprise): projects the Extra Usage pool's
+    /// $used against its monthly limit over the elapsed fraction of the
+    /// calendar month containing `now`. Workweek-aware: a restricted schedule
+    /// makes only active days/hours advance the expected pace, exactly like
+    /// the weekly buckets. Zones use the same ±margin ladder. Returns nil
+    /// when the pool is absent, disabled, or has no positive limit.
+    /// `PacingResult.resetDate` is the start of the next calendar month.
+    static func calculateMonthly(
+        extraUsage: ExtraUsage?,
+        margin: Double = 10,
+        now: Date = Date(),
+        activeDays: Set<Int> = PacingSchedule.allDays,
+        activeHours: (start: Int, end: Int)? = nil,
+        calendar: Calendar = .current
+    ) -> PacingResult? {
+        guard let extraUsage, extraUsage.isEnabled,
+              let limit = extraUsage.monthlyLimit, limit > 0 else { return nil }
+        let used = extraUsage.usedCredits ?? 0
+        let actual = extraUsage.utilization ?? (used / limit * 100)
+
+        guard let monthStart = calendar.date(from: calendar.dateComponents([.year, .month], from: now)),
+              let monthEnd = calendar.date(byAdding: .month, value: 1, to: monthStart),
+              monthEnd > monthStart else { return nil }
+
+        let clampedNow = min(max(now, monthStart), monthEnd)
+        let clampedElapsed: Double
+        // A full 7-day set with no hour restriction is plain calendar time;
+        // otherwise measure elapsed over the active days/hours only, so off
+        // time doesn't advance the expected pace (same rule as the weeklies).
+        let isFullWindow = activeDays.count >= 7 && activeHours == nil
+        if isFullWindow {
+            let duration = monthEnd.timeIntervalSince(monthStart)
+            clampedElapsed = min(max(clampedNow.timeIntervalSince(monthStart) / duration, 0), 1)
+        } else {
+            let total = activeSeconds(from: monthStart, to: monthEnd, activeDays: activeDays, hours: activeHours, calendar: calendar)
+            let elapsed = activeSeconds(from: monthStart, to: clampedNow, activeDays: activeDays, hours: activeHours, calendar: calendar)
+            clampedElapsed = total > 0 ? min(max(elapsed / total, 0), 1) : 0
+        }
+
+        return result(
+            actual: actual,
+            expected: clampedElapsed * 100,
+            margin: margin,
+            messages: monthlyMessages,
+            resetDate: monthEnd
+        )
     }
 
     /// Active sub-intervals within `[from, to]`: the day-sized segments that fall
@@ -106,12 +161,30 @@ enum PacingCalculator {
             clampedElapsed = total > 0 ? min(max(elapsed / total, 0), 1) : 0
         }
 
-        let expectedUsage = clampedElapsed * 100
-        let delta = usageBucket.utilization - expectedUsage
+        return result(
+            actual: usageBucket.utilization,
+            expected: clampedElapsed * 100,
+            margin: margin,
+            messages: bucket == .fiveHour ? sessionMessages : weeklyMessages,
+            resetDate: resetsAt
+        )
+    }
 
-        // 4-zone pacing -> chill / onTrack (within ±margin) / warning (margin..2*margin)
-        // / hot (>2*margin). The pacingMargin slider drives both thresholds so a
-        // single user-facing setting controls the whole sensitivity curve.
+    /// Shared tail for every pacing flavor (session / weekly / monthly):
+    /// 4-zone pacing -> chill / onTrack (within ±margin) / warning
+    /// (margin..2*margin) / hot (>2*margin). The pacingMargin slider drives
+    /// both thresholds so a single user-facing setting controls the whole
+    /// sensitivity curve. The message cycles deterministically through the
+    /// zone's pool, keyed by the absolute delta.
+    private static func result(
+        actual: Double,
+        expected: Double,
+        margin: Double,
+        messages: [PacingZone: [String]],
+        resetDate: Date?
+    ) -> PacingResult {
+        let delta = actual - expected
+
         let zone: PacingZone
         if delta < -margin {
             zone = .chill
@@ -123,18 +196,18 @@ enum PacingCalculator {
             zone = .hot
         }
 
-        let pool = (bucket == .fiveHour ? sessionMessages : weeklyMessages)[zone] ?? []
+        let pool = messages[zone] ?? []
         let index = pool.isEmpty ? 0 : abs(Int(delta)) % pool.count
         let messageKey = pool.isEmpty ? "" : pool[index]
         let message = messageKey.isEmpty ? "" : String(localized: String.LocalizationValue(messageKey))
 
         return PacingResult(
             delta: delta,
-            expectedUsage: expectedUsage,
-            actualUsage: usageBucket.utilization,
+            expectedUsage: expected,
+            actualUsage: actual,
             zone: zone,
             message: message,
-            resetDate: resetsAt
+            resetDate: resetDate
         )
     }
 }
