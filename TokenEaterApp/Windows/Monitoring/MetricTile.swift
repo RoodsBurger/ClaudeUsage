@@ -30,11 +30,14 @@ struct MetricTile: View {
     /// True once the insights store has done its first load. Lets the
     /// inline insights row show a "loading" placeholder vs a "no data" one.
     let insightsLoaded: Bool
+    /// Shared expand flag owned by `MonitoringView` - every tile in the grid
+    /// reads the same value, so tapping any one of them expands them all
+    /// together instead of each tile tracking its own state.
+    let expanded: Bool
+    /// Toggles the shared flag in `MonitoringView`.
+    let onToggle: () -> Void
 
     @State private var isHovered: Bool = false
-    /// Tapping the tile inline-reveals the 7d insights row below the
-    /// front content, in the same card - no flip, no blur.
-    @State private var isExpanded: Bool = false
 
     var body: some View {
         let color = GaugeColorResolver.color(
@@ -50,17 +53,16 @@ struct MetricTile: View {
         let border = isHovered ? color.opacity(0.4) : DS.Pastel.border
 
         return Button {
-            withAnimation(.easeInOut(duration: 0.15)) { isExpanded.toggle() }
+            withAnimation(.easeInOut(duration: 0.15)) { onToggle() }
         } label: {
             VStack(alignment: .leading, spacing: DS.Spacing.xs) {
                 frontContent(color: color, clamped: clamped)
-                if isExpanded {
+                if expanded {
                     insightsRow(color: color)
                 }
             }
             .padding(DS.Spacing.md)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .frame(minHeight: 124, alignment: .top)
+            .frame(maxWidth: .infinity, minHeight: 124, maxHeight: .infinity, alignment: .top)
             .background(
                 RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
                     .fill(DS.Pastel.card)
@@ -92,7 +94,7 @@ struct MetricTile: View {
                 Spacer(minLength: 0)
                 // Icon-only affordance - the whole tile is tappable, this
                 // just signals "more" without adding copy.
-                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                Image(systemName: expanded ? "chevron.up" : "chevron.down")
                     .font(.system(size: 8, weight: .semibold))
                     .foregroundStyle(.tertiary)
             }

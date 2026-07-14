@@ -4,7 +4,6 @@ struct PacingBar: View {
     let actual: Double
     let expected: Double
     let zone: PacingZone
-    let gradient: LinearGradient
     let compact: Bool
     /// Off-day spans (x-fractions of the calendar window) to hatch on the track.
     let offDayRanges: [ClosedRange<Double>]
@@ -16,11 +15,10 @@ struct PacingBar: View {
     /// nil keeps the classic `expected`-based (active-time %) marker position.
     let markerFraction: Double?
 
-    init(actual: Double, expected: Double, zone: PacingZone, gradient: LinearGradient, compact: Bool = false, offDayRanges: [ClosedRange<Double>] = [], nowInOffDay: Bool = false, markerFraction: Double? = nil) {
+    init(actual: Double, expected: Double, zone: PacingZone, compact: Bool = false, offDayRanges: [ClosedRange<Double>] = [], nowInOffDay: Bool = false, markerFraction: Double? = nil) {
         self.actual = actual
         self.expected = expected
         self.zone = zone
-        self.gradient = gradient
         self.compact = compact
         self.offDayRanges = offDayRanges
         self.nowInOffDay = nowInOffDay
@@ -30,11 +28,19 @@ struct PacingBar: View {
     @State private var animatedActual: Double = 0
     @State private var pulsing = false
 
+    /// Fill gradient derived from the pacing zone's pastel semantic color, so
+    /// the bar always agrees with every other pacing surface (chill green,
+    /// onTrack blue, warning amber, hot coral) - never an unrelated color.
+    private var fillGradient: LinearGradient {
+        let base = zone.semanticColor
+        return LinearGradient(colors: [base, base.lighter()], startPoint: .leading, endPoint: .trailing)
+    }
+
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
                 RoundedRectangle(cornerRadius: compact ? 2 : 4)
-                    .fill(Color.white.opacity(0.06))
+                    .fill(DS.Pastel.track)
                     .frame(height: compact ? 4 : 8)
 
                 if !offDayRanges.isEmpty {
@@ -43,7 +49,7 @@ struct PacingBar: View {
                 }
 
                 RoundedRectangle(cornerRadius: compact ? 2 : 4)
-                    .fill(gradient)
+                    .fill(fillGradient)
                     .frame(width: max(0, geo.size.width * CGFloat(min(animatedActual, 100)) / 100), height: compact ? 4 : 8)
 
                 idealMarker

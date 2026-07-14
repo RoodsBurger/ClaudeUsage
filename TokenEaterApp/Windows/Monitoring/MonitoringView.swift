@@ -23,8 +23,15 @@ struct MonitoringView: View {
     @State private var heroHover = false
     @State private var refreshHovering = false
     /// Toggled by tapping the hero tile - inline-reveals the pacing graph
-    /// below the front content instead of flipping to a back face.
+    /// below the front content instead of flipping to a back face. The hero
+    /// tile is a standalone full-width card, so its expand state stays
+    /// independent of the secondary tile grid below.
     @State private var heroExpanded: Bool = false
+    /// Single shared expand flag for every secondary metric tile
+    /// (Weekly/Sonnet/Design/...). Tapping any tile toggles this one flag,
+    /// so the whole grid expands or collapses in unison and every tile in a
+    /// row always matches its row's tallest sibling height.
+    @State private var tilesExpanded: Bool = false
 
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
@@ -173,7 +180,7 @@ struct MonitoringView: View {
                     Rectangle()
                         .fill(DS.Pastel.border)
                         .frame(height: 1)
-                    heroPacingSection(gaugeColor: gaugeColor, zone: zone, pacing: pacing)
+                    heroPacingSection(zone: zone, pacing: pacing)
                 }
 
                 heroDisclosureRow
@@ -268,7 +275,7 @@ struct MonitoringView: View {
     /// is expanded. Left as a simple vertical stack (subtitle + delta, the
     /// pacing graph, the zone label) - no flip, no blur.
     @ViewBuilder
-    private func heroPacingSection(gaugeColor: Color, zone: PacingZone?, pacing: PacingResult?) -> some View {
+    private func heroPacingSection(zone: PacingZone?, pacing: PacingResult?) -> some View {
         VStack(alignment: .leading, spacing: DS.Spacing.sm) {
             HStack(spacing: DS.Spacing.xs) {
                 Text((String(localized: "dashboard.hero.session.label") + " · " + String(localized: "pacing.label")).uppercased())
@@ -279,7 +286,7 @@ struct MonitoringView: View {
                 if let pacing {
                     Text(String(format: "%+.1f%%", pacing.delta))
                         .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(pacing.delta > 0 ? DS.Pastel.amber : DS.Pastel.green)
+                        .foregroundStyle(pacing.zone.semanticColor)
                         .monospacedDigit()
                 }
             }
@@ -288,8 +295,8 @@ struct MonitoringView: View {
                 HeroPacingGraph(
                     actualUsage: pacing.actualUsage,
                     expectedUsage: pacing.expectedUsage,
-                    deltaColor: pacing.delta > 0 ? DS.Pastel.amber : DS.Pastel.green,
-                    trajectoryColor: gaugeColor
+                    deltaColor: pacing.zone.semanticColor,
+                    trajectoryColor: pacing.zone.semanticColor
                 )
                 .frame(maxWidth: .infinity)
                 .frame(height: 92)
@@ -333,8 +340,10 @@ struct MonitoringView: View {
         // API bucket exists), so a fixed grid left an empty trailing cell when
         // the count was not a multiple of 3. Each row's tiles stretch to fill
         // the full width, so there is never a hole regardless of tile count.
-        // Rows align to `.top` so a single expanded tile can grow taller
-        // without stretching its row siblings.
+        // Every tile shares `tilesExpanded`, so tapping any one of them
+        // expands the whole grid together, and each tile's `maxHeight:
+        // .infinity` frame stretches it to match its row's tallest sibling -
+        // collapsed or expanded, a row's tiles are always the same height.
         let rows = MetricsGridLayout.rows(secondaryTiles)
         return VStack(spacing: DS.Spacing.sm) {
             ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
@@ -355,7 +364,9 @@ struct MonitoringView: View {
                             insights: hasRichBack(tileId: tile.id)
                                 ? insightsStore.snapshot(for: tileFamily(for: tile.id))
                                 : nil,
-                            insightsLoaded: insightsStore.hasLoaded
+                            insightsLoaded: insightsStore.hasLoaded,
+                            expanded: tilesExpanded,
+                            onToggle: { tilesExpanded.toggle() }
                         )
                     }
                 }

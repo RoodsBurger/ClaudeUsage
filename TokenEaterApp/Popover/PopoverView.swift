@@ -3,9 +3,10 @@ import SwiftUI
 /// The menu bar popover layout. Renders the metric rows and optional sections
 /// `PopoverConfig` selects, in the configured order - see
 /// `Shared/Models/PopoverConfig.swift` and `PopoverSectionView`. Width 340,
-/// flat `Divider()`-separated sections, system material background (see
-/// `StatusBarController.makePopoverPanel`), and semantic `RiskZone` /
-/// `PacingZone` colors only - no hex, no raw opacity chrome.
+/// hairline-separated sections (`separator`, a solid `DS.Pastel.border` fill
+/// rather than the near-invisible system `Divider()`), system material
+/// background (see `StatusBarController.makePopoverPanel`), and semantic
+/// `RiskZone` / `PacingZone` colors only - no hex, no raw opacity chrome.
 struct PopoverView: View {
     @EnvironmentObject private var usageStore: UsageStore
     @EnvironmentObject private var settingsStore: SettingsStore
@@ -15,34 +16,47 @@ struct PopoverView: View {
         VStack(spacing: 0) {
             PopoverHeaderRow(worstZone: worstZone)
 
-            Divider()
+            separator
 
             if vendorStatusStore.isDegraded && vendorStatusStore.claudeStatus != nil {
                 VendorStatusBanner()
-                Divider()
+                separator
             }
 
             if usageStore.hasError {
                 PopoverErrorBanner()
-                Divider()
+                separator
             }
 
             metricsSection
 
             if popoverConfig.showSpend, let extra = usageStore.extraUsage, extra.isEnabled {
-                Divider()
+                separator
                 PopoverSpendSection(extra: extra)
             }
 
             if popoverConfig.showTimestamp {
-                Divider()
+                separator
                 PopoverTimestampRow()
             }
 
-            Divider()
+            // Unconditional: the footer always gets a separator above it,
+            // whether or not the timestamp row (or any other optional
+            // section) is showing.
+            separator
             PopoverFooterToolbar()
         }
         .frame(width: 340)
+    }
+
+    /// Visible hairline between popover sections. Replaces the system
+    /// `Divider()`, which reads as nearly invisible on the popover's
+    /// translucent `.popover` material.
+    private var separator: some View {
+        Rectangle()
+            .fill(DS.Pastel.border)
+            .frame(maxWidth: .infinity)
+            .frame(height: 1)
     }
 
     private var metricsSection: some View {
