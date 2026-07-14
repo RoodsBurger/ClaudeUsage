@@ -126,13 +126,34 @@ final class OAuthService: OAuthServiceProtocol {
                 let tokens = requestLine.split(separator: " ", maxSplits: 2)
                 let path = tokens.count > 1 ? String(tokens[1]) : ""
 
-                let html = "<html><body>You can close this window.</body></html>"
-                let responseText = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: \(html.utf8.count)\r\nConnection: close\r\n\r\n\(html)"
+                // Anthropic returns the authorization result in the URL fragment
+                // (`#code=…&state=…`, the `code#state` the manual flow shows).
+                // Browsers never send the fragment to the server, so the first
+                // hit is a bare `/callback` with no code. Serve a JS bridge that
+                // reads location.hash and reloads with it promoted to the query
+                // string, so the second hit carries the code and state. A query-
+                // form response (already has `code=`) is processed directly.
+                let hasCode = path.contains("code=")
+                let body: String
+                if hasCode {
+                    body = "<html><body>You can close this window.</body></html>"
+                } else {
+                    body = """
+                    <html><body>Finishing sign-in…<script>
+                    var p = location.hash.slice(1) || location.search.slice(1);
+                    if (p && p.indexOf('code=') > -1) { location.replace(location.pathname + '?' + p); }
+                    else { document.body.textContent = 'You can close this window.'; }
+                    </script></body></html>
+                    """
+                }
+                let responseText = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: \(body.utf8.count)\r\nConnection: close\r\n\r\n\(body)"
                 connection.send(content: responseText.data(using: .utf8), completion: .contentProcessed { _ in
                     connection.cancel()
                 })
 
-                onRequest(path)
+                // Only hand a request with a code to the callback processor; the
+                // bridge hit (no code) is served the promoter and otherwise ignored.
+                if hasCode { onRequest(path) }
             }
         }
 
