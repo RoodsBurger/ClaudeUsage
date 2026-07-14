@@ -206,7 +206,7 @@ extension DS {
         static let base   = Color(hex: 0x161719) // window/popover background
         static let card   = Color(hex: 0x1A1B1E) // elevated card
         static let border = Color(hex: 0x2C2E33) // hairline
-        static let track  = Color(hex: 0x484B53) // gauge/bar track - light enough to read as an empty bar on dark/translucent surfaces
+        static let track  = Color(hex: 0x3A3D45) // gauge/bar track - light enough to read as an empty bar on dark/translucent surfaces
 
         /// NSColor mirrors, needed wherever AppKit (not SwiftUI) draws -
         /// chiefly the menu bar's custom `NSAttributedString` rendering.
