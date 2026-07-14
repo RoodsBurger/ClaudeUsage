@@ -25,9 +25,17 @@ struct HistoryView: View {
         store.isLoading || chartReveal < 1
     }
 
+    /// Page title, matching the Monitoring header's type hierarchy.
+    private var header: some View {
+        Text(String(localized: "history.title"))
+            .font(DS.Typography.title1)
+            .foregroundStyle(.primary)
+    }
+
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(alignment: .leading, spacing: DS.Spacing.md) {
+                header
                 heroCard
                 toolbar
                 chartCard

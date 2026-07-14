@@ -360,6 +360,7 @@
 "sidebar.general" = "General";
 
 /* History view */
+"history.title" = "History";
 "history.sessions.label" = "sessions";
 "history.range.24h" = "24h";
 "history.range.7d" = "7d";

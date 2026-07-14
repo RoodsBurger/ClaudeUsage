@@ -30,6 +30,14 @@ struct MainAppView: View {
         } detail: {
             detailContent
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                // The window hides its title bar (fullSizeContentView), but
+                // NavigationSplitView still reserves a toolbar strip above the
+                // detail pane. Pad the content a comfortable 12pt first, THEN
+                // ignore the safe area (outermost) so the reserved strip is
+                // reclaimed - reversed, the padding re-enters the safe area
+                // and the oversized strip comes back.
+                .padding(.top, DS.Spacing.sm)
+                .ignoresSafeArea(.container, edges: .top)
         }
         .background(DS.Pastel.base)
         .onReceive(NotificationCenter.default.publisher(for: .navigateToSection)) { notification in
