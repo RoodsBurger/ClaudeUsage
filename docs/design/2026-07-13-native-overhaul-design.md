@@ -122,6 +122,19 @@ name + hero numbers, `.monospacedDigit()` on all numerics, 14pt inset, `Divider(
 separation in the popover, `RoundedRectangle` cards) — recolored to the palette
 above and made opaque.
 
+### Motion — minimal & restrained (owner design review)
+
+The current app reads as "too futuristic." The pastel look calls for quiet,
+modern motion. **Remove:** the blur-burst space transition, `matchedGeometry`
+pill glides, card-flip animations, glow/pulse-heavy effects, animated gradients,
+hover scale-ups, and any bouncy/overshooting springs. **Use instead:** simple
+crossfades or no transition on view switches; gentle default easing
+(`.easeInOut`, short ~0.15–0.2s) for state changes; SF Symbol effects only where
+they carry meaning (e.g. the refresh glyph pulse while loading). No motion for
+motion's sake. When in doubt, prefer the platform default or nothing. This binds
+every remaining UI task (sidebar nav, monitoring/history tiles, settings,
+onboarding).
+
 - **Color by role, never by theme.** Risk drives color: ok = `.green`, warning =
   `.orange`, critical = `.red`, active/info = `.blue`. Text hierarchy `.primary` /
   `.secondary` / `.tertiary`. Tinted fills are the same semantic color at
