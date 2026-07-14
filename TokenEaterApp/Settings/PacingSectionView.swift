@@ -571,15 +571,17 @@ struct PacingSectionView: View {
     // MARK: - Sliders + previews
 
     private func percentSlider(label: String, value: Binding<Double>, range: ClosedRange<Double>) -> some View {
-        LabeledContent(label) {
-            HStack {
-                Slider(value: value, in: range, step: 5)
-                    .tint(DS.Pastel.green)
-                Text("\(Int(value.wrappedValue))%")
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-                    .frame(width: 36, alignment: .trailing)
-            }
+        // Plain HStack, not LabeledContent: the slider fills the whole row
+        // between the fixed label and the fixed value column.
+        HStack(spacing: 12) {
+            Text(label)
+            Slider(value: value, in: range, step: 5)
+                .tint(DS.Pastel.green)
+                .frame(maxWidth: .infinity)
+            Text("\(Int(value.wrappedValue))%")
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+                .frame(width: 36, alignment: .trailing)
         }
     }
 
