@@ -80,7 +80,7 @@ struct TokenProviderTests {
         let token = provider.currentToken()
 
         #expect(token == "security-token")
-        #expect(securityCLI.readCallCount == 1)
+        #expect(securityCLI.readCredentialCallCount == 1) // currentToken reads the credential, not the bare token
         #expect(decryption.decryptCallCount == 0)
     }
 
@@ -286,6 +286,66 @@ struct TokenProviderTests {
         #expect(token == "keychain-fallback")
     }
 
+    // MARK: - Skip-expired borrowed sources (Task 4b)
+
+    @Test("REGRESSION: an expired Keychain source is skipped for a fresh Claude Desktop token (the diagnosed real-world bug)")
+    func staleSourceSkippedInFavorOfFreshSource() {
+        let (provider, securityCLI, credentials, _, decryption, _, _) = makeSUT(
+            encryptedToken: "encrypted-blob",
+            hasEncryptionKey: true
+        )
+        // Source #1 (Claude Code Keychain item): expired 25 days ago, empty refresh token.
+        securityCLI.credential = BorrowedCredential(
+            accessToken: "dead-source1-access",
+            refreshToken: nil,
+            expiresAt: Date().addingTimeInterval(-25 * 24 * 3600)
+        )
+        // Source #2 (.credentials.json): absent.
+        credentials.credential = nil
+        // Source #3 (Claude Desktop config.json): fresh and valid.
+        let freshConfigJSON: [String: Any] = [
+            "claudeAiOauth": [
+                "accessToken": "fresh-source3-access",
+                "expiresAt": Date().addingTimeInterval(3600).timeIntervalSince1970 * 1000,
+            ],
+        ]
+        decryption.decryptedData = try! JSONSerialization.data(withJSONObject: freshConfigJSON)
+
+        let token = provider.currentToken()
+
+        #expect(token == "fresh-source3-access")
+        #expect(token != "dead-source1-access") // the dead source-#1 token must never be returned
+    }
+
+    @Test("all borrowed sources expired -> currentToken returns nil")
+    func allSourcesExpiredReturnsNil() {
+        let (provider, securityCLI, credentials, _, _, _, _) = makeSUT()
+        securityCLI.credential = BorrowedCredential(
+            accessToken: "expired-source1",
+            refreshToken: nil,
+            expiresAt: Date().addingTimeInterval(-100)
+        )
+        credentials.credential = BorrowedCredential(
+            accessToken: "expired-source2",
+            refreshToken: "some-refresh-token",
+            expiresAt: Date().addingTimeInterval(-200)
+        )
+
+        #expect(provider.currentToken() == nil)
+    }
+
+    @Test("borrowed source with nil expiresAt is treated as usable (unchanged behavior)")
+    func nilExpiryTreatedAsUsable() {
+        let (provider, securityCLI, _, _, _, _, _) = makeSUT()
+        securityCLI.credential = BorrowedCredential(
+            accessToken: "unknown-expiry-access",
+            refreshToken: nil,
+            expiresAt: nil
+        )
+
+        #expect(provider.currentToken() == "unknown-expiry-access")
+    }
+
     // MARK: - refreshTokenIfChanged (account swap detection)
 
     @Test("refreshTokenIfChanged detects a rotated Keychain token and updates the cache")
@@ -345,6 +405,7 @@ struct TokenProviderTests {
 
         #expect(provider.currentToken() == "oauth-access")
         #expect(securityCLI.readCallCount == 0)
+        #expect(securityCLI.readCredentialCallCount == 0)
         #expect(oauthService.refreshCallCount == 0)
     }
 
@@ -370,6 +431,7 @@ struct TokenProviderTests {
         #expect(provider.currentToken() == "stale-access")
         #expect(oauthService.refreshCallCount == 0)
         #expect(securityCLI.readCallCount == 0)
+        #expect(securityCLI.readCredentialCallCount == 0)
     }
 
     @Test("refreshOAuthTokenIfNeeded renews a near-expiry token exactly once and saves it")
@@ -400,15 +462,71 @@ struct TokenProviderTests {
         #expect(oauthService.refreshCallCount == 0)
     }
 
-    @Test("refreshOAuthTokenIfNeeded is a no-op returning false with no OAuth tokens")
+    @Test("refreshOAuthTokenIfNeeded is a no-op returning false with no token source anywhere")
     func refreshOAuthTokenIfNeededNoOpWithoutTokens() async {
-        let (provider, securityCLI, _, _, _, _, oauthService) = makeSUT(securityCLIToken: "borrowed")
+        let (provider, _, _, _, _, _, oauthService) = makeSUT()
 
         let usable = await provider.refreshOAuthTokenIfNeeded()
 
         #expect(usable == false)
         #expect(oauthService.refreshCallCount == 0)
-        #expect(securityCLI.readCallCount == 0) // borrowed sources aren't touched here
+    }
+
+    // MARK: - Borrow-and-self-refresh fallback (Task 4b)
+
+    @Test("borrowed-valid-access: a still-valid borrowed credential is returned directly and never rotated")
+    func refreshOAuthTokenIfNeededDoesNotRotateValidBorrowedAccess() async {
+        let (provider, securityCLI, _, _, _, oauthStore, oauthService) = makeSUT()
+        securityCLI.credential = BorrowedCredential(
+            accessToken: "borrowed-access",
+            refreshToken: "borrowed-refresh",
+            expiresAt: Date().addingTimeInterval(3600) // nowhere near the refresh margin
+        )
+
+        let usable = await provider.refreshOAuthTokenIfNeeded()
+
+        #expect(usable == false) // the app still has no OWN token, only a borrowed one
+        #expect(oauthService.refreshCallCount == 0) // read-only use never rotates a still-valid borrowed token
+        #expect(oauthStore.load() == nil)
+        #expect(provider.currentToken() == "borrowed-access")
+    }
+
+    @Test("borrowed-expired-with-refreshToken: self-refreshes once and adopts the result as the app's own token")
+    func refreshOAuthTokenIfNeededSelfRefreshesExpiredBorrowedCredential() async {
+        let refreshedTokens = OAuthTokens(accessToken: "self-refreshed-access", refreshToken: "self-refreshed-refresh", expiresAt: Date().addingTimeInterval(3600))
+        let (provider, securityCLI, _, _, _, oauthStore, oauthService) = makeSUT(
+            oauthRefreshResult: .success(refreshedTokens)
+        )
+        securityCLI.credential = BorrowedCredential(
+            accessToken: "expired-borrowed-access",
+            refreshToken: "expired-borrowed-refresh",
+            expiresAt: Date().addingTimeInterval(-100)
+        )
+
+        let usable = await provider.refreshOAuthTokenIfNeeded()
+
+        #expect(usable == true)
+        #expect(oauthService.refreshCallCount == 1)
+        #expect(oauthService.lastRefreshTokens?.accessToken == "expired-borrowed-access")
+        #expect(oauthService.lastRefreshTokens?.refreshToken == "expired-borrowed-refresh")
+        #expect(oauthStore.load() == refreshedTokens) // the app now owns a token set
+        #expect(provider.currentToken() == "self-refreshed-access")
+    }
+
+    @Test("borrowed-expired-no-refreshToken: an expired borrowed credential with no refresh token is not redeemable")
+    func refreshOAuthTokenIfNeededDoesNotSelfRefreshWithoutRefreshToken() async {
+        let (provider, securityCLI, _, _, _, oauthStore, oauthService) = makeSUT()
+        securityCLI.credential = BorrowedCredential(
+            accessToken: "dead-borrowed-access",
+            refreshToken: nil,
+            expiresAt: Date().addingTimeInterval(-100)
+        )
+
+        let usable = await provider.refreshOAuthTokenIfNeeded()
+
+        #expect(usable == false)
+        #expect(oauthService.refreshCallCount == 0)
+        #expect(oauthStore.load() == nil)
     }
 
     @Test("refreshOAuthTokenIfNeeded failure keeps the stored token untouched")
@@ -506,6 +624,7 @@ struct TokenProviderTests {
         // personal OAuth token can never be clobbered by the work account's.
         #expect(provider.refreshTokenIfChanged() == false)
         #expect(securityCLI.readCallCount == 0)
+        #expect(securityCLI.readCredentialCallCount == 0)
         #expect(provider.currentToken() == "oauth-access")
     }
 

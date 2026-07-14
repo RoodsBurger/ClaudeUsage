@@ -88,3 +88,52 @@ struct SecurityCLIReaderTests {
         #expect(SecurityCLIReader.extractToken(fromKeychainPassword: raw) == "mock-access-token-multifield")
     }
 }
+
+@Suite("SecurityCLIReader.extractCredential")
+struct SecurityCLIReaderExtractCredentialTests {
+
+    @Test("Full OAuth blob -> accessToken, refreshToken, and expiresAt (ms epoch converted to seconds)")
+    func fullCredential() {
+        let raw = """
+        {
+          "claudeAiOauth": {
+            "accessToken": "mock-access-token-for-tests-only",
+            "refreshToken": "mock-refresh-token-for-tests-only",
+            "expiresAt": 1735689600000
+          }
+        }
+        """
+        let credential = SecurityCLIReader.extractCredential(fromKeychainPassword: raw)
+        #expect(credential?.accessToken == "mock-access-token-for-tests-only")
+        #expect(credential?.refreshToken == "mock-refresh-token-for-tests-only")
+        #expect(credential?.expiresAt == Date(timeIntervalSince1970: 1735689600))
+    }
+
+    @Test("Missing refreshToken and expiresAt surface as nil")
+    func missingRefreshAndExpiry() {
+        let raw = #"{"claudeAiOauth":{"accessToken":"trimmed"}}"#
+        let credential = SecurityCLIReader.extractCredential(fromKeychainPassword: raw)
+        #expect(credential?.accessToken == "trimmed")
+        #expect(credential?.refreshToken == nil)
+        #expect(credential?.expiresAt == nil)
+    }
+
+    @Test("Empty refreshToken is normalized to nil")
+    func emptyRefreshTokenIsNil() {
+        let raw = #"{"claudeAiOauth":{"accessToken":"tok","refreshToken":""}}"#
+        let credential = SecurityCLIReader.extractCredential(fromKeychainPassword: raw)
+        #expect(credential?.refreshToken == nil)
+    }
+
+    @Test("Empty accessToken returns nil credential")
+    func emptyAccessTokenReturnsNil() {
+        let raw = #"{"claudeAiOauth":{"accessToken":""}}"#
+        #expect(SecurityCLIReader.extractCredential(fromKeychainPassword: raw) == nil)
+    }
+
+    @Test("Malformed JSON returns nil instead of throwing")
+    func malformedJSONReturnsNil() {
+        let raw = #"{"claudeAiOauth":{"accessToken""#
+        #expect(SecurityCLIReader.extractCredential(fromKeychainPassword: raw) == nil)
+    }
+}

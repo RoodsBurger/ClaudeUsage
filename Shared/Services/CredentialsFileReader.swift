@@ -18,6 +18,14 @@ final class CredentialsFileReader: CredentialsFileReaderProtocol, @unchecked Sen
     }
 
     func readToken() -> String? {
+        readCredential()?.accessToken
+    }
+
+    /// Same parse as `readToken`, but also surfaces `refreshToken`
+    /// (absent/empty -> nil) and `expiresAt` (Claude Code stores this as
+    /// milliseconds since epoch, unlike this app's own seconds-based
+    /// `OAuthTokens`).
+    func readCredential() -> BorrowedCredential? {
         guard let data = FileManager.default.contents(atPath: filePath),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let oauth = json["claudeAiOauth"] as? [String: Any],
@@ -26,7 +34,9 @@ final class CredentialsFileReader: CredentialsFileReaderProtocol, @unchecked Sen
         else {
             return nil
         }
-        return token
+        let refreshToken = (oauth["refreshToken"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+        let expiresAt = (oauth["expiresAt"] as? NSNumber).map { Date(timeIntervalSince1970: $0.doubleValue / 1000) }
+        return BorrowedCredential(accessToken: token, refreshToken: refreshToken, expiresAt: expiresAt)
     }
 
     func tokenExists() -> Bool {
