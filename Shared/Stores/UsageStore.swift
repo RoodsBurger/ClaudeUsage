@@ -116,11 +116,14 @@ final class UsageStore: ObservableObject {
     }
 
     func refresh(thresholds: UsageThresholds = .default, force: Bool = false) async {
-        // Prevent concurrent refreshes
+        // Prevent concurrent refreshes. The guard plus setting `isLoading`
+        // before the first `await` below is what serializes ticks: nothing
+        // suspends between here and the assignment, so a re-entrant call sees
+        // it set and bails.
         guard !isLoading else { return }
 
-        // Resolve token
-        guard let token = tokenProvider.currentToken() else {
+        // No token source at all -> disconnected. Cheap, synchronous, no network.
+        guard tokenProvider.currentToken() != nil else {
             hasConfig = false
             errorState = .tokenUnavailable
             return
@@ -148,6 +151,18 @@ final class UsageStore: ObservableObject {
         isLoading = true
         defer { isLoading = false }
 
+        // Proactively renew the app-owned OAuth token if it's near expiry,
+        // BEFORE reading the token for this fetch, so the tick self-refreshes.
+        // No-op for borrowed sources. Guarded by `isLoading` against re-entry.
+        _ = await tokenProvider.refreshOAuthTokenIfNeeded()
+
+        // Read the (possibly just-renewed) token for the fetch.
+        guard let token = tokenProvider.currentToken() else {
+            hasConfig = false
+            errorState = .tokenUnavailable
+            return
+        }
+
         do {
             let usage = try await repository.refreshUsage(token: token, proxyConfig: proxyConfig)
             applySuccess(usage: usage)
@@ -155,7 +170,10 @@ final class UsageStore: ObservableObject {
             lastAPIError = error.diagnosticSnapshot
             switch error {
             case .tokenExpired, .noToken:
-                // Invalidate cached token so next read re-checks Keychain for a fresh one
+                // Force an OAuth refresh (network) for our own tokens; no-op for
+                // borrowed sources. Then invalidate the cache so the retry reads
+                // the renewed OAuth token or a rotated borrowed one.
+                _ = await tokenProvider.handleUnauthorizedOAuth()
                 tokenProvider.invalidateToken()
                 // Retry once with a fresh token
                 if let freshToken = tokenProvider.currentToken(), freshToken != token {

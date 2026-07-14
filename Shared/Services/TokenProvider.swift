@@ -56,12 +56,15 @@ final class TokenProvider: TokenProviderProtocol, @unchecked Sendable {
         return false
     }
 
-    /// Returns the current token. OAuth tokens (source 0, this app's own
-    /// authorization) take priority whenever they exist, refreshing them
-    /// first if they're near expiry. Only when no OAuth tokens exist at all
-    /// does this fall back to the borrowed source chain, using the in-memory
-    /// cache so the Keychain is only read when the cache is empty (app start,
-    /// or after `invalidateToken()`).
+    /// Returns the current token. This is synchronous and never touches the
+    /// network: OAuth tokens (source 0, this app's own authorization) take
+    /// priority whenever they exist and the stored access token is returned
+    /// as-is, even if near expiry - the proactive/reactive refresh runs on the
+    /// async paths (`refreshOAuthTokenIfNeeded`, `handleUnauthorizedOAuth`),
+    /// not here. Only when no OAuth tokens exist at all does this fall back to
+    /// the borrowed source chain, using the in-memory cache so the Keychain is
+    /// only read when the cache is empty (app start, or after
+    /// `invalidateToken()`).
     ///
     /// Borrowed source priority (v5.0+):
     /// 1. `/usr/bin/security` shell-out (primary - works for all modern Claude Code macOS users,
@@ -75,9 +78,8 @@ final class TokenProvider: TokenProviderProtocol, @unchecked Sendable {
         if let token = cachedToken { return token }
 
         if let tokens = oauthTokenStore.load() {
-            let resolved = resolveOAuthAccessToken(tokens)
-            cachedToken = resolved
-            return resolved
+            cachedToken = tokens.accessToken
+            return tokens.accessToken
         }
 
         let token = readFromSources()
@@ -85,19 +87,54 @@ final class TokenProvider: TokenProviderProtocol, @unchecked Sendable {
         return token
     }
 
-    /// Returns `tokens.accessToken`, refreshing first when near expiry. A
-    /// refresh failure keeps serving the existing access token rather than
-    /// falling back to the borrowed sources - once OAuth tokens exist they
-    /// are authoritative until an explicit `disconnectOAuth()`.
-    private func resolveOAuthAccessToken(_ tokens: OAuthTokens) -> String {
-        guard tokens.needsRefresh() else { return tokens.accessToken }
-        guard let refreshed = synchronousRefresh(tokens) else {
-            logger.info("OAuth refresh failed - keeping existing access token until a hard 401")
-            return tokens.accessToken
+    /// Proactively refreshes the OAuth token when it's near expiry. Callers
+    /// await this once per refresh tick before reading the token so a
+    /// near-expiry token is renewed ahead of the fetch. No-op returning false
+    /// for borrowed sources (they self-heal on 401 via `invalidateToken`).
+    func refreshOAuthTokenIfNeeded() async -> Bool {
+        guard let tokens = oauthTokenStore.load() else { return false }
+        guard tokens.needsRefresh() else {
+            cachedToken = tokens.accessToken
+            return true
         }
-        try? oauthTokenStore.save(refreshed)
-        logger.info("OAuth token refreshed proactively (near expiry)")
-        return refreshed.accessToken
+        return await performOAuthRefresh(tokens)
+    }
+
+    /// Forces one OAuth refresh after a 401, regardless of local expiry: the
+    /// server rejected a token whose local `expiresAt` may still be in the
+    /// future. No-op returning false for borrowed sources - the 401 caller
+    /// then falls back to `invalidateToken` + a borrowed re-read.
+    func handleUnauthorizedOAuth() async -> Bool {
+        guard let tokens = oauthTokenStore.load() else { return false }
+        return await performOAuthRefresh(tokens)
+    }
+
+    /// Runs one OAuth refresh exchange, awaiting the completion-based
+    /// `oauthService.refresh` via a checked continuation - no run-loop pump,
+    /// no semaphore. The new tokens are saved to the store inside the
+    /// completion so a slow-but-successful refresh can never be dropped by a
+    /// timeout. On success the in-memory cache is updated so the next
+    /// `currentToken()` returns the fresh access token. A failure leaves the
+    /// stored tokens untouched (the access token keeps being served until a
+    /// hard 401).
+    private func performOAuthRefresh(_ tokens: OAuthTokens) async -> Bool {
+        let refreshed: OAuthTokens? = await withCheckedContinuation { continuation in
+            oauthService.refresh(tokens) { result in
+                if case .success(let newTokens) = result {
+                    try? self.oauthTokenStore.save(newTokens)
+                    continuation.resume(returning: newTokens)
+                } else {
+                    continuation.resume(returning: nil)
+                }
+            }
+        }
+        guard let refreshed else {
+            logger.info("OAuth refresh failed - keeping existing access token")
+            return false
+        }
+        cachedToken = refreshed.accessToken
+        logger.info("OAuth token refreshed")
+        return true
     }
 
     /// Reads the token from all sources in priority order, bypassing the
@@ -133,7 +170,13 @@ final class TokenProvider: TokenProviderProtocol, @unchecked Sendable {
     /// closes that gap. Returns true only on an actual change between two
     /// non-nil tokens; first population and transient read failures return false
     /// so a working token is never dropped.
+    ///
+    /// OAuth tokens are authoritative: while they exist this never reconciles
+    /// against the borrowed chain (nor reads it), so a borrowed token from a
+    /// *different* account can never silently replace the app's own OAuth token
+    /// on a tick.
     func refreshTokenIfChanged() -> Bool {
+        if oauthTokenStore.load() != nil { return false }
         guard let fresh = readFromSources() else { return false }
         let previous = cachedToken
         cachedToken = fresh
@@ -163,28 +206,15 @@ final class TokenProvider: TokenProviderProtocol, @unchecked Sendable {
         return nil
     }
 
-    /// Call this after a 401. When OAuth tokens are present this makes one
-    /// synchronous refresh attempt: success saves the new tokens and caches
-    /// the new access token so the caller's immediate retry picks it up;
-    /// failure clears the cache and leaves the stored OAuth tokens as-is, so
-    /// the next `currentToken()` sees the same still-unrefreshed access token
-    /// and the caller's existing "no improvement" handling surfaces the
-    /// token-expired error path. With no OAuth tokens, clears the cache so
-    /// the next `currentToken()` re-reads the borrowed sources.
+    /// Call this after a 401 - clears the in-memory cache so the next
+    /// `currentToken()` re-reads its source (a rotated borrowed token, or the
+    /// stored OAuth token, possibly just renewed by `handleUnauthorizedOAuth`).
+    /// Synchronous and network-free: the OAuth refresh-on-401 is a separate
+    /// async step the caller awaits, so non-401 callers (`handleTokenChange`,
+    /// "Retry now") that only invalidate never rotate the refresh token.
     func invalidateToken() {
-        if let tokens = oauthTokenStore.load() {
-            if let refreshed = synchronousRefresh(tokens) {
-                try? oauthTokenStore.save(refreshed)
-                cachedToken = refreshed.accessToken
-                logger.info("OAuth token refreshed after a 401")
-            } else {
-                cachedToken = nil
-                logger.info("OAuth refresh failed after a 401 - token expired")
-            }
-            return
-        }
         cachedToken = nil
-        logger.info("Token cache invalidated - next read will check Keychain")
+        logger.info("Token cache invalidated - next read will check its source")
     }
 
     /// Signs out of the app-owned OAuth tokens. The next `currentToken()`
@@ -193,46 +223,6 @@ final class TokenProvider: TokenProviderProtocol, @unchecked Sendable {
         oauthTokenStore.clear()
         cachedToken = nil
         logger.info("OAuth disconnected - falling back to borrowed token sources")
-    }
-
-    // MARK: - OAuth Refresh (sync bridge)
-
-    /// Bridges `oauthService.refresh`'s completion-based API to a bounded
-    /// synchronous return. `OAuthService` always delivers its completion via
-    /// `DispatchQueue.main.async` once its transport responds on a background
-    /// queue, so a plain semaphore wait here would deadlock (or just burn the
-    /// full timeout) when called from the main thread - the main queue can't
-    /// drain that block while this call blocks it. On the main thread this
-    /// pumps the run loop instead, which still processes queued main-queue
-    /// blocks; off the main thread a semaphore wait is used as normal.
-    private func synchronousRefresh(_ tokens: OAuthTokens, timeout: TimeInterval = 15) -> OAuthTokens? {
-        if Thread.isMainThread {
-            return synchronousRefreshOnMainThread(tokens, timeout: timeout)
-        }
-
-        let semaphore = DispatchSemaphore(value: 0)
-        var refreshed: OAuthTokens?
-        oauthService.refresh(tokens) { result in
-            if case .success(let newTokens) = result { refreshed = newTokens }
-            semaphore.signal()
-        }
-        _ = semaphore.wait(timeout: .now() + timeout)
-        return refreshed
-    }
-
-    private func synchronousRefreshOnMainThread(_ tokens: OAuthTokens, timeout: TimeInterval) -> OAuthTokens? {
-        var finished = false
-        var refreshed: OAuthTokens?
-        oauthService.refresh(tokens) { result in
-            if case .success(let newTokens) = result { refreshed = newTokens }
-            finished = true
-        }
-
-        let deadline = Date().addingTimeInterval(timeout)
-        while !finished && Date() < deadline {
-            RunLoop.current.run(mode: .default, before: min(Date().addingTimeInterval(0.02), deadline))
-        }
-        return refreshed
     }
 
     // MARK: - One-Time OAuth Import

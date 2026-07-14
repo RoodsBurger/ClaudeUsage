@@ -710,4 +710,46 @@ struct UsageStoreTests {
         #expect(store.currentSpeed == .normal)
         #expect(tokenProvider.refreshTokenIfChangedCallCount == 1)
     }
+
+    // MARK: - OAuth autonomous refresh wiring
+
+    @Test("refresh runs the proactive OAuth refresh once per successful tick, before the fetch")
+    func refreshRunsProactiveOAuthRefreshEachTick() async {
+        let (store, repo, tokenProvider, _, _) = makeSUT()
+
+        await store.refresh()
+        #expect(tokenProvider.refreshOAuthTokenIfNeededCallCount == 1)
+        #expect(repo.refreshCallCount == 1)
+
+        await store.refresh(force: true)
+        #expect(tokenProvider.refreshOAuthTokenIfNeededCallCount == 2)
+        #expect(repo.refreshCallCount == 2)
+    }
+
+    @Test("a 401 drives the async OAuth refresh-on-unauthorized path")
+    func refreshOn401CallsHandleUnauthorizedOAuth() async {
+        let (store, _, tokenProvider, _, _) = makeSUT(
+            token: "dead-token",
+            shouldFail: true,
+            failWith: .tokenExpired(endpoint: "/api/oauth/usage", statusCode: 401)
+        )
+
+        await store.refresh()
+
+        #expect(tokenProvider.handleUnauthorizedOAuthCallCount == 1)
+        #expect(tokenProvider.invalidateCallCount == 1)
+        // Same token back from the mock -> no retry -> disconnected.
+        #expect(store.errorState == .tokenUnavailable)
+    }
+
+    @Test("handleTokenChange (non-401) never triggers an OAuth network refresh")
+    func handleTokenChangeDoesNotRefreshOAuth() async {
+        let (store, _, tokenProvider, _, _) = makeSUT()
+
+        store.handleTokenChange()
+
+        #expect(tokenProvider.handleUnauthorizedOAuthCallCount == 0)
+        #expect(tokenProvider.refreshOAuthTokenIfNeededCallCount == 0)
+        #expect(tokenProvider.invalidateCallCount == 1)
+    }
 }

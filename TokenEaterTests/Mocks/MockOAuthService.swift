@@ -13,6 +13,12 @@ final class MockOAuthService: OAuthServiceProtocol, @unchecked Sendable {
     var stubbedManualLoginResult: Result<OAuthTokens, OAuthError> = .failure(.cancelled)
     var stubbedRefreshResult: Result<OAuthTokens, OAuthError> = .failure(.cancelled)
 
+    /// When true, `refresh` delivers its completion asynchronously off a
+    /// background queue instead of inline, so tests exercise the real
+    /// suspend/resume of the `withCheckedContinuation` bridge rather than an
+    /// inline-only completion.
+    var deliverRefreshAsynchronously = false
+
     func beginLogin(completion: @escaping (Result<OAuthTokens, OAuthError>) -> Void) {
         beginLoginCallCount += 1
         completion(stubbedLoginResult)
@@ -31,6 +37,13 @@ final class MockOAuthService: OAuthServiceProtocol, @unchecked Sendable {
     func refresh(_ tokens: OAuthTokens, completion: @escaping (Result<OAuthTokens, OAuthError>) -> Void) {
         refreshCallCount += 1
         lastRefreshTokens = tokens
-        completion(stubbedRefreshResult)
+        let result = stubbedRefreshResult
+        if deliverRefreshAsynchronously {
+            DispatchQueue.global().asyncAfter(deadline: .now() + 0.02) {
+                completion(result)
+            }
+        } else {
+            completion(result)
+        }
     }
 }

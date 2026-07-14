@@ -10,9 +10,15 @@ final class MockTokenProvider: TokenProviderProtocol, @unchecked Sendable {
     var invalidateCallCount = 0
     var refreshTokenIfChangedCallCount = 0
     var disconnectOAuthCallCount = 0
+    var refreshOAuthTokenIfNeededCallCount = 0
+    var handleUnauthorizedOAuthCallCount = 0
     /// What `refreshTokenIfChanged()` returns. Tests flip this to simulate an
     /// account swap detected on the Keychain.
     var tokenDidChange = false
+    /// What the async OAuth-refresh seams return. Default false = borrowed
+    /// sources (no OAuth tokens), matching the pre-OAuth test baseline.
+    var oauthRefreshedProactively = false
+    var oauthRefreshedOnUnauthorized = false
 
     var isBootstrapped: Bool { _isBootstrapped }
 
@@ -32,6 +38,16 @@ final class MockTokenProvider: TokenProviderProtocol, @unchecked Sendable {
     func refreshTokenIfChanged() -> Bool {
         refreshTokenIfChangedCallCount += 1
         return tokenDidChange
+    }
+
+    func refreshOAuthTokenIfNeeded() async -> Bool {
+        refreshOAuthTokenIfNeededCallCount += 1
+        return oauthRefreshedProactively
+    }
+
+    func handleUnauthorizedOAuth() async -> Bool {
+        handleUnauthorizedOAuthCallCount += 1
+        return oauthRefreshedOnUnauthorized
     }
 
     func bootstrap() throws {

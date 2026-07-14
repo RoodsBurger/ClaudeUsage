@@ -356,8 +356,24 @@ struct TokenProviderTests {
         #expect(provider.hasTokenSource() == true)
     }
 
-    @Test("near-expiry OAuth token triggers exactly one refresh, saved back to the store")
-    func nearExpiryTriggersSingleRefreshAndSave() {
+    @Test("currentToken returns the stored OAuth access token near expiry without touching the network")
+    func currentTokenNearExpiryIsNonBlocking() {
+        let staleTokens = OAuthTokens(accessToken: "stale-access", refreshToken: "refresh-token", expiresAt: Date().addingTimeInterval(60))
+        let (provider, securityCLI, _, _, _, _, oauthService) = makeSUT(
+            securityCLIToken: "should-not-be-used",
+            oauthTokens: staleTokens,
+            oauthRefreshResult: .success(OAuthTokens(accessToken: "fresh-access", refreshToken: "refresh-token", expiresAt: Date().addingTimeInterval(3600)))
+        )
+
+        // currentToken() is synchronous and must never refresh: it serves the
+        // stored access token as-is. The async path renews it.
+        #expect(provider.currentToken() == "stale-access")
+        #expect(oauthService.refreshCallCount == 0)
+        #expect(securityCLI.readCallCount == 0)
+    }
+
+    @Test("refreshOAuthTokenIfNeeded renews a near-expiry token exactly once and saves it")
+    func refreshOAuthTokenIfNeededRenewsNearExpiry() async {
         let staleTokens = OAuthTokens(accessToken: "stale-access", refreshToken: "refresh-token", expiresAt: Date().addingTimeInterval(60))
         let refreshedTokens = OAuthTokens(accessToken: "fresh-access", refreshToken: "refresh-token", expiresAt: Date().addingTimeInterval(3600))
         let (provider, _, _, _, _, oauthStore, oauthService) = makeSUT(
@@ -365,71 +381,147 @@ struct TokenProviderTests {
             oauthRefreshResult: .success(refreshedTokens)
         )
 
-        let token = provider.currentToken()
+        let usable = await provider.refreshOAuthTokenIfNeeded()
 
-        #expect(token == "fresh-access")
+        #expect(usable == true)
         #expect(oauthService.refreshCallCount == 1)
         #expect(oauthStore.load() == refreshedTokens)
+        #expect(provider.currentToken() == "fresh-access")
     }
 
-    @Test("refresh failure keeps serving the existing OAuth access token")
-    func refreshFailureKeepsOldToken() {
+    @Test("refreshOAuthTokenIfNeeded is a no-op for a fresh token")
+    func refreshOAuthTokenIfNeededSkipsFreshToken() async {
+        let freshTokens = OAuthTokens(accessToken: "fresh-access", refreshToken: "refresh-token", expiresAt: Date().addingTimeInterval(3600))
+        let (provider, _, _, _, _, _, oauthService) = makeSUT(oauthTokens: freshTokens)
+
+        let usable = await provider.refreshOAuthTokenIfNeeded()
+
+        #expect(usable == true)
+        #expect(oauthService.refreshCallCount == 0)
+    }
+
+    @Test("refreshOAuthTokenIfNeeded is a no-op returning false with no OAuth tokens")
+    func refreshOAuthTokenIfNeededNoOpWithoutTokens() async {
+        let (provider, securityCLI, _, _, _, _, oauthService) = makeSUT(securityCLIToken: "borrowed")
+
+        let usable = await provider.refreshOAuthTokenIfNeeded()
+
+        #expect(usable == false)
+        #expect(oauthService.refreshCallCount == 0)
+        #expect(securityCLI.readCallCount == 0) // borrowed sources aren't touched here
+    }
+
+    @Test("refreshOAuthTokenIfNeeded failure keeps the stored token untouched")
+    func refreshOAuthTokenIfNeededFailureKeepsToken() async {
         let staleTokens = OAuthTokens(accessToken: "stale-access", refreshToken: "refresh-token", expiresAt: Date().addingTimeInterval(60))
-        let (provider, securityCLI, _, _, _, oauthStore, oauthService) = makeSUT(
-            securityCLIToken: "should-not-be-used",
+        let (provider, _, _, _, _, oauthStore, oauthService) = makeSUT(
             oauthTokens: staleTokens,
             oauthRefreshResult: .failure(.refreshFailed(500))
         )
 
-        let token = provider.currentToken()
+        let usable = await provider.refreshOAuthTokenIfNeeded()
 
-        #expect(token == "stale-access")
+        #expect(usable == false)
         #expect(oauthService.refreshCallCount == 1)
-        #expect(oauthStore.load() == staleTokens) // unchanged - failed refresh wasn't saved
-        #expect(securityCLI.readCallCount == 0) // never falls back to borrowed sources
+        #expect(oauthStore.load() == staleTokens) // failed refresh persisted nothing
+        #expect(provider.currentToken() == "stale-access")
     }
 
-    @Test("invalidateToken on a 401 refreshes and caches the new token when OAuth tokens are present")
-    func invalidateTokenRefreshesOnSuccess() {
-        let oldTokens = OAuthTokens(accessToken: "old-access", refreshToken: "refresh-token", expiresAt: Date().addingTimeInterval(3600))
+    @Test("refreshOAuthTokenIfNeeded awaits a delayed, non-inline completion")
+    func refreshOAuthTokenIfNeededAwaitsDelayedCompletion() async {
+        let staleTokens = OAuthTokens(accessToken: "stale-access", refreshToken: "refresh-token", expiresAt: Date().addingTimeInterval(60))
+        let refreshedTokens = OAuthTokens(accessToken: "fresh-access", refreshToken: "refresh-token", expiresAt: Date().addingTimeInterval(3600))
+        let (provider, _, _, _, _, oauthStore, oauthService) = makeSUT(
+            oauthTokens: staleTokens,
+            oauthRefreshResult: .success(refreshedTokens)
+        )
+        // Deliver the completion off a background queue AFTER refresh() returns,
+        // so a success dropped by the old timeout bridge would fail this test.
+        oauthService.deliverRefreshAsynchronously = true
+
+        let usable = await provider.refreshOAuthTokenIfNeeded()
+
+        #expect(usable == true)
+        #expect(oauthStore.load() == refreshedTokens)
+        #expect(provider.currentToken() == "fresh-access")
+    }
+
+    @Test("handleUnauthorizedOAuth forces a refresh regardless of expiry and saves it")
+    func handleUnauthorizedOAuthForcesRefresh() async {
+        // Token is NOT near expiry, yet a 401 means the server rejected it.
+        let liveButRejected = OAuthTokens(accessToken: "old-access", refreshToken: "refresh-token", expiresAt: Date().addingTimeInterval(3600))
         let newTokens = OAuthTokens(accessToken: "new-access", refreshToken: "new-refresh", expiresAt: Date().addingTimeInterval(3600))
         let (provider, _, _, _, _, oauthStore, oauthService) = makeSUT(
-            oauthTokens: oldTokens,
+            oauthTokens: liveButRejected,
             oauthRefreshResult: .success(newTokens)
         )
 
-        provider.invalidateToken()
+        let refreshed = await provider.handleUnauthorizedOAuth()
 
+        #expect(refreshed == true)
         #expect(oauthService.refreshCallCount == 1)
         #expect(oauthStore.load() == newTokens)
         #expect(provider.currentToken() == "new-access")
-        // currentToken() served straight from the cache invalidateToken() set -
-        // no second refresh attempt.
-        #expect(oauthService.refreshCallCount == 1)
     }
 
-    @Test("invalidateToken clears the cache on refresh failure so the retry sees no improvement")
-    func invalidateTokenClearsCacheOnRefreshFailure() {
+    @Test("handleUnauthorizedOAuth failure leaves the stored tokens untouched")
+    func handleUnauthorizedOAuthFailureKeepsTokens() async {
         let oldTokens = OAuthTokens(accessToken: "old-access", refreshToken: "refresh-token", expiresAt: Date().addingTimeInterval(3600))
         let (provider, _, _, _, _, oauthStore, oauthService) = makeSUT(
             oauthTokens: oldTokens,
             oauthRefreshResult: .failure(.refreshFailed(401))
         )
 
-        // Prime the cache the way UsageStore does before a 401 occurs.
-        #expect(provider.currentToken() == "old-access")
+        let refreshed = await provider.handleUnauthorizedOAuth()
+
+        #expect(refreshed == false)
+        #expect(oauthService.refreshCallCount == 1)
+        #expect(oauthStore.load() == oldTokens) // nothing persisted on failure
+    }
+
+    @Test("handleUnauthorizedOAuth is a no-op returning false with no OAuth tokens")
+    func handleUnauthorizedOAuthNoOpWithoutTokens() async {
+        let (provider, _, _, _, _, _, oauthService) = makeSUT(securityCLIToken: "borrowed")
+
+        let refreshed = await provider.handleUnauthorizedOAuth()
+
+        #expect(refreshed == false)
+        #expect(oauthService.refreshCallCount == 0)
+    }
+
+    @Test("refreshTokenIfChanged is a no-op and reads no borrowed source while OAuth tokens exist")
+    func refreshTokenIfChangedIsNoOpWithOAuthTokens() {
+        let tokens = OAuthTokens(accessToken: "oauth-access", refreshToken: "refresh-token", expiresAt: Date().addingTimeInterval(3600))
+        let (provider, securityCLI, _, _, _, _, _) = makeSUT(
+            securityCLIToken: "work-account-token", // a DIFFERENT account's borrowed token
+            credentialsToken: "work-creds-token",
+            oauthTokens: tokens
+        )
+
+        // Prime the OAuth token into the cache the way an auto-refresh tick does.
+        #expect(provider.currentToken() == "oauth-access")
+
+        // The tick must NOT reconcile against - or even read - the borrowed
+        // chain (securityCLI is the first source in that chain), so the
+        // personal OAuth token can never be clobbered by the work account's.
+        #expect(provider.refreshTokenIfChanged() == false)
+        #expect(securityCLI.readCallCount == 0)
+        #expect(provider.currentToken() == "oauth-access")
+    }
+
+    @Test("invalidateToken only clears the cache and never calls oauthService.refresh")
+    func invalidateTokenDoesNotRefresh() {
+        let tokens = OAuthTokens(accessToken: "oauth-access", refreshToken: "refresh-token", expiresAt: Date().addingTimeInterval(3600))
+        let (provider, _, _, _, _, oauthStore, oauthService) = makeSUT(
+            oauthTokens: tokens,
+            oauthRefreshResult: .success(OAuthTokens(accessToken: "should-not-appear", refreshToken: "x", expiresAt: Date().addingTimeInterval(3600)))
+        )
 
         provider.invalidateToken()
 
-        #expect(oauthService.refreshCallCount == 1)
-        #expect(oauthStore.load() == oldTokens) // failed refresh, nothing persisted
-
-        // UsageStore calls currentToken() again right after invalidateToken();
-        // it sees the same still-unrefreshed access token (not near its own
-        // expiry margin, so no second refresh attempt fires), which is what
-        // lets UsageStore's "no improvement" branch surface tokenExpired.
-        #expect(provider.currentToken() == "old-access")
-        #expect(oauthService.refreshCallCount == 1)
+        #expect(oauthService.refreshCallCount == 0) // no network on a bare invalidate
+        #expect(oauthStore.load() == tokens) // store untouched
+        #expect(provider.currentToken() == "oauth-access")
     }
 
     @Test("disconnectOAuth clears the store and cache, falling back to the borrowed source chain")
