@@ -86,10 +86,10 @@ struct MonitoringInsightsStoreTests {
         #expect(windowed.map { $0.totalActive } == [100, 200])
     }
 
-    /// The in-app total (sum of windowed buckets) and the widget total (sum of
-    /// the densified slots) must agree, even when the raw input spans 8 days.
-    @Test("windowed sum equals densified widget sum")
-    func windowedSumMatchesWidgetSum() {
+    /// The windowed-bucket total and the densified-slot total must agree, even
+    /// when the raw input spans 8 days.
+    @Test("windowed sum equals densified slot sum")
+    func windowedSumMatchesDensifiedSum() {
         let cal = Self.utcCalendar
         let buckets = [
             Self.bucket(Self.day(2026, 5, 24), total: 777), // out of window

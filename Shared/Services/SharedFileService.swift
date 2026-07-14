@@ -9,24 +9,12 @@ final class SharedFileService: SharedFileServiceProtocol, @unchecked Sendable {
         return String(cString: pw.pointee.pw_dir)
     }
 
-    /// Root directory for shared data. Always uses the home-relative
-    /// `~/Library/Application Support/com.raiusage.shared/` path because :
-    ///
-    /// 1. The main app is desandboxed (post v5.0 Apple Dev migration), so
-    ///    macOS happily returns a Group Container URL even without the
-    ///    `application-groups` entitlement (no sandbox = no entitlement check).
-    /// 2. The widget IS sandboxed (WidgetKit requirement) and its entitlement
-    ///    does NOT declare the App Group (deferred to v5.x once provisioning
-    ///    profiles are wired up), so `containerURL` returns nil.
-    /// 3. Result : main app would write to the Group Container, widget would
-    ///    read from the home-relative path -> they'd diverge silently.
-    ///
-    /// The home-relative path works for both : main app writes freely
-    /// (desandboxed), widget reads via the `temporary-exception.files.
-    /// home-relative-path.read-only` entitlement. They agree on the path.
-    ///
-    /// Will switch back to App Group lookup once we have provisioning profiles
-    /// in CI and both entitlements files declare the group.
+    /// Root directory for the app's own usage cache. Uses the home-relative
+    /// `~/Library/Application Support/com.raiusage.shared/` path directly: the
+    /// app is desandboxed (post v5.0 Apple Dev migration) and declares no
+    /// `application-groups` entitlement, so it writes this path freely without
+    /// a Group Container. `realHomeDirectory` (via `getpwuid`) resolves the
+    /// real home rather than any sandbox container.
     private var rootDirectoryURL: URL {
         URL(fileURLWithPath: realHomeDirectory)
             .appendingPathComponent("Library/Application Support")
