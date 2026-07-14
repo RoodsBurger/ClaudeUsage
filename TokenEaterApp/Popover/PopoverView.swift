@@ -493,21 +493,21 @@ private struct PopoverFooterToolbar: View {
                 Task { await usageStore.refresh(force: true) }
             }
             Spacer()
-            HStack(spacing: 14) {
+            // RaiDrive-style trailing group: one even rhythm across the icons,
+            // with a hairline separating quit from the utility pair.
+            HStack(spacing: 12) {
                 toolbarButton(system: "macwindow", help: "contextmenu.open") {
                     NotificationCenter.default.post(name: .openDashboard, object: nil)
                 }
                 toolbarButton(system: "gearshape.fill", help: "menubar.settings") {
                     NotificationCenter.default.post(name: .openDashboard, object: nil, userInfo: ["section": "settings"])
                 }
-            }
-            // Detach quit from the utility pair with a visible hairline, RaiDrive-style.
-            Rectangle()
-                .fill(DS.Pastel.border)
-                .frame(width: 1, height: 16)
-                .padding(.horizontal, 9)
-            toolbarButton(system: "power", help: "menubar.quit") {
-                NSApplication.shared.terminate(nil)
+                Rectangle()
+                    .fill(DS.Pastel.border)
+                    .frame(width: 1, height: 16)
+                toolbarButton(system: "power", help: "menubar.quit") {
+                    NSApplication.shared.terminate(nil)
+                }
             }
         }
         .padding(.horizontal, 14)
