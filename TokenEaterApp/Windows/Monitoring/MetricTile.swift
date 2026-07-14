@@ -28,13 +28,13 @@ struct MetricTile: View {
     /// design / cowork tiles where the JSONL feed has nothing relevant.
     let insights: TileInsightsSnapshot?
     /// True once the insights store has done its first load. Lets the
-    /// back face show a "loading..." placeholder vs a "no data" one.
+    /// inline insights row show a "loading" placeholder vs a "no data" one.
     let insightsLoaded: Bool
 
     @State private var isHovered: Bool = false
-    @State private var showBack: Bool = false
-    @State private var blurProgress: CGFloat = 0
-    @State private var isFlipping: Bool = false
+    /// Tapping the tile inline-reveals the 7d insights row below the
+    /// front content, in the same card - no flip, no blur.
+    @State private var isExpanded: Bool = false
 
     var body: some View {
         let color = GaugeColorResolver.color(
@@ -47,38 +47,28 @@ struct MetricTile: View {
             profile: smartProfile
         )
         let clamped = CGFloat(min(max(pct, 0), 100)) / 100
+        let border = isHovered ? color.opacity(0.4) : DS.Pastel.border
 
         return Button {
-            triggerFlip()
+            withAnimation(.easeInOut(duration: 0.15)) { isExpanded.toggle() }
         } label: {
-            ZStack {
-                if showBack {
-                    backContent(color: color)
-                } else {
-                    frontContent(color: color, clamped: clamped)
+            VStack(alignment: .leading, spacing: DS.Spacing.xs) {
+                frontContent(color: color, clamped: clamped)
+                if isExpanded {
+                    insightsRow(color: color)
                 }
             }
-            // Snap swap (no implicit animation) so the new face is in
-            // place at the blur peak rather than crossfading during it.
-            .animation(nil, value: showBack)
             .padding(DS.Spacing.md)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .frame(height: 124)
-            .blur(radius: blurProgress * 14.0)
+            .frame(minHeight: 124, alignment: .top)
             .background(
-                ZStack {
-                    RoundedRectangle(cornerRadius: DS.Radius.card)
-                        .fill(DS.Palette.bgPanel.opacity(0.92))
-                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: DS.Radius.card))
-                    RoundedRectangle(cornerRadius: DS.Radius.card)
-                        .fill(LinearGradient(colors: [color.opacity(isHovered ? 0.10 : 0.05), .clear], startPoint: .topLeading, endPoint: .bottomTrailing))
-                }
+                RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
+                    .fill(DS.Pastel.card)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: DS.Radius.card)
-                    .stroke(color.opacity(isHovered ? 0.40 : 0.18), lineWidth: 1)
+                RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
+                    .stroke(border, lineWidth: 1)
             )
-            .dsShadow(isHovered ? DS.Shadow.lift : DS.Shadow.subtle)
         }
         .buttonStyle(CardPressStyle(isHovered: isHovered, accent: color, cornerRadius: DS.Radius.card))
         .onHover { hovering in
@@ -97,20 +87,25 @@ struct MetricTile: View {
                 Text(label.uppercased())
                     .font(DS.Typography.micro)
                     .tracking(1.2)
-                    .foregroundStyle(DS.Palette.textSecondary)
+                    .foregroundStyle(.secondary)
                     .lineLimit(1)
                 Spacer(minLength: 0)
+                // Icon-only affordance - the whole tile is tappable, this
+                // just signals "more" without adding copy.
+                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                    .font(.system(size: 8, weight: .semibold))
+                    .foregroundStyle(.tertiary)
             }
 
             HStack(alignment: .firstTextBaseline, spacing: 1) {
                 Text("\(pct)")
-                    .font(.system(size: 30, weight: .bold, design: .rounded))
+                    .font(.system(size: 30, weight: .medium))
                     .monospacedDigit()
                     .foregroundStyle(color)
                     .contentTransition(.numericText(value: Double(pct)))
-                    .animation(DS.Motion.springLiquid, value: pct)
+                    .animation(DS.Motion.easeInOut, value: pct)
                 Text("%")
-                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                    .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(color.opacity(0.55))
                     .baselineOffset(3)
             }
@@ -118,41 +113,41 @@ struct MetricTile: View {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 1.5)
-                        .fill(DS.Palette.glassFillHi)
+                        .fill(DS.Pastel.track)
                         .frame(height: 3)
                     RoundedRectangle(cornerRadius: 1.5)
-                        .fill(LinearGradient(colors: [color.opacity(0.65), color], startPoint: .leading, endPoint: .trailing))
+                        .fill(color)
                         .frame(width: geo.size.width * clamped, height: 3)
                 }
             }
             .frame(height: 3)
-            .animation(DS.Motion.springLiquid, value: pct)
+            .animation(DS.Motion.easeInOut, value: pct)
 
             Group {
                 if let resetText, !resetText.isEmpty {
                     HStack(spacing: 5) {
                         Image(systemName: "clock.arrow.circlepath")
                             .font(.system(size: 9, weight: .semibold))
-                            .foregroundStyle(DS.Palette.textTertiary)
+                            .foregroundStyle(.tertiary)
                         Text(String(localized: "dashboard.hero.resetsIn").uppercased())
                             .font(.system(size: 8, weight: .bold))
                             .tracking(1)
-                            .foregroundStyle(DS.Palette.textTertiary)
+                            .foregroundStyle(.tertiary)
                         Text(resetText)
-                            .font(.system(size: 10, weight: .bold, design: .monospaced))
-                            .foregroundStyle(DS.Palette.textSecondary)
+                            .font(.system(size: 10, weight: .medium, design: .monospaced))
+                            .foregroundStyle(.secondary)
                         if let resetDate {
                             Text("·")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(DS.Palette.textTertiary.opacity(0.5))
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(.tertiary.opacity(0.5))
                             Text(absoluteResetText(date: resetDate))
-                                .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                .foregroundStyle(DS.Palette.textSecondary)
+                                .font(.system(size: 10, weight: .medium, design: .monospaced))
+                                .foregroundStyle(.secondary)
                         }
                     }
                 } else {
                     Text(" ")
-                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .font(.system(size: 10, weight: .medium, design: .monospaced))
                         .foregroundStyle(.clear)
                 }
             }
@@ -170,64 +165,55 @@ struct MetricTile: View {
         return date.formatted(.dateTime.weekday(.abbreviated).hour().minute())
     }
 
-    /// Back face - "details" view. When `insights` is available (weekly,
-    /// sonnet, opus tiles) we show a rich 7d breakdown; otherwise we
-    /// fall back to a minimal placeholder. Card dimensions match the
-    /// front via the parent's fixed height.
+    /// Inline "details" row shown below the front content when expanded.
+    /// When `insights` is available (weekly, sonnet, opus tiles) shows a
+    /// compact 7d breakdown; otherwise falls back to a minimal placeholder.
     @ViewBuilder
-    private func backContent(color: Color) -> some View {
+    private func insightsRow(color: Color) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            // Header line: same icon + label structure as the front so
-            // the card identity stays anchored across the swap.
-            HStack(spacing: DS.Spacing.xs) {
-                Image(systemName: icon)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(color.opacity(0.8))
-                    .frame(width: 14)
-                Text("\(label.uppercased()) · 7D")
-                    .font(DS.Typography.micro)
-                    .tracking(1.2)
-                    .foregroundStyle(DS.Palette.textSecondary)
-                    .lineLimit(1)
-                Spacer(minLength: 0)
-                if let delta = insights?.deltaPercent {
-                    Text(String(format: "%+.0f%%", delta))
-                        .font(.system(size: 9, weight: .bold, design: .rounded))
-                        .foregroundStyle(delta >= 0 ? DS.Palette.semanticWarning : DS.Palette.brandPrimary)
-                        .monospacedDigit()
-                }
-            }
+            Rectangle()
+                .fill(DS.Pastel.border)
+                .frame(height: 1)
 
             if let snapshot = insights {
-                richBackBody(snapshot: snapshot, color: color)
+                richInsights(snapshot: snapshot, color: color)
             } else if !insightsLoaded {
-                Spacer(minLength: 0)
                 Text("Loading...")
                     .font(.system(size: 10))
-                    .foregroundStyle(DS.Palette.textTertiary)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                Spacer(minLength: 0)
+                    .foregroundStyle(.tertiary)
             } else {
-                fallbackBackBody(color: color)
+                fallbackInsights()
             }
         }
+        .padding(.top, 2)
     }
 
     @ViewBuilder
-    private func richBackBody(snapshot: TileInsightsSnapshot, color: Color) -> some View {
-        // Mini sparkline of the 7 daily totals.
-        sparklineBars(snapshot.sparkline, color: color)
+    private func richInsights(snapshot: TileInsightsSnapshot, color: Color) -> some View {
+        HStack(spacing: DS.Spacing.xs) {
+            Text("7D")
+                .font(DS.Typography.micro)
+                .tracking(1.2)
+                .foregroundStyle(.secondary)
+            Spacer(minLength: 0)
+            if let delta = snapshot.deltaPercent {
+                Text(String(format: "%+.0f%%", delta))
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(delta >= 0 ? DS.Pastel.amber : DS.Pastel.green)
+                    .monospacedDigit()
+            }
+        }
 
-        Spacer(minLength: 0)
+        sparklineBars(snapshot.sparkline, color: color)
 
         HStack(alignment: .firstTextBaseline, spacing: 14) {
             VStack(alignment: .leading, spacing: 1) {
                 Text("TOTAL")
                     .font(.system(size: 8, weight: .bold))
                     .tracking(1)
-                    .foregroundStyle(DS.Palette.textTertiary)
+                    .foregroundStyle(.tertiary)
                 Text(TokenFormatter.compact(snapshot.total))
-                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                    .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(color)
                     .monospacedDigit()
             }
@@ -236,14 +222,14 @@ struct MetricTile: View {
                     Text("PEAK")
                         .font(.system(size: 8, weight: .bold))
                         .tracking(1)
-                        .foregroundStyle(DS.Palette.textTertiary)
+                        .foregroundStyle(.tertiary)
                     HStack(spacing: 4) {
                         Text(heaviest.date.formatted(.dateTime.weekday(.abbreviated)))
-                            .font(.system(size: 11, weight: .semibold, design: .rounded))
-                            .foregroundStyle(DS.Palette.textPrimary)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(.primary)
                         Text(TokenFormatter.compact(heaviest.tokens))
                             .font(.system(size: 10, weight: .medium, design: .monospaced))
-                            .foregroundStyle(DS.Palette.textSecondary)
+                            .foregroundStyle(.secondary)
                             .monospacedDigit()
                     }
                 }
@@ -253,43 +239,42 @@ struct MetricTile: View {
     }
 
     /// Fallback when no JSONL family data exists for this tile (design /
-    /// cowork). Keeps the card useful by surfacing the full reset date
-    /// instead of leaving the back empty.
+    /// cowork). Keeps the row useful by surfacing the full reset date
+    /// instead of leaving it empty.
     @ViewBuilder
-    private func fallbackBackBody(color: Color) -> some View {
-        Spacer(minLength: 0)
-        if let resetDate {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("RESETS")
-                    .font(.system(size: 8, weight: .bold))
-                    .tracking(1)
-                    .foregroundStyle(DS.Palette.textTertiary)
-                Text(resetDate.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated).hour().minute()))
-                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                    .foregroundStyle(DS.Palette.textPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+    private func fallbackInsights() -> some View {
+        HStack(alignment: .top, spacing: DS.Spacing.sm) {
+            if let resetDate {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("RESETS")
+                        .font(.system(size: 8, weight: .bold))
+                        .tracking(1)
+                        .foregroundStyle(.tertiary)
+                    Text(resetDate.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated).hour().minute()))
+                        .font(.system(size: 11, weight: .medium, design: .monospaced))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
             }
+            Spacer(minLength: 0)
+            Text(windowText)
+                .font(.system(size: 9))
+                .foregroundStyle(.tertiary)
         }
-        Text(windowText)
-            .font(.system(size: 9))
-            .foregroundStyle(DS.Palette.textTertiary)
     }
 
     /// 7-bar mini chart showing daily totals. Bars share their height
     /// scale with the maximum value in the series so the relative
-    /// distribution reads correctly even when totals are tiny.
+    /// distribution reads correctly even when totals are tiny. Flat
+    /// fill (no gradient) per bar, matching the app's solid data-viz bars.
     private func sparklineBars(_ values: [Int], color: Color) -> some View {
         let maxValue = max(values.max() ?? 0, 1)
         return HStack(alignment: .bottom, spacing: 3) {
             ForEach(Array(values.enumerated()), id: \.offset) { _, value in
                 let h = CGFloat(value) / CGFloat(maxValue)
                 RoundedRectangle(cornerRadius: 1.5, style: .continuous)
-                    .fill(LinearGradient(
-                        colors: [color, color.opacity(0.4)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    ))
+                    .fill(color)
                     .frame(maxWidth: .infinity)
                     .frame(height: max(2, 32 * h))
                     .opacity(value > 0 ? 1 : 0.18)
@@ -304,22 +289,5 @@ struct MetricTile: View {
         if hours <= 24 { return "\(hours)h rolling" }
         let days = Int(windowDuration / 86_400)
         return "\(days)d rolling"
-    }
-
-    private func triggerFlip() {
-        guard !isFlipping else { return }
-        isFlipping = true
-        withAnimation(.easeIn(duration: 0.16)) { blurProgress = 1 }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.16) {
-            // Snap swap (no animation) so the back content appears
-            // INSTANTLY at the blur peak. Any animation here would
-            // visibly fade the new content while the blur is still
-            // dropping, producing the "weird blink" we're avoiding.
-            showBack.toggle()
-            withAnimation(.easeOut(duration: 0.24)) { blurProgress = 0 }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.30) {
-                isFlipping = false
-            }
-        }
     }
 }

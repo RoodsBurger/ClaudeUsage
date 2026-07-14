@@ -50,14 +50,14 @@ struct HeroPacingGraph: View {
                         path.addLine(to: CGPoint(x: pad + plotW, y: y))
                     }
                 }
-                .stroke(DS.Palette.glassBorderLo, style: StrokeStyle(lineWidth: 0.5, dash: [2, 4]))
+                .stroke(DS.Pastel.border, style: StrokeStyle(lineWidth: 0.5, dash: [2, 4]))
 
                 // Equilibrium diagonal (linear pacing reference).
                 Path { path in
                     path.move(to: originPoint)
                     path.addLine(to: endDiagonal)
                 }
-                .stroke(DS.Palette.textTertiary.opacity(0.55), style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                .stroke(DS.Pastel.track, style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
 
                 // Filled delta zone between the trajectory and equilibrium
                 // at the current X coordinate. Triangle from origin to

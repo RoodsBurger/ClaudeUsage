@@ -4,17 +4,17 @@ import SwiftUI
 ///
 /// Layout follows the CleanMyMac X language : a prominent hero tile carrying
 /// the dominant session metric, a grid of secondary metric tiles, a pacing
-/// signal row, and an optional extra-usage card. Every surface uses
-/// `dsGlass` and pulls colors from `DS` tokens for chrome, while the
-/// gauge/pacing colors flow from `GaugeColorResolver` / `RiskZone` /
-/// `PacingZone.semanticColor` so every data point uses the same semantic
-/// system colors.
+/// signal row, and an optional extra-usage card. Every surface is an opaque
+/// `DS.Pastel.card` fill with a `DS.Pastel.border` hairline - no material, no
+/// gradient wash, no glow - while the gauge/pacing colors flow from
+/// `GaugeColorResolver` / `RiskZone` / `PacingZone.semanticColor` so every
+/// data point uses the same pastel semantic system.
 struct MonitoringView: View {
     @EnvironmentObject private var usageStore: UsageStore
     @EnvironmentObject private var settingsStore: SettingsStore
     @EnvironmentObject private var vendorStatusStore: VendorStatusStore
 
-    /// Lightweight 7d daily-buckets store for the back-of-card stats.
+    /// Lightweight 7d daily-buckets store for the inline tile insights.
     /// Loaded once on appear, refreshed if older than 60s. Owned by
     /// `MainAppView` so the cache survives navigation between spaces.
     @ObservedObject var insightsStore: MonitoringInsightsStore
@@ -22,12 +22,9 @@ struct MonitoringView: View {
     @State private var lastUpdateText = ""
     @State private var heroHover = false
     @State private var refreshHovering = false
-    // Hero flip state lives at the parent because `heroTile` is a
-    // computed var (not its own struct).
-    @State private var heroFlipped: Bool = false
-    @State private var heroBlurProgress: CGFloat = 0
-    @State private var heroFlipping: Bool = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Toggled by tapping the hero tile - inline-reveals the pacing graph
+    /// below the front content instead of flipping to a back face.
+    @State private var heroExpanded: Bool = false
 
     var body: some View {
         ScrollView(.vertical, showsIndicators: false) {
@@ -60,7 +57,7 @@ struct MonitoringView: View {
     /// Maps a tile id to the matching `ModelFamily` (nil = all-models).
     /// `design` / `cowork` map to nil because they're not present in
     /// the JSONL stream that `SessionHistoryService` aggregates - they
-    /// fall back to the minimal back-of-card content.
+    /// fall back to the minimal inline content.
     private func tileFamily(for id: String) -> ModelFamily? {
         switch id {
         case "sonnet": return .sonnet
@@ -71,7 +68,7 @@ struct MonitoringView: View {
     }
 
     /// True only for tiles whose family is represented in the JSONL data
-    /// (weekly, sonnet, opus). Design / Cowork get the simple back.
+    /// (weekly, sonnet, opus). Design / Cowork get the simple fallback.
     private func hasRichBack(tileId: String) -> Bool {
         ["weekly", "sonnet", "opus"].contains(tileId)
     }
@@ -87,22 +84,22 @@ struct MonitoringView: View {
                     .frame(width: 26, height: 26)
                 Text("TokenEater")
                     .font(DS.Typography.title1)
-                    .foregroundStyle(DS.Palette.textPrimary)
+                    .foregroundStyle(.primary)
             }
 
             if usageStore.planType != .unknown {
                 Text(usageStore.planType.displayLabel)
                     .font(.system(size: 9, weight: .bold))
                     .tracking(0.5)
-                    .foregroundStyle(DS.Palette.textPrimary)
+                    .foregroundStyle(.primary)
                     .padding(.horizontal, 7)
                     .padding(.vertical, 3)
                     .background(
                         RoundedRectangle(cornerRadius: DS.Radius.input, style: .continuous)
-                            .fill(DS.Palette.brandPrimary.opacity(0.25))
+                            .fill(DS.Pastel.green.opacity(0.18))
                             .overlay(
                                 RoundedRectangle(cornerRadius: DS.Radius.input, style: .continuous)
-                                    .stroke(DS.Palette.brandPrimary.opacity(0.5), lineWidth: 0.6)
+                                    .stroke(DS.Pastel.green.opacity(0.4), lineWidth: 0.6)
                             )
                     )
             }
@@ -118,7 +115,7 @@ struct MonitoringView: View {
             if !lastUpdateText.isEmpty {
                 Text(String(format: String(localized: "menubar.updated"), lastUpdateText))
                     .font(DS.Typography.label)
-                    .foregroundStyle(DS.Palette.textTertiary)
+                    .foregroundStyle(.tertiary)
             }
 
             Button {
@@ -126,25 +123,22 @@ struct MonitoringView: View {
             } label: {
                 Image(systemName: "arrow.clockwise")
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(refreshHovering ? DS.Palette.accentHistory : DS.Palette.textSecondary)
+                    .foregroundStyle(refreshHovering ? DS.Pastel.blue : Color.secondary)
                     .frame(width: 26, height: 26)
                     .background(
                         Circle()
                             .fill(refreshHovering
-                                  ? DS.Palette.accentHistory.opacity(0.18)
-                                  : DS.Palette.glassFill)
+                                  ? DS.Pastel.blue.opacity(0.18)
+                                  : DS.Pastel.card)
                             .overlay(
                                 Circle().stroke(
                                     refreshHovering
-                                        ? DS.Palette.accentHistory.opacity(0.55)
-                                        : DS.Palette.glassBorder,
+                                        ? DS.Pastel.blue.opacity(0.5)
+                                        : DS.Pastel.border,
                                     lineWidth: 1
                                 )
                             )
                     )
-                    .shadow(color: refreshHovering ? DS.Palette.accentHistory.opacity(0.55) : .clear,
-                            radius: refreshHovering ? 8 : 0)
-                    .scaleEffect(refreshHovering && !reduceMotion ? 1.05 : 1.0)
             }
             .buttonStyle(.plain)
             .help(String(localized: "contextmenu.refresh"))
@@ -164,59 +158,37 @@ struct MonitoringView: View {
         let gaugeGradient = gaugeGradient(pct: pct, resetDate: resetDate, windowDuration: 5 * 3600)
         let zone = usageStore.fiveHourPacing?.zone
         let pacing = usageStore.fiveHourPacing
-        // Ambient tint follows the gauge color so the wash, the big
-        // number, and the ring all read as a single signal.
+        // Ambient accent follows the gauge color so the number, ring, and
+        // hover border all read as a single signal.
         let accent = gaugeColor
+        let border = heroHover ? accent.opacity(0.4) : DS.Pastel.border
 
         return Button {
-            triggerHeroFlip()
+            withAnimation(.easeInOut(duration: 0.15)) { heroExpanded.toggle() }
         } label: {
-            ZStack {
-                if heroFlipped {
-                    heroBackContent(
-                        gaugeColor: gaugeColor,
-                        zone: zone,
-                        pacing: pacing,
-                        resetDate: resetDate
-                    )
-                } else {
-                    heroFrontContent(
-                        pct: pct,
-                        gaugeColor: gaugeColor,
-                        gaugeGradient: gaugeGradient,
-                        zone: zone
-                    )
+            VStack(alignment: .leading, spacing: DS.Spacing.md) {
+                heroFrontContent(pct: pct, gaugeColor: gaugeColor, gaugeGradient: gaugeGradient, zone: zone)
+
+                if heroExpanded {
+                    Rectangle()
+                        .fill(DS.Pastel.border)
+                        .frame(height: 1)
+                    heroPacingSection(gaugeColor: gaugeColor, zone: zone, pacing: pacing)
                 }
+
+                heroDisclosureRow
             }
-            // Snap swap (no implicit animation) so the new face is in
-            // place at the blur peak rather than crossfading.
-            .animation(nil, value: heroFlipped)
             .padding(DS.Spacing.lg)
-            .frame(height: 200)
-            .blur(radius: heroBlurProgress * 14.0)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(minHeight: 200, alignment: .top)
             .background(
-                ZStack {
-                    RoundedRectangle(cornerRadius: DS.Radius.cardLg)
-                        .fill(DS.Palette.bgElevated.opacity(0.85))
-                        .background(
-                            .ultraThinMaterial,
-                            in: RoundedRectangle(cornerRadius: DS.Radius.cardLg)
-                        )
-                    RoundedRectangle(cornerRadius: DS.Radius.cardLg)
-                        .fill(
-                            LinearGradient(
-                                colors: [accent.opacity(heroHover ? 0.10 : 0.05), .clear],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                }
+                RoundedRectangle(cornerRadius: DS.Radius.cardLg, style: .continuous)
+                    .fill(DS.Pastel.card)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: DS.Radius.cardLg)
-                    .stroke(accent.opacity(heroHover ? 0.40 : 0.18), lineWidth: 1)
+                RoundedRectangle(cornerRadius: DS.Radius.cardLg, style: .continuous)
+                    .stroke(border, lineWidth: 1)
             )
-            .dsShadow(heroHover ? DS.Shadow.lift : DS.Shadow.subtle)
         }
         .buttonStyle(CardPressStyle(isHovered: heroHover, accent: accent, cornerRadius: DS.Radius.cardLg))
         .onHover { hovering in
@@ -236,18 +208,18 @@ struct MonitoringView: View {
                     Text(String(localized: "dashboard.hero.session.label").uppercased())
                         .font(DS.Typography.micro)
                         .tracking(1.5)
-                        .foregroundStyle(DS.Palette.textSecondary)
+                        .foregroundStyle(.secondary)
                 }
 
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
                     Text("\(pct)")
-                        .font(.system(size: 64, weight: .bold, design: .rounded))
+                        .font(.system(size: 64, weight: .medium))
                         .monospacedDigit()
                         .foregroundStyle(gaugeColor)
                         .contentTransition(.numericText(value: Double(pct)))
-                        .animation(DS.Motion.springLiquid, value: pct)
+                        .animation(DS.Motion.easeInOut, value: pct)
                     Text("%")
-                        .font(.system(size: 26, weight: .heavy, design: .rounded))
+                        .font(.system(size: 22, weight: .medium))
                         .foregroundStyle(gaugeColor.opacity(0.55))
                         .baselineOffset(5)
                 }
@@ -255,38 +227,28 @@ struct MonitoringView: View {
                 HStack(spacing: DS.Spacing.xs) {
                     Image(systemName: "clock.arrow.circlepath")
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(DS.Palette.textTertiary)
+                        .foregroundStyle(.tertiary)
                     Text(String(localized: "dashboard.hero.resetsIn").uppercased())
                         .font(DS.Typography.micro)
                         .tracking(1.2)
-                        .foregroundStyle(DS.Palette.textTertiary)
+                        .foregroundStyle(.tertiary)
                     Text(usageStore.fiveHourReset.isEmpty ? "-" : usageStore.fiveHourReset)
                         .font(DS.Typography.metricInline)
-                        .foregroundStyle(DS.Palette.textPrimary)
+                        .foregroundStyle(.primary)
                     if let resetDate = usageStore.lastUsage?.fiveHour?.resetsAtDate {
                         Text("·")
                             .font(DS.Typography.metricInline)
-                            .foregroundStyle(DS.Palette.textTertiary.opacity(0.5))
+                            .foregroundStyle(.tertiary.opacity(0.5))
                         Text(resetDate.formatted(.dateTime.hour().minute()))
                             .font(DS.Typography.metricInline)
-                            .foregroundStyle(DS.Palette.textPrimary)
+                            .foregroundStyle(.primary)
                     }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            // Right -> ring + zone glyph
+            // Right -> ring + zone glyph. Flat: no ambient glow wash behind it.
             ZStack {
-                RadialGradient(
-                    colors: [gaugeColor.opacity(0.20), gaugeColor.opacity(0.04), .clear],
-                    center: .center,
-                    startRadius: 10,
-                    endRadius: 90
-                )
-                .frame(width: 200, height: 200)
-                .blur(radius: 14)
-                .allowsHitTesting(false)
-
                 RingGauge(
                     percentage: pct,
                     gradient: gaugeGradient,
@@ -294,59 +256,43 @@ struct MonitoringView: View {
                 )
 
                 Image(systemName: zoneGlyph(for: zone))
-                    .font(.system(size: 40, weight: .semibold))
+                    .font(.system(size: 40, weight: .medium))
                     .foregroundStyle(zone.map { $0.semanticColor } ?? gaugeColor)
-                    .animation(DS.Motion.springLiquid, value: zone)
+                    .animation(DS.Motion.easeInOut, value: zone)
             }
             .frame(width: 160, height: 160)
         }
     }
 
-    /// Hero back face. Left side = pacing graph (equilibrium diagonal +
-    /// trajectory + delta fill zone); right side = live session activity.
-    /// Reset date stays on the front - no duplication.
+    /// Inline pacing detail, revealed below the front content when the hero
+    /// is expanded. Left as a simple vertical stack (subtitle + delta, the
+    /// pacing graph, the zone label) - no flip, no blur.
     @ViewBuilder
-    private func heroBackContent(
-        gaugeColor: Color,
-        zone: PacingZone?,
-        pacing: PacingResult?,
-        resetDate: Date?
-    ) -> some View {
-        HStack(alignment: .center, spacing: DS.Spacing.lg) {
-            VStack(alignment: .leading, spacing: DS.Spacing.sm) {
-                HStack(spacing: DS.Spacing.xs) {
-                    Circle()
-                        .fill(gaugeColor)
-                        .frame(width: 6, height: 6)
-                    Text(String(localized: "dashboard.hero.session.label").uppercased() + " · PACING")
-                        .font(DS.Typography.micro)
-                        .tracking(1.5)
-                        .foregroundStyle(DS.Palette.textSecondary)
-                    Spacer(minLength: 0)
-                    if let pacing {
-                        Text(String(format: "%+.1f%%", pacing.delta))
-                            .font(.system(size: 10, weight: .bold, design: .rounded))
-                            .foregroundStyle(pacing.delta > 0 ? DS.Palette.semanticWarning : DS.Palette.brandPrimary)
-                            .monospacedDigit()
-                    }
-                }
-
+    private func heroPacingSection(gaugeColor: Color, zone: PacingZone?, pacing: PacingResult?) -> some View {
+        VStack(alignment: .leading, spacing: DS.Spacing.sm) {
+            HStack(spacing: DS.Spacing.xs) {
+                Text((String(localized: "dashboard.hero.session.label") + " · " + String(localized: "pacing.label")).uppercased())
+                    .font(DS.Typography.micro)
+                    .tracking(1.5)
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 0)
                 if let pacing {
-                    HeroPacingGraph(
-                        actualUsage: pacing.actualUsage,
-                        expectedUsage: pacing.expectedUsage,
-                        deltaColor: pacing.delta > 0 ? DS.Palette.semanticWarning : DS.Palette.brandPrimary,
-                        trajectoryColor: gaugeColor
-                    )
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 92)
-                } else {
-                    Spacer(minLength: 0)
-                    Text("Pacing data unavailable")
-                        .font(.system(size: 10))
-                        .foregroundStyle(DS.Palette.textTertiary)
-                    Spacer(minLength: 0)
+                    Text(String(format: "%+.1f%%", pacing.delta))
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(pacing.delta > 0 ? DS.Pastel.amber : DS.Pastel.green)
+                        .monospacedDigit()
                 }
+            }
+
+            if let pacing {
+                HeroPacingGraph(
+                    actualUsage: pacing.actualUsage,
+                    expectedUsage: pacing.expectedUsage,
+                    deltaColor: pacing.delta > 0 ? DS.Pastel.amber : DS.Pastel.green,
+                    trajectoryColor: gaugeColor
+                )
+                .frame(maxWidth: .infinity)
+                .frame(height: 92)
 
                 if let zone {
                     HStack(spacing: 6) {
@@ -354,40 +300,29 @@ struct MonitoringView: View {
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundStyle(zone.semanticColor)
                         Text(zoneLabel(zone).uppercased())
-                            .font(.system(size: 10, weight: .bold))
+                            .font(.system(size: 10, weight: .medium))
                             .tracking(1)
                             .foregroundStyle(zone.semanticColor)
                     }
                 }
+            } else {
+                Text("Pacing data unavailable")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.tertiary)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
-    private func statValue(label: String, value: String, color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 1) {
-            Text(label)
-                .font(.system(size: 8, weight: .bold))
-                .tracking(1)
-                .foregroundStyle(DS.Palette.textTertiary)
-            Text(value)
-                .font(.system(size: 13, weight: .bold, design: .rounded))
-                .foregroundStyle(color)
-                .monospacedDigit()
+    /// Small always-visible affordance signalling the hero tile can expand
+    /// to reveal the pacing graph. Icon-only state swap - no rotation.
+    private var heroDisclosureRow: some View {
+        HStack(spacing: 4) {
+            Image(systemName: heroExpanded ? "chevron.up" : "chevron.down")
+                .font(.system(size: 9, weight: .semibold))
+            Text(String(localized: "pacing.label"))
+                .font(DS.Typography.micro)
         }
-    }
-
-    private func triggerHeroFlip() {
-        guard !heroFlipping else { return }
-        heroFlipping = true
-        withAnimation(.easeIn(duration: 0.16)) { heroBlurProgress = 1 }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.16) {
-            heroFlipped.toggle()
-            withAnimation(.easeOut(duration: 0.24)) { heroBlurProgress = 0 }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.30) {
-                heroFlipping = false
-            }
-        }
+        .foregroundStyle(.tertiary)
     }
 
     // MARK: - Metrics grid
@@ -398,10 +333,12 @@ struct MonitoringView: View {
         // API bucket exists), so a fixed grid left an empty trailing cell when
         // the count was not a multiple of 3. Each row's tiles stretch to fill
         // the full width, so there is never a hole regardless of tile count.
+        // Rows align to `.top` so a single expanded tile can grow taller
+        // without stretching its row siblings.
         let rows = MetricsGridLayout.rows(secondaryTiles)
         return VStack(spacing: DS.Spacing.sm) {
             ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
-                HStack(spacing: DS.Spacing.sm) {
+                HStack(alignment: .top, spacing: DS.Spacing.sm) {
                     ForEach(row, id: \.id) { tile in
                         MetricTile(
                             id: tile.id,
@@ -533,9 +470,9 @@ struct MonitoringView: View {
                         Text(label.uppercased())
                             .font(DS.Typography.micro)
                             .tracking(1.4)
-                            .foregroundStyle(DS.Palette.textSecondary)
+                            .foregroundStyle(.secondary)
                         if showWorkweekBadge {
-                            WorkweekBadge(schedule: settingsStore.pacingSchedule, tint: DS.Palette.textTertiary)
+                            WorkweekBadge(schedule: settingsStore.pacingSchedule)
                         }
                     }
                     HStack(spacing: DS.Spacing.xxs) {
@@ -543,18 +480,18 @@ struct MonitoringView: View {
                             .fill(tint)
                             .frame(width: 5, height: 5)
                         Text(zoneLabel(pacing.zone))
-                            .font(.system(size: 9, weight: .bold))
+                            .font(.system(size: 9, weight: .medium))
                             .tracking(1.2)
                             .foregroundStyle(tint)
                     }
                 }
                 Spacer()
                 Text("\(sign)\(Int(pacing.delta))%")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
+                    .font(.system(size: 28, weight: .medium))
                     .monospacedDigit()
                     .foregroundStyle(tint)
                     .contentTransition(.numericText(value: pacing.delta))
-                    .animation(DS.Motion.springLiquid, value: pacing.delta)
+                    .animation(DS.Motion.easeInOut, value: pacing.delta)
             }
 
             pacingTrack(actual: pacing.actualUsage, expected: pacing.expectedUsage, tint: tint, offDayRanges: offRanges, nowInOffDay: nowInOffDay, markerFraction: markerFraction)
@@ -574,19 +511,13 @@ struct MonitoringView: View {
         .padding(DS.Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            ZStack {
-                RoundedRectangle(cornerRadius: DS.Radius.card)
-                    .fill(DS.Palette.bgElevated.opacity(0.85))
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: DS.Radius.card))
-                RoundedRectangle(cornerRadius: DS.Radius.card)
-                    .fill(LinearGradient(colors: [tint.opacity(0.06), .clear], startPoint: .topLeading, endPoint: .bottomTrailing))
-            }
+            RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
+                .fill(DS.Pastel.card)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: DS.Radius.card)
-                .stroke(tint.opacity(0.2), lineWidth: 1)
+            RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
+                .stroke(tint.opacity(0.35), lineWidth: 1)
         )
-        .dsShadow(DS.Shadow.subtle)
     }
 
     private func pacingTrack(actual: Double, expected: Double, tint: Color, offDayRanges: [ClosedRange<Double>] = [], nowInOffDay: Bool = false, markerFraction: Double? = nil) -> some View {
@@ -595,24 +526,24 @@ struct MonitoringView: View {
         return GeometryReader { geo in
             ZStack(alignment: .leading) {
                 RoundedRectangle(cornerRadius: 3)
-                    .fill(DS.Palette.glassFillHi)
+                    .fill(DS.Pastel.track)
                     .frame(height: 6)
                 if !offDayRanges.isEmpty {
                     OffDayHatch(ranges: offDayRanges, cornerRadius: 3)
                         .frame(height: 6)
                 }
                 RoundedRectangle(cornerRadius: 3)
-                    .fill(LinearGradient(colors: [tint.opacity(0.7), tint], startPoint: .leading, endPoint: .trailing))
+                    .fill(tint)
                     .frame(width: geo.size.width * CGFloat(clampedActual) / 100, height: 6)
                 Rectangle()
-                    .fill(Color.white.opacity(nowInOffDay ? 0.4 : 0.85))
+                    .fill(Color.primary.opacity(nowInOffDay ? 0.4 : 0.85))
                     .frame(width: 2, height: 12)
                     .offset(x: (markerFraction.map { geo.size.width * CGFloat(min(max($0, 0), 1)) } ?? (geo.size.width * CGFloat(clampedExpected) / 100)) - 1, y: -3)
             }
         }
         .frame(height: 12)
-        .animation(DS.Motion.springLiquid, value: actual)
-        .animation(DS.Motion.springLiquid, value: expected)
+        .animation(DS.Motion.easeInOut, value: actual)
+        .animation(DS.Motion.easeInOut, value: expected)
     }
 
     // MARK: - Service status
@@ -625,11 +556,11 @@ struct MonitoringView: View {
         return VStack(alignment: .leading, spacing: DS.Spacing.sm) {
             HStack(spacing: DS.Spacing.xs) {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: 16, weight: .bold))
+                    .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(tint)
                 Text(title)
                     .font(DS.Typography.title2)
-                    .foregroundStyle(DS.Palette.textPrimary)
+                    .foregroundStyle(.primary)
                 Spacer()
                 Link(String(localized: "status.banner.view"), destination: status.statusPageURL)
                     .font(DS.Typography.label)
@@ -638,20 +569,26 @@ struct MonitoringView: View {
             if let incident = status.activeIncidents.first {
                 Text(incident.name)
                     .font(DS.Typography.label)
-                    .foregroundStyle(DS.Palette.textSecondary)
+                    .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             if !status.affectedComponents.isEmpty {
                 Text(String(format: String(localized: "dashboard.status.affected"),
                             status.affectedComponents.joined(separator: ", ")))
                     .font(DS.Typography.label)
-                    .foregroundStyle(DS.Palette.textTertiary)
+                    .foregroundStyle(.tertiary)
             }
         }
         .padding(DS.Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .dsGlass(radius: DS.Radius.card)
-        .dsShadow(DS.Shadow.subtle)
+        .background(
+            RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
+                .fill(DS.Pastel.card)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
+                .stroke(tint.opacity(0.4), lineWidth: 1)
+        )
     }
 
     // MARK: - Extra usage
@@ -670,10 +607,10 @@ struct MonitoringView: View {
             HStack {
                 Text(String(localized: "dashboard.extra.title"))
                     .font(DS.Typography.title2)
-                    .foregroundStyle(DS.Palette.textPrimary)
+                    .foregroundStyle(.primary)
                 Spacer()
                 Text("\(pct)%")
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                    .font(.system(size: 20, weight: .medium))
                     .monospacedDigit()
                     .foregroundStyle(tint)
             }
@@ -681,9 +618,9 @@ struct MonitoringView: View {
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
                         RoundedRectangle(cornerRadius: 3)
-                            .fill(DS.Palette.glassFillHi)
+                            .fill(DS.Pastel.track)
                         RoundedRectangle(cornerRadius: 3)
-                            .fill(LinearGradient(colors: [tint.opacity(0.7), tint], startPoint: .leading, endPoint: .trailing))
+                            .fill(tint)
                             .frame(width: geo.size.width * CGFloat(min(max(pct, 0), 100)) / 100)
                     }
                 }
@@ -691,28 +628,34 @@ struct MonitoringView: View {
                 HStack(spacing: DS.Spacing.xs) {
                     Text(CurrencyFormatter.formatMinorUnits(used, currencyCode: currency, locale: Locale(identifier: "en_US")))
                         .font(DS.Typography.label)
-                        .foregroundStyle(DS.Palette.textSecondary)
+                        .foregroundStyle(.secondary)
                     Text(String(localized: "dashboard.extra.separator"))
                         .font(DS.Typography.label)
-                        .foregroundStyle(DS.Palette.textTertiary)
+                        .foregroundStyle(.tertiary)
                     Text(CurrencyFormatter.formatMinorUnits(limit, currencyCode: currency, locale: Locale(identifier: "en_US")))
                         .font(DS.Typography.label)
-                        .foregroundStyle(DS.Palette.textSecondary)
+                        .foregroundStyle(.secondary)
                     Spacer()
                     Text(String(localized: "dashboard.extra.monthly"))
                         .font(DS.Typography.label)
-                        .foregroundStyle(DS.Palette.textTertiary)
+                        .foregroundStyle(.tertiary)
                 }
             } else {
                 Text(String(localized: "dashboard.extra.noLimit"))
                     .font(DS.Typography.label)
-                    .foregroundStyle(DS.Palette.textTertiary)
+                    .foregroundStyle(.tertiary)
             }
         }
         .padding(DS.Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .dsGlass(radius: DS.Radius.card)
-        .dsShadow(DS.Shadow.subtle)
+        .background(
+            RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
+                .fill(DS.Pastel.card)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
+                .stroke(DS.Pastel.border, lineWidth: 1)
+        )
     }
 
     // MARK: - Footer pills
@@ -720,10 +663,10 @@ struct MonitoringView: View {
     private var footerPills: some View {
         HStack(spacing: DS.Spacing.xs) {
             if let tier = usageStore.rateLimitTier {
-                statusPill(icon: "sparkles", label: String(localized: "dashboard.tier"), value: tier.formattedRateLimitTier, tint: DS.Palette.accentStats)
+                statusPill(icon: "sparkles", label: String(localized: "dashboard.tier"), value: tier.formattedRateLimitTier, tint: DS.Pastel.green)
             }
             if let org = usageStore.organizationName {
-                statusPill(icon: "building.2.fill", label: String(localized: "dashboard.org"), value: org, tint: DS.Palette.accentHistory)
+                statusPill(icon: "building.2.fill", label: String(localized: "dashboard.org"), value: org, tint: DS.Pastel.blue)
             }
             Spacer()
         }
@@ -737,20 +680,19 @@ struct MonitoringView: View {
             Text(label.uppercased())
                 .font(DS.Typography.micro)
                 .tracking(1.2)
-                .foregroundStyle(DS.Palette.textTertiary)
+                .foregroundStyle(.tertiary)
             Text(value)
                 .font(DS.Typography.label)
-                .fontWeight(.semibold)
-                .foregroundStyle(DS.Palette.textPrimary)
+                .foregroundStyle(.primary)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
         .background(
             RoundedRectangle(cornerRadius: DS.Radius.input, style: .continuous)
-                .fill(DS.Palette.glassFill)
+                .fill(DS.Pastel.card)
                 .overlay(
                     RoundedRectangle(cornerRadius: DS.Radius.input, style: .continuous)
-                        .stroke(tint.opacity(0.25), lineWidth: 0.8)
+                        .stroke(tint.opacity(0.3), lineWidth: 0.8)
                 )
         )
     }
@@ -811,5 +753,3 @@ struct MonitoringView: View {
         }
     }
 }
-
-

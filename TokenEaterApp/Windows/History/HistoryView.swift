@@ -3,8 +3,12 @@ import Charts
 
 /// History space -> tokens-over-time browser sourced from `~/.claude/projects/**/*.jsonl`.
 /// Mirrors the Monitoring layout (header + cards) but pivots around a stacked
-/// bar chart by model with model-family filter chips. Performance-sensitive:
-/// the underlying service caches per-file aggregates so repeat opens stay fast.
+/// bar chart by model with model-family filter chips. Chrome is an opaque
+/// `DS.Pastel.card` fill with a `DS.Pastel.border` hairline throughout - no
+/// material, no gradient wash. The per-model chart palette (`gradient(for:)` /
+/// `chipColor(for:)`) is the one allowed data-viz exception: those are
+/// categorical model identities, not chrome. Performance-sensitive: the
+/// underlying service caches per-file aggregates so repeat opens stay fast.
 struct HistoryView: View {
     /// Owned by `MainAppView` so the buckets survive navigation away
     /// and re-entries hit warm data.
@@ -33,7 +37,7 @@ struct HistoryView: View {
         }
         .overlay(alignment: .top) {
             if isLoaderActive {
-                LoadingProgressBar(reduceMotion: reduceMotion, tint: DS.Palette.accentHistory)
+                LoadingProgressBar(reduceMotion: reduceMotion, tint: DS.Pastel.blue)
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
@@ -93,13 +97,13 @@ struct HistoryView: View {
         return HStack(alignment: .center, spacing: DS.Spacing.lg) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(TokenFormatter.compact(total))
-                    .font(.system(size: 36, weight: .heavy, design: .rounded))
-                    .foregroundStyle(DS.Palette.textPrimary)
+                    .font(.system(size: 36, weight: .medium))
+                    .foregroundStyle(.primary)
                     .monospacedDigit()
                 Text(String(localized: "history.hero.label"))
                     .font(DS.Typography.micro)
                     .tracking(0.8)
-                    .foregroundStyle(DS.Palette.textTertiary)
+                    .foregroundStyle(.tertiary)
             }
 
             VStack(alignment: .leading, spacing: 6) {
@@ -119,7 +123,14 @@ struct HistoryView: View {
         }
         .padding(DS.Spacing.md)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .dsGlass(radius: DS.Radius.card)
+        .background(
+            RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
+                .fill(DS.Pastel.card)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
+                .stroke(DS.Pastel.border, lineWidth: 1)
+        )
     }
 
     /// Right-anchored badge inside the hero card carrying the sessions
@@ -129,29 +140,29 @@ struct HistoryView: View {
         HStack(spacing: 10) {
             Image(systemName: "circle.dashed")
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(DS.Palette.accentHistory)
+                .foregroundStyle(DS.Pastel.blue)
                 .frame(width: 18, height: 18)
 
             VStack(alignment: .leading, spacing: 1) {
                 Text("\(store.summary.sessionsCount)")
-                    .font(.system(size: 18, weight: .heavy, design: .rounded))
-                    .foregroundStyle(DS.Palette.textPrimary)
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundStyle(.primary)
                     .monospacedDigit()
                     .contentTransition(.numericText())
                 Text(String(localized: "history.sessions.label"))
                     .font(DS.Typography.micro)
                     .tracking(0.8)
-                    .foregroundStyle(DS.Palette.textTertiary)
+                    .foregroundStyle(.tertiary)
             }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(DS.Palette.accentHistory.opacity(0.10))
+                .fill(DS.Pastel.blue.opacity(0.12))
                 .overlay(
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .stroke(DS.Palette.accentHistory.opacity(0.30), lineWidth: 0.8)
+                        .stroke(DS.Pastel.blue.opacity(0.3), lineWidth: 0.8)
                 )
         )
         .animation(DS.Motion.easeInOut, value: store.summary.sessionsCount)
@@ -160,13 +171,13 @@ struct HistoryView: View {
     private func deltaBadge(_ percent: Double, previous: Int) -> some View {
         let positive = percent >= 0
         let symbol = positive ? "arrow.up.right" : "arrow.down.right"
-        let color = positive ? DS.Palette.accentStats : DS.Palette.accentHistory
+        let color = positive ? DS.Pastel.green : DS.Pastel.blue
         let sign = positive ? "+" : ""
         return HStack(spacing: 5) {
             Image(systemName: symbol)
                 .font(.system(size: 9, weight: .bold))
             Text(String(format: "%@%.0f%%", sign, percent))
-                .font(.system(size: 10, weight: .semibold))
+                .font(.system(size: 10, weight: .medium))
                 .monospacedDigit()
             Text(String(format: String(localized: "history.hero.deltaSuffix"), TokenFormatter.compact(previous)))
                 .font(.system(size: 10, weight: .medium))
@@ -177,30 +188,30 @@ struct HistoryView: View {
         .padding(.horizontal, 8)
         .padding(.vertical, 3)
         .background(
-            Capsule().fill(color.opacity(0.16))
-                .overlay(Capsule().stroke(color.opacity(0.4), lineWidth: 0.6))
+            Capsule().fill(color.opacity(0.14))
+                .overlay(Capsule().stroke(color.opacity(0.35), lineWidth: 0.6))
         )
     }
 
     private func breakdownLine(label: String.LocalizationValue, value: Int) -> some View {
         HStack(spacing: 6) {
             Text(TokenFormatter.compact(value))
-                .foregroundStyle(DS.Palette.textPrimary)
-                .fontWeight(.semibold)
+                .foregroundStyle(.primary)
+                .fontWeight(.medium)
                 .monospacedDigit()
             Text(String(localized: label))
-                .foregroundStyle(DS.Palette.textTertiary)
+                .foregroundStyle(.tertiary)
         }
     }
 
     private func breakdownLine(label: String.LocalizationValue, percent: Double) -> some View {
         HStack(spacing: 6) {
             Text(formatPercent(percent * 100))
-                .foregroundStyle(DS.Palette.textPrimary)
-                .fontWeight(.semibold)
+                .foregroundStyle(.primary)
+                .fontWeight(.medium)
                 .monospacedDigit()
             Text(String(localized: label))
-                .foregroundStyle(DS.Palette.textTertiary)
+                .foregroundStyle(.tertiary)
         }
     }
 
@@ -233,7 +244,7 @@ struct HistoryView: View {
                 } label: {
                     Text(String(localized: String.LocalizationValue(r.labelKey)))
                         .font(.system(size: 11, weight: .medium))
-                        .foregroundStyle(r == store.range ? DS.Palette.textPrimary : DS.Palette.textTertiary)
+                        .foregroundStyle(r == store.range ? Color.primary : Color.secondary)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 5)
                         .background(rangeBackground(active: r == store.range))
@@ -251,10 +262,10 @@ struct HistoryView: View {
         .padding(3)
         .background(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(DS.Palette.glassFill)
+                .fill(DS.Pastel.card)
                 .overlay(
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .stroke(DS.Palette.glassBorderLo, lineWidth: 1)
+                        .stroke(DS.Pastel.border, lineWidth: 1)
                 )
         )
     }
@@ -264,16 +275,12 @@ struct HistoryView: View {
     /// surface across the full padded rectangle.
     private func rangeBackground(active: Bool) -> some View {
         RoundedRectangle(cornerRadius: 5, style: .continuous)
-            .fill(active ? DS.Palette.glassFillHi : Color.clear)
-            .overlay(
-                RoundedRectangle(cornerRadius: 5, style: .continuous)
-                    .stroke(active ? DS.Palette.glassBorder : .clear, lineWidth: 1)
-            )
+            .fill(active ? DS.Pastel.border : Color.clear)
     }
 
     private var divider: some View {
         Rectangle()
-            .fill(DS.Palette.glassBorderLo)
+            .fill(DS.Pastel.border)
             .frame(width: 1, height: 18)
     }
 
@@ -282,7 +289,7 @@ struct HistoryView: View {
             filterChip(filter: .all,
                        label: String(localized: "history.filter.all"),
                        total: store.summary.totalActive,
-                       color: DS.Palette.accentHistory,
+                       color: DS.Pastel.blue,
                        isPresent: true)
             ForEach(ModelFamily.allCases, id: \.self) { family in
                 filterChip(
@@ -317,20 +324,20 @@ struct HistoryView: View {
                 Text(label)
                     .font(.system(size: 10, weight: .medium))
                 Text(TokenFormatter.compact(total))
-                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    .font(.system(size: 10, weight: .medium))
                     .monospacedDigit()
-                    .foregroundStyle(isPresent ? DS.Palette.textPrimary : DS.Palette.textTertiary.opacity(0.5))
+                    .foregroundStyle(isPresent ? Color.primary : Color.secondary.opacity(0.5))
             }
-            .foregroundStyle(isActive ? DS.Palette.textPrimary : DS.Palette.textSecondary)
+            .foregroundStyle(isActive ? Color.primary : Color.secondary)
             .opacity(isPresent ? 1.0 : 0.4)
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
             .background(
                 RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .fill(isActive ? DS.Palette.glassFillHi : DS.Palette.glassFill)
+                    .fill(isActive ? DS.Pastel.border : DS.Pastel.card)
                     .overlay(
                         RoundedRectangle(cornerRadius: 7, style: .continuous)
-                            .stroke(isActive ? DS.Palette.glassBorder : DS.Palette.glassBorderLo, lineWidth: 1)
+                            .stroke(isActive ? DS.Pastel.track : DS.Pastel.border, lineWidth: 1)
                     )
             )
             .contentShape(Rectangle())
@@ -346,7 +353,14 @@ struct HistoryView: View {
             .frame(height: 290)
             .padding(DS.Spacing.md)
             .frame(maxWidth: .infinity)
-            .dsGlass(radius: DS.Radius.card)
+            .background(
+                RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
+                    .fill(DS.Pastel.card)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
+                    .stroke(DS.Pastel.border, lineWidth: 1)
+            )
     }
 
     @ViewBuilder
@@ -389,7 +403,7 @@ struct HistoryView: View {
                 // can sit near the bar instead of pinned to the chart top.
                 if let bucket = hoveredBucket {
                     RuleMark(x: .value("date", bucket.date, unit: store.range.isHourly ? .hour : .day))
-                        .foregroundStyle(DS.Palette.textPrimary.opacity(0.18))
+                        .foregroundStyle(Color.primary.opacity(0.18))
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
 
                     // Invisible anchor for the tooltip. We blend the bar's
@@ -411,7 +425,7 @@ struct HistoryView: View {
                 }
             }
             .chartXScale(domain: domain.start...domain.end)
-            .animation(DS.Motion.springLiquid, value: store.filter)
+            .animation(DS.Motion.easeInOut, value: store.filter)
             .chartOverlay { proxy in
                 GeometryReader { geo in
                     Rectangle()
@@ -440,12 +454,12 @@ struct HistoryView: View {
                     if let intValue = value.as(Int.self) {
                         Text(TokenFormatter.compact(intValue))
                             .font(.system(size: 9))
-                            .foregroundStyle(DS.Palette.textTertiary.opacity(0.5))
+                            .foregroundStyle(.tertiary)
                             .monospacedDigit()
                     }
                 }
                 AxisGridLine()
-                    .foregroundStyle(DS.Palette.glassBorderLo)
+                    .foregroundStyle(DS.Pastel.border)
             }
         }
         .chartXAxis {
@@ -453,7 +467,7 @@ struct HistoryView: View {
                 AxisValueLabel(format: store.range.isHourly ? .dateTime.hour() : .dateTime.month(.abbreviated).day(),
                                centered: true)
                     .font(.system(size: 9))
-                    .foregroundStyle(DS.Palette.textTertiary.opacity(0.5))
+                    .foregroundStyle(.tertiary)
             }
         }
         .chartLegend(position: .top, alignment: .trailing, spacing: 12)
@@ -497,7 +511,7 @@ struct HistoryView: View {
         }
         guard let resolved else { return }
         if hoveredBucket?.id != resolved.id {
-            withAnimation(reduceMotion ? .easeInOut(duration: 0.15) : .smooth(duration: 0.18)) {
+            withAnimation(.easeInOut(duration: reduceMotion ? 0.15 : 0.18)) {
                 hoveredBucket = resolved
             }
         }
@@ -516,7 +530,7 @@ struct HistoryView: View {
 
     private func clearHover() {
         guard hoveredBucket != nil else { return }
-        withAnimation(reduceMotion ? .easeInOut(duration: 0.15) : .smooth(duration: 0.18)) {
+        withAnimation(.easeInOut(duration: reduceMotion ? 0.15 : 0.18)) {
             hoveredBucket = nil
         }
     }
@@ -535,22 +549,22 @@ struct HistoryView: View {
             Text(formatTooltipDate(bucket.date))
                 .font(.system(size: 9, weight: .semibold))
                 .tracking(0.6)
-                .foregroundStyle(DS.Palette.textTertiary)
+                .foregroundStyle(.tertiary)
                 .textCase(.uppercase)
 
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text(TokenFormatter.compact(total))
-                    .font(.system(size: 22, weight: .bold, design: .rounded))
-                    .foregroundStyle(DS.Palette.textPrimary)
+                    .font(.system(size: 22, weight: .medium))
+                    .foregroundStyle(.primary)
                     .monospacedDigit()
                 Text("history.tooltip.tokens")
                     .font(.system(size: 10))
-                    .foregroundStyle(DS.Palette.textTertiary)
+                    .foregroundStyle(.tertiary)
             }
 
             if !kinds.isEmpty {
                 Rectangle()
-                    .fill(DS.Palette.glassBorderLo)
+                    .fill(DS.Pastel.border)
                     .frame(height: 1)
                     .padding(.vertical, 1)
 
@@ -560,14 +574,13 @@ struct HistoryView: View {
                             Circle()
                                 .fill(gradient(for: kind))
                                 .frame(width: 6, height: 6)
-                                .shadow(color: gradient(for: kind).opacity(0.6), radius: 3)
                             Text(kind.displayName)
                                 .font(.system(size: 11))
-                                .foregroundStyle(DS.Palette.textSecondary)
+                                .foregroundStyle(.secondary)
                             Spacer(minLength: 16)
                             Text(TokenFormatter.compact(bucket.tokensByModel[kind] ?? 0))
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundStyle(DS.Palette.textPrimary)
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundStyle(.primary)
                                 .monospacedDigit()
                         }
                     }
@@ -578,10 +591,10 @@ struct HistoryView: View {
                 HStack(spacing: 5) {
                     Image(systemName: "circle.dashed")
                         .font(.system(size: 9))
-                        .foregroundStyle(DS.Palette.textTertiary)
+                        .foregroundStyle(.tertiary)
                     Text(String(format: String(localized: "history.tooltip.sessions"), bucket.sessionsCount))
                         .font(.system(size: 10))
-                        .foregroundStyle(DS.Palette.textTertiary)
+                        .foregroundStyle(.tertiary)
                         .monospacedDigit()
                 }
                 .padding(.top, 1)
@@ -592,14 +605,15 @@ struct HistoryView: View {
         .frame(minWidth: 170, maxWidth: 240)
         .background(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(DS.Palette.bgElevated)
+                .fill(DS.Pastel.card)
                 .overlay(
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .stroke(DS.Palette.glassBorder, lineWidth: 1)
+                        .stroke(DS.Pastel.border, lineWidth: 1)
                 )
         )
-        .shadow(color: .black.opacity(0.42), radius: 18, x: 0, y: 8)
-        .shadow(color: .black.opacity(0.22), radius: 4, x: 0, y: 2)
+        // Functional elevation only (not a colored glow) so the floating
+        // tooltip reads as above the chart it overlaps.
+        .shadow(color: .black.opacity(0.28), radius: 10, x: 0, y: 4)
         .transition(
             .asymmetric(
                 insertion: .scale(scale: 0.96, anchor: .bottom).combined(with: .opacity),
@@ -623,10 +637,10 @@ struct HistoryView: View {
         VStack(spacing: 6) {
             Image(systemName: "tray")
                 .font(.system(size: 22, weight: .light))
-                .foregroundStyle(DS.Palette.textTertiary.opacity(0.5))
+                .foregroundStyle(.tertiary.opacity(0.7))
             Text(filterEmptyMessage)
                 .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(DS.Palette.textTertiary)
+                .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 240)
         }
@@ -634,10 +648,10 @@ struct HistoryView: View {
         .padding(.horizontal, 22)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(DS.Palette.glassFill)
+                .fill(DS.Pastel.card)
                 .overlay(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(DS.Palette.glassBorderLo, lineWidth: 1)
+                        .stroke(DS.Pastel.border, lineWidth: 1)
                 )
         )
     }
@@ -656,13 +670,13 @@ struct HistoryView: View {
         VStack(spacing: DS.Spacing.sm) {
             Image(systemName: "tray")
                 .font(.system(size: 28, weight: .light))
-                .foregroundStyle(DS.Palette.textTertiary.opacity(0.5))
+                .foregroundStyle(.tertiary.opacity(0.7))
             Text(String(localized: "history.empty.title"))
                 .font(DS.Typography.body)
-                .foregroundStyle(DS.Palette.textSecondary)
+                .foregroundStyle(.secondary)
             Text(String(localized: "history.empty.subtitle"))
                 .font(DS.Typography.label)
-                .foregroundStyle(DS.Palette.textTertiary)
+                .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 320)
         }
@@ -706,20 +720,27 @@ struct HistoryView: View {
             Text(String(localized: label))
                 .font(DS.Typography.micro)
                 .tracking(0.8)
-                .foregroundStyle(DS.Palette.textTertiary)
+                .foregroundStyle(.tertiary)
             Text(value)
-                .font(.system(size: 14, weight: .heavy, design: .rounded))
-                .foregroundStyle(DS.Palette.textPrimary)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(.primary)
                 .monospacedDigit()
             Text(sub)
                 .font(.system(size: 10))
-                .foregroundStyle(DS.Palette.textTertiary)
+                .foregroundStyle(.tertiary)
                 .lineLimit(1)
                 .truncationMode(.middle)
         }
         .padding(DS.Spacing.sm)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .dsGlass(radius: DS.Radius.card)
+        .background(
+            RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
+                .fill(DS.Pastel.card)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
+                .stroke(DS.Pastel.border, lineWidth: 1)
+        )
     }
 
     // MARK: - Computed presentation helpers
@@ -773,8 +794,9 @@ struct HistoryView: View {
 
     // MARK: - Color helpers
 
-    /// Refined model palette - lower saturation than the brand pacing scale,
-    /// better readability for back-to-back stacked segments.
+    /// Categorical per-model palette - the one allowed data-viz exception to
+    /// the DS.Pastel-only rule. These are model identities (legend + stacked
+    /// bar segments), not chrome, so they keep their own distinct hues.
     private func gradient(for kind: ModelKind) -> Color {
         switch kind {
         case .fable:  return Color(hex: "#E86FC4")
