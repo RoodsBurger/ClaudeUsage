@@ -314,9 +314,13 @@ private struct PopoverHeaderRow: View {
 struct PopoverMetricRowView: View {
     let row: PopoverMetricRow
 
-    private static let labelWidth: CGFloat = 52
-    private static let pctWidth: CGFloat = 34
-    private static let resetWidth: CGFloat = 52
+    /// Shared right edge: `pct%` on line 1 and the pacing delta on line 2 both
+    /// sit in a `valueWidth`-trailing column, so the two lines' right edges align.
+    private static let labelWidth: CGFloat = 56
+    private static let valueWidth: CGFloat = 46
+    private static let pacingBarWidth: CGFloat = 40
+
+    private var showsSecondLine: Bool { !row.resetText.isEmpty || row.pacing != nil }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -340,18 +344,24 @@ struct PopoverMetricRowView: View {
                 Text("\(row.pct)%")
                     .font(.callout)
                     .monospacedDigit()
-                    .frame(width: Self.pctWidth, alignment: .trailing)
-
-                Text(row.resetText)
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                    .lineLimit(1)
-                    .frame(width: Self.resetWidth, alignment: .trailing)
+                    .frame(width: Self.valueWidth, alignment: .trailing)
             }
 
-            if let pacing = row.pacing {
-                PopoverPacingChip(pacing: pacing)
-                    .padding(.leading, Self.labelWidth + 10)
+            if showsSecondLine {
+                HStack(spacing: 8) {
+                    Color.clear.frame(width: Self.labelWidth, height: 1)
+
+                    Text(row.resetText)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+
+                    Spacer(minLength: 8)
+
+                    if let pacing = row.pacing {
+                        PopoverPacingChip(pacing: pacing, barWidth: Self.pacingBarWidth, valueWidth: Self.valueWidth)
+                    }
+                }
             }
         }
     }
@@ -359,6 +369,8 @@ struct PopoverMetricRowView: View {
 
 private struct PopoverPacingChip: View {
     let pacing: PacingResult
+    let barWidth: CGFloat
+    let valueWidth: CGFloat
 
     var body: some View {
         HStack(spacing: 8) {
@@ -369,11 +381,13 @@ private struct PopoverPacingChip: View {
                 gradient: PopoverColors.zoneGradient(pacing.zone),
                 compact: true
             )
+            .frame(width: barWidth)
+
             Text("\(pacing.delta >= 0 ? "+" : "")\(Int(pacing.delta))%")
                 .font(.caption2)
                 .monospacedDigit()
                 .foregroundStyle(pacing.zone.semanticColor)
-                .frame(minWidth: 32, alignment: .trailing)
+                .frame(width: valueWidth, alignment: .trailing)
         }
     }
 }
