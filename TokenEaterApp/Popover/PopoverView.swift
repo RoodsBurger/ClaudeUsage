@@ -1,10 +1,11 @@
 import SwiftUI
 
-/// The one and only menu bar popover layout. No variants, no drag-reorder
-/// editor: it renders session, weekly, and whatever per-model metrics the API
-/// returned, in a fixed order. Width 340, flat `Divider()`-separated sections,
-/// system material background (see `StatusBarController.setupPopover`), and
-/// semantic `RiskZone` / `PacingZone` colors only - no hex, no raw opacity chrome.
+/// The menu bar popover layout. Renders the metric rows and optional sections
+/// `PopoverConfig` selects, in the configured order - see
+/// `Shared/Models/PopoverConfig.swift` and `PopoverSectionView`. Width 340,
+/// flat `Divider()`-separated sections, system material background (see
+/// `StatusBarController.makePopoverPanel`), and semantic `RiskZone` /
+/// `PacingZone` colors only - no hex, no raw opacity chrome.
 struct PopoverView: View {
     @EnvironmentObject private var usageStore: UsageStore
     @EnvironmentObject private var settingsStore: SettingsStore
@@ -28,13 +29,15 @@ struct PopoverView: View {
 
             metricsSection
 
-            if let extra = usageStore.extraUsage, extra.isEnabled {
+            if popoverConfig.showSpend, let extra = usageStore.extraUsage, extra.isEnabled {
                 Divider()
                 PopoverSpendSection(extra: extra)
             }
 
-            Divider()
-            PopoverTimestampRow()
+            if popoverConfig.showTimestamp {
+                Divider()
+                PopoverTimestampRow()
+            }
 
             Divider()
             PopoverFooterToolbar()
@@ -60,34 +63,52 @@ struct PopoverView: View {
 
     // MARK: - Row building
 
-    /// Session, weekly, then per-model rows in `UsageStore.has*` order.
-    /// Nothing is user-configurable: a row appears exactly when the API says
-    /// the metric exists.
+    private var popoverConfig: PopoverConfig { settingsStore.display.popoverConfig }
+
+    /// Metrics session/weekly/sonnet always count as "available" (the popover
+    /// showed them unconditionally before this became configurable); Opus,
+    /// Cowork, Fable and Design only count once the API has actually returned
+    /// that bucket, same as `UsageStore.has*` always gated them.
+    private var availableMetrics: Set<MetricID> {
+        var available: Set<MetricID> = [.fiveHour, .sevenDay, .sonnet]
+        if usageStore.hasOpus { available.insert(.opus) }
+        if usageStore.hasCowork { available.insert(.cowork) }
+        if usageStore.hasFable { available.insert(.fable) }
+        if usageStore.hasDesign { available.insert(.design) }
+        return available
+    }
+
+    /// The configured, visible, available metrics, in the user's chosen order.
     private var metricRows: [PopoverMetricRow] {
-        var rows: [PopoverMetricRow] = [
-            row(
+        popoverConfig.visibleMetrics(available: availableMetrics).compactMap(metricRow)
+    }
+
+    private func metricRow(for metric: MetricID) -> PopoverMetricRow? {
+        let showPacing = popoverConfig.showPacing
+        switch metric {
+        case .fiveHour:
+            return row(
                 id: "session",
                 label: String(localized: "metric.session"),
                 pct: usageStore.fiveHourPct,
                 resetDate: usageStore.lastUsage?.fiveHour?.resetsAtDate,
                 windowDuration: 5 * 3600,
                 resetText: usageStore.fiveHourReset,
-                pacing: usageStore.fiveHourPacing
-            ),
-            row(
+                pacing: showPacing ? usageStore.fiveHourPacing : nil
+            )
+        case .sevenDay:
+            return row(
                 id: "weekly",
                 label: String(localized: "metric.weekly"),
                 pct: usageStore.sevenDayPct,
                 resetDate: usageStore.lastUsage?.sevenDay?.resetsAtDate,
                 windowDuration: 7 * 86_400,
                 resetText: usageStore.sevenDayReset,
-                pacing: usageStore.pacingResult
-            ),
-        ]
-
-        if usageStore.hasOpus {
+                pacing: showPacing ? usageStore.pacingResult : nil
+            )
+        case .opus:
             let resetDate = usageStore.lastUsage?.sevenDayOpus?.resetsAtDate
-            rows.append(row(
+            return row(
                 id: "opus",
                 label: String(localized: "metric.opus"),
                 pct: usageStore.opusPct,
@@ -95,22 +116,20 @@ struct PopoverView: View {
                 windowDuration: 7 * 86_400,
                 resetText: ResetCountdownFormatter.weekly(from: resetDate).relative,
                 pacing: nil
-            ))
-        }
-
-        rows.append(row(
-            id: "sonnet",
-            label: String(localized: "metric.sonnet"),
-            pct: usageStore.sonnetPct,
-            resetDate: usageStore.lastUsage?.sevenDaySonnet?.resetsAtDate,
-            windowDuration: 7 * 86_400,
-            resetText: usageStore.sonnetReset,
-            pacing: nil
-        ))
-
-        if usageStore.hasCowork {
+            )
+        case .sonnet:
+            return row(
+                id: "sonnet",
+                label: String(localized: "metric.sonnet"),
+                pct: usageStore.sonnetPct,
+                resetDate: usageStore.lastUsage?.sevenDaySonnet?.resetsAtDate,
+                windowDuration: 7 * 86_400,
+                resetText: usageStore.sonnetReset,
+                pacing: nil
+            )
+        case .cowork:
             let resetDate = usageStore.lastUsage?.sevenDayCowork?.resetsAtDate
-            rows.append(row(
+            return row(
                 id: "cowork",
                 label: String(localized: "metric.cowork"),
                 pct: usageStore.coworkPct,
@@ -118,11 +137,9 @@ struct PopoverView: View {
                 windowDuration: 7 * 86_400,
                 resetText: ResetCountdownFormatter.weekly(from: resetDate).relative,
                 pacing: nil
-            ))
-        }
-
-        if usageStore.hasFable {
-            rows.append(row(
+            )
+        case .fable:
+            return row(
                 id: "fable",
                 label: String(localized: "metric.fable"),
                 pct: usageStore.fablePct,
@@ -130,11 +147,9 @@ struct PopoverView: View {
                 windowDuration: 7 * 86_400,
                 resetText: usageStore.fableReset,
                 pacing: nil
-            ))
-        }
-
-        if usageStore.hasDesign {
-            rows.append(row(
+            )
+        case .design:
+            return row(
                 id: "design",
                 label: String(localized: "metric.design"),
                 pct: usageStore.designPct,
@@ -142,10 +157,12 @@ struct PopoverView: View {
                 windowDuration: 7 * 86_400,
                 resetText: usageStore.designReset,
                 pacing: nil
-            ))
+            )
+        // Not offered by `PopoverConfig` (extraCredits/pacing/status/reset are
+        // their own sections or menu-bar-only) - never reached in practice.
+        case .extraCredits, .sessionPacing, .weeklyPacing, .serviceStatus, .sessionReset:
+            return nil
         }
-
-        return rows
     }
 
     private func row(
@@ -168,9 +185,55 @@ struct PopoverView: View {
     }
 }
 
+// MARK: - Settings preview sample data
+
+extension PopoverView {
+    /// Sample metric rows for the Settings live preview - every metric in
+    /// `MetricID.popoverDefaultOrder` gets a plausible value, spanning the
+    /// ok/warning/critical zones, so every configured row stays visible in
+    /// the preview regardless of the live account's actual data.
+    static func sampleMetricRows(config: PopoverConfig, settingsStore: SettingsStore) -> [PopoverMetricRow] {
+        let available = Set(MetricID.popoverDefaultOrder)
+        return config.visibleMetrics(available: available).compactMap { metric in
+            sampleRow(for: metric, showPacing: config.showPacing, settingsStore: settingsStore)
+        }
+    }
+
+    private static let sampleValues: [MetricID: (pct: Int, resetText: String)] = [
+        .fiveHour: (42, "2h13"),
+        .sevenDay: (61, "3d 14h"),
+        .opus: (15, "5d 2h"),
+        .sonnet: (33, "4d 9h"),
+        .cowork: (8, "6d 20h"),
+        .fable: (71, "1d 8h"),
+        .design: (24, "2d 22h"),
+    ]
+
+    private static func sampleRow(for metric: MetricID, showPacing: Bool, settingsStore: SettingsStore) -> PopoverMetricRow? {
+        guard let sample = sampleValues[metric] else { return nil }
+        let windowDuration: TimeInterval = metric == .fiveHour ? 5 * 3600 : 7 * 86_400
+        let zone = PopoverColors.riskZone(pct: sample.pct, resetDate: nil, windowDuration: windowDuration, settings: settingsStore)
+        let pacing: PacingResult? = {
+            guard showPacing, metric == .fiveHour || metric == .sevenDay else { return nil }
+            return PacingResult(
+                delta: metric == .fiveHour ? 4 : -8,
+                expectedUsage: 50,
+                actualUsage: metric == .fiveHour ? 54 : 42,
+                zone: metric == .fiveHour ? .warning : .onTrack,
+                message: "",
+                resetDate: nil
+            )
+        }()
+        return PopoverMetricRow(id: metric.rawValue, label: metric.label, pct: sample.pct, zone: zone, resetText: sample.resetText, pacing: pacing)
+    }
+}
+
 // MARK: - Row model
 
-private struct PopoverMetricRow: Identifiable {
+/// Not private: `PopoverSectionView`'s live preview reuses this and
+/// `PopoverMetricRowView` directly via `PopoverView.sampleMetricRows(config:settingsStore:)`
+/// so the preview stays pixel-identical to the real popover rows.
+struct PopoverMetricRow: Identifiable {
     let id: String
     let label: String
     let pct: Int
@@ -248,7 +311,7 @@ private struct PopoverHeaderRow: View {
 
 // MARK: - Metric row + inline pacing chip
 
-private struct PopoverMetricRowView: View {
+struct PopoverMetricRowView: View {
     let row: PopoverMetricRow
 
     private static let labelWidth: CGFloat = 52

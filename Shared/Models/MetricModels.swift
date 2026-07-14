@@ -11,6 +11,12 @@ enum MetricID: String, CaseIterable, Codable, Sendable {
     case sessionPacing = "sessionPacing"
     case weeklyPacing = "weeklyPacing"
     case serviceStatus = "serviceStatus"
+    /// Weekly Opus utilization. Popover-only for now - not offered as a menu-bar
+    /// pin (see `MetricID.menuBarPinnable`), since `MenuBarRenderer` has no
+    /// wiring for its percentage/reset data.
+    case opus = "opus"
+    /// Weekly Cowork utilization. Same popover-only scope as `.opus`.
+    case cowork = "cowork"
 
     var label: String {
         switch self {
@@ -24,6 +30,8 @@ enum MetricID: String, CaseIterable, Codable, Sendable {
         case .sessionPacing: return String(localized: "pacing.session.label")
         case .weeklyPacing: return String(localized: "pacing.weekly.label")
         case .serviceStatus: return String(localized: "metric.serviceStatus")
+        case .opus: return String(localized: "metric.opus")
+        case .cowork: return String(localized: "metric.cowork")
         }
     }
 
@@ -39,6 +47,8 @@ enum MetricID: String, CaseIterable, Codable, Sendable {
         case .sessionPacing: return "5hP"
         case .weeklyPacing: return "7dP"
         case .serviceStatus: return ""
+        case .opus: return "O"
+        case .cowork: return "Cw"
         }
     }
 }

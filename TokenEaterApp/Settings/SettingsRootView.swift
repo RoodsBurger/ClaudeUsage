@@ -33,6 +33,8 @@ struct SettingsRootView: View {
             scrolling { SettingsSectionView(initialStatusInterval: settingsStore.statusPollInterval) }
         case .menuBar:
             MenuBarSectionView()
+        case .popover:
+            PopoverSectionView()
         case .pacing:
             scrolling {
                 PacingSectionView(

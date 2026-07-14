@@ -284,7 +284,7 @@ enum MenuBarRenderer {
     private static func windowDuration(for metric: MetricID) -> TimeInterval {
         switch metric {
         case .fiveHour: return 5 * 3600
-        case .sevenDay, .sonnet, .design, .fable: return 7 * 86_400
+        case .sevenDay, .sonnet, .design, .fable, .opus, .cowork: return 7 * 86_400
         default: return 0
         }
     }
@@ -367,6 +367,9 @@ enum MenuBarRenderer {
             case .extraCredits: return data.hasExtraCredits
             case .weeklyPacing: return data.hasWeeklyPacing
             case .serviceStatus: return true
+            // Popover-only - never actually pinned (excluded from
+            // `MetricID.menuBarPinnable`), kept here only for switch exhaustiveness.
+            case .opus, .cowork: return false
             }
         }
     }
@@ -459,6 +462,9 @@ enum MenuBarRenderer {
             return data.outageHealth.rawValue
         case .sessionReset:
             return zoneRank(pct: data.fiveHourPct, resetDate: data.fiveHourResetDate, windowDuration: windowDuration(for: .fiveHour), data: data)
+        // Popover-only - never actually pinned, see `visiblePins`.
+        case .opus, .cowork:
+            return 0
         }
     }
 
@@ -486,6 +492,9 @@ enum MenuBarRenderer {
             return buildServiceStatus(pin, data: data)
         case .sessionReset:
             return buildCountdownOnly(data: data)
+        // Popover-only - never actually pinned, see `visiblePins`.
+        case .opus, .cowork:
+            return NSAttributedString()
         }
     }
 

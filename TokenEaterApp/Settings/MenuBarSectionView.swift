@@ -220,7 +220,7 @@ struct MenuBarSectionView: View {
     private func supportsValueStyle(_ id: MetricID) -> Bool {
         switch id {
         case .fiveHour, .sevenDay, .sonnet, .design, .fable, .extraCredits: return true
-        case .sessionPacing, .weeklyPacing, .serviceStatus, .sessionReset: return false
+        case .sessionPacing, .weeklyPacing, .serviceStatus, .sessionReset, .opus, .cowork: return false
         }
     }
 
@@ -231,7 +231,7 @@ struct MenuBarSectionView: View {
     private func supportsCountdown(_ id: MetricID) -> Bool {
         switch id {
         case .fiveHour, .sevenDay, .sonnet, .design, .fable: return true
-        case .extraCredits, .sessionPacing, .weeklyPacing, .serviceStatus, .sessionReset: return false
+        case .extraCredits, .sessionPacing, .weeklyPacing, .serviceStatus, .sessionReset, .opus, .cowork: return false
         }
     }
 

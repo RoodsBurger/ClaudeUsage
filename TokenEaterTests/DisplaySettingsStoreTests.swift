@@ -10,7 +10,7 @@ struct DisplaySettingsStoreTests {
         "showMenuBar", "launchInBackground", "pinnedMetrics", "resetDisplayFormat",
         "smartColorEnabled", "smartResetColor", "smartColorProfile",
         "sessionPacingDisplayMode", "weeklyPacingDisplayMode",
-        "pacingDisplayMode", "menuBarConfig", "showSessionReset",
+        "pacingDisplayMode", "menuBarConfig", "popoverConfig", "showSessionReset",
         "warningThreshold", "criticalThreshold",
     ]
     private func clean() { displayKeys.forEach { UserDefaults.standard.removeObject(forKey: $0) } }
@@ -31,6 +31,45 @@ struct DisplaySettingsStoreTests {
         #expect(store.criticalThreshold == 85)
         #expect(store.thresholds == UsageThresholds(warningPercent: 60, criticalPercent: 85))
         #expect(store.menuBarConfig == MenuBarConfig())
+        #expect(store.popoverConfig == PopoverConfig())
+    }
+
+    @Test("changing popoverConfig persists to UserDefaults as JSON")
+    func popoverConfigPersists() {
+        clean(); defer { clean() }
+        let store = DisplaySettingsStore()
+        store.popoverConfig.showSpend = false
+        store.popoverConfig.hiddenMetrics = [.design]
+
+        let data = UserDefaults.standard.data(forKey: "popoverConfig")
+        #expect(data != nil)
+        let decoded = data.flatMap { try? JSONDecoder().decode(PopoverConfig.self, from: $0) }
+        #expect(decoded?.showSpend == false)
+        #expect(decoded?.hiddenMetrics == [.design])
+    }
+
+    @Test("popoverConfig round-trips across store instances")
+    func popoverConfigRoundTrips() {
+        clean(); defer { clean() }
+        let first = DisplaySettingsStore()
+        first.popoverConfig = PopoverConfig(
+            metricOrder: [.sevenDay, .fiveHour, .sonnet, .opus, .cowork, .fable, .design],
+            hiddenMetrics: [.opus, .cowork],
+            showPacing: false,
+            showSpend: false,
+            showTimestamp: false
+        )
+
+        let second = DisplaySettingsStore()
+        #expect(second.popoverConfig == first.popoverConfig)
+    }
+
+    @Test("corrupted popoverConfig data falls back to defaults")
+    func popoverConfigDecodeFailureFallsBackToDefaults() {
+        clean(); defer { clean() }
+        UserDefaults.standard.set(Data("not json".utf8), forKey: "popoverConfig")
+        let store = DisplaySettingsStore()
+        #expect(store.popoverConfig == PopoverConfig())
     }
 
     @Test("changing menuBarConfig persists to UserDefaults as JSON")

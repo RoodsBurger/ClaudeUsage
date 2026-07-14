@@ -110,9 +110,11 @@ struct MenuBarConfig: Codable, Equatable, Sendable {
 extension MetricID {
     /// Metrics selectable in the menu-bar "add a pin" menu. `sessionReset`
     /// is excluded - it's not an independent pin in the new engine, its old
-    /// role is now the `showCountdown` flag on any percentage pin.
+    /// role is now the `showCountdown` flag on any percentage pin. `opus` and
+    /// `cowork` are excluded too - they're popover-only (see `MetricID.opus`),
+    /// `MenuBarRenderer` has no percentage/reset wiring for them.
     static var menuBarPinnable: [MetricID] {
-        allCases.filter { $0 != .sessionReset }
+        allCases.filter { $0 != .sessionReset && $0 != .opus && $0 != .cowork }
     }
 
     /// SF Symbol shown when a pin's `prefix` is `.symbol`.
@@ -127,6 +129,8 @@ extension MetricID {
         case .sessionPacing, .weeklyPacing: return "speedometer"
         case .serviceStatus: return "dot.radiowaves.left.and.right"
         case .sessionReset:  return "clock.arrow.circlepath"
+        case .opus:          return "crown.fill"
+        case .cowork:        return "person.2.fill"
         }
     }
 }

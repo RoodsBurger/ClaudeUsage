@@ -64,6 +64,14 @@ final class DisplaySettingsStore: ObservableObject {
     @Published var menuBarConfig: MenuBarConfig {
         didSet { saveMenuBarConfig() }
     }
+    /// Full popover rendering configuration (visible/ordered metric rows,
+    /// pacing/spend/timestamp section toggles). Persisted as JSON under its
+    /// own key; a decode failure or fresh install falls back to
+    /// `PopoverConfig()`. Independent of `menuBarConfig` - separate model,
+    /// separate storage key.
+    @Published var popoverConfig: PopoverConfig {
+        didSet { savePopoverConfig() }
+    }
 
     /// Resolved threshold ladder handed to `RiskZone.forPercent(_:thresholds:)`.
     var thresholds: UsageThresholds {
@@ -105,6 +113,13 @@ final class DisplaySettingsStore: ObservableObject {
             self.menuBarConfig = MenuBarConfig()
         }
 
+        if let data = UserDefaults.standard.data(forKey: "popoverConfig"),
+           let decoded = try? JSONDecoder().decode(PopoverConfig.self, from: data) {
+            self.popoverConfig = decoded
+        } else {
+            self.popoverConfig = PopoverConfig()
+        }
+
         if let saved = UserDefaults.standard.stringArray(forKey: "pinnedMetrics") {
             self.pinnedMetrics = Set(saved.compactMap { MetricID(rawValue: $0) })
         } else {
@@ -115,5 +130,10 @@ final class DisplaySettingsStore: ObservableObject {
     private func saveMenuBarConfig() {
         guard let data = try? JSONEncoder().encode(menuBarConfig) else { return }
         UserDefaults.standard.set(data, forKey: "menuBarConfig")
+    }
+
+    private func savePopoverConfig() {
+        guard let data = try? JSONEncoder().encode(popoverConfig) else { return }
+        UserDefaults.standard.set(data, forKey: "popoverConfig")
     }
 }

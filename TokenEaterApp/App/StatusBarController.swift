@@ -5,7 +5,16 @@ import Combine
 @MainActor
 final class StatusBarController: NSObject {
     private var statusItem: NSStatusItem
-    private let popover = NSPopover()
+    /// Borderless, non-activating panel that replaces `NSPopover` for the
+    /// quick-glance dropdown - no arrow, RaiDrive-style. Backed by an
+    /// `NSVisualEffectView` (see `makePopoverPanel`) so it keeps the same
+    /// native translucent material `NSPopover` gave it for free. Rebuilt
+    /// lazily and reused across opens; its SwiftUI content is torn down and
+    /// recreated on every open/close (see `installPopoverContent`/
+    /// `dismissPopover`) so it always starts from fresh state, matching the
+    /// old `NSPopover`'s own contentViewController lifecycle.
+    private var popoverPanel: NSPanel?
+    private var popoverHostingController: NSHostingController<AnyView>?
     private var dashboardWindow: NSWindow?
     private var eventMonitor: Any?
     private var localKeyMonitor: Any?
@@ -43,7 +52,6 @@ final class StatusBarController: NSObject {
         super.init()
 
         setupStatusItem()
-        setupPopover()
         observeStoreChanges()
         observeDashboardRequest()
 
@@ -96,25 +104,81 @@ final class StatusBarController: NSObject {
         return button.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
     }
 
-    private func setupPopover() {
-        // .applicationDefined (not .transient): NSPopover's own transient
-        // event-tracking dismisses the popover on the first mouse move when it
-        // is opened over a fullscreen-app Space. We keep full control of
-        // dismissal instead (see startPopoverDismissMonitors): click-outside,
-        // Escape, app-deactivation (Cmd-Tab) and Space changes all close it, so
-        // it matches the .transient behaviour on the desktop while no longer
-        // self-dismissing over fullscreen.
-        // No forced `.appearance`: the popover follows the system material,
-        // so it tracks light/dark automatically instead of always rendering dark.
-        popover.behavior = .applicationDefined
+    /// Borderless, `.nonactivatingPanel` panel anchored under the status item.
+    /// No arrow (unlike `NSPopover`), no forced appearance - the
+    /// `NSVisualEffectView` backing follows the system material, so it tracks
+    /// light/dark automatically instead of always rendering dark. Dismissal is
+    /// fully manual (see `startPopoverDismissMonitors`): click-outside,
+    /// Escape, app-deactivation (Cmd-Tab) and Space changes all close it, the
+    /// same set `NSPopover`'s `.applicationDefined` behavior gave us before -
+    /// still needed since a floating panel has no built-in transient dismissal.
+    private func makePopoverPanel() -> NSPanel {
+        let panel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 340, height: 200),
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: true
+        )
+        panel.isFloatingPanel = true
+        panel.level = .popUpMenu
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.hasShadow = true
+        panel.isReleasedWhenClosed = false
+        panel.hidesOnDeactivate = false
+        panel.animationBehavior = .utilityWindow
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
+
+        // Native vibrancy: NSPopover rendered this automatically; a borderless
+        // panel needs its own NSVisualEffectView, masked to rounded corners.
+        let effectView = NSVisualEffectView()
+        effectView.material = .popover
+        effectView.blendingMode = .behindWindow
+        effectView.state = .active
+        effectView.wantsLayer = true
+        effectView.layer?.cornerRadius = 12
+        effectView.layer?.masksToBounds = true
+        panel.contentView = effectView
+
+        return panel
     }
 
+    /// (Re)builds the panel's SwiftUI content from scratch - same lifecycle
+    /// `NSPopover` had (a fresh `contentViewController` on every open), so the
+    /// popover never carries stale view state between opens.
     private func installPopoverContent() {
+        let panel = popoverPanel ?? makePopoverPanel()
+        popoverPanel = panel
+        guard let effectView = panel.contentView else { return }
+
+        popoverHostingController?.view.removeFromSuperview()
+
         let popoverView = MenuBarPopoverView()
             .environmentObject(usageStore)
             .environmentObject(settingsStore)
             .environmentObject(vendorStatusStore)
-        popover.contentViewController = NSHostingController(rootView: popoverView)
+        let hosting = NSHostingController(rootView: AnyView(popoverView))
+        let fitSize = hosting.view.fittingSize
+        hosting.view.frame = NSRect(origin: .zero, size: fitSize)
+        hosting.view.autoresizingMask = [.width, .height]
+        effectView.addSubview(hosting.view)
+        popoverHostingController = hosting
+    }
+
+    /// Re-sizes the already-open panel when its SwiftUI content's ideal size
+    /// changes (e.g. a live refresh reveals/hides a metric row), keeping the
+    /// top-right corner anchored under the status item. Cheap no-op otherwise -
+    /// hooked into the same debounced store-change sink `updateMenuBarIcon()`
+    /// already uses (see `observeStoreChanges`).
+    private func resizePopoverPanelIfNeeded() {
+        guard let panel = popoverPanel, panel.isVisible, let hosting = popoverHostingController else { return }
+        hosting.view.layoutSubtreeIfNeeded()
+        let fitSize = hosting.view.fittingSize
+        let size = NSSize(width: max(fitSize.width, 340), height: max(fitSize.height, 1))
+        guard abs(size.height - panel.frame.height) > 0.5 || abs(size.width - panel.frame.width) > 0.5 else { return }
+        let topRight = NSPoint(x: panel.frame.maxX, y: panel.frame.maxY)
+        panel.setContentSize(size)
+        panel.setFrameOrigin(NSPoint(x: topRight.x - size.width, y: topRight.y - size.height))
     }
 
     private func observeStoreChanges() {
@@ -127,6 +191,7 @@ final class StatusBarController: NSObject {
         .sink { [weak self] _ in
             self?.updateMenuBarIcon()
             self?.updateCountdownTimer()
+            self?.resizePopoverPanelIfNeeded()
         }
         .store(in: &cancellables)
 
@@ -514,32 +579,43 @@ final class StatusBarController: NSObject {
     }
 
     private func togglePopover() {
-        if popover.isShown {
+        if let panel = popoverPanel, panel.isVisible {
             dismissPopover()
         } else {
-            guard let button = statusItem.button else { return }
-            installPopoverContent()
-            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-            NSApp.activate(ignoringOtherApps: true)
-            stylePopoverWindow()
-            startPopoverDismissMonitors()
+            showPopover()
         }
     }
 
-    /// Post-show fixes for the popover's own window. Runs on the next runloop
-    /// turn because the NSPopover window isn't attached synchronously after show.
-    private func stylePopoverWindow() {
-        DispatchQueue.main.async { [weak self] in
-            guard let self, let popoverWindow = self.popover.contentViewController?.view.window else { return }
+    private func showPopover() {
+        guard let button = statusItem.button, let buttonWindow = button.window else { return }
+        installPopoverContent()
+        guard let panel = popoverPanel, let hosting = popoverHostingController else { return }
 
-            // Fullscreen fix: a menu-bar popover opened over a fullscreen-app
-            // Space is created on the default Space, so the cursor over the
-            // visible popover reads as "outside" and the .transient behaviour
-            // dismisses it on the first mouse move. Let the popover window join
-            // the active (fullscreen) Space so the cursor registers as inside.
-            popoverWindow.collectionBehavior.insert(.canJoinAllSpaces)
-            popoverWindow.collectionBehavior.insert(.fullScreenAuxiliary)
-        }
+        // Fullscreen fix: a menu-bar panel opened over a fullscreen-app Space
+        // is created on the default Space, so the cursor over the visible
+        // panel would read as "outside" and the click-outside monitor below
+        // would dismiss it on the first mouse move. Setting this directly (no
+        // deferred runloop turn needed - unlike the old NSPopover, we own the
+        // panel synchronously) keeps the panel on the active Space instead.
+        panel.collectionBehavior.insert(.canJoinAllSpaces)
+        panel.collectionBehavior.insert(.fullScreenAuxiliary)
+
+        hosting.view.layoutSubtreeIfNeeded()
+        let fitSize = hosting.view.fittingSize
+        let size = NSSize(width: max(fitSize.width, 340), height: max(fitSize.height, 1))
+        panel.setContentSize(size)
+
+        let buttonFrameInScreen = buttonWindow.convertToScreen(button.convert(button.bounds, to: nil))
+        let gap: CGFloat = 6
+        panel.setFrameOrigin(NSPoint(
+            x: buttonFrameInScreen.maxX - size.width,
+            y: buttonFrameInScreen.minY - size.height - gap
+        ))
+
+        panel.orderFrontRegardless()
+        panel.makeKey()
+        NSApp.activate(ignoringOtherApps: true)
+        startPopoverDismissMonitors()
     }
 
     func showDashboard() {
@@ -697,8 +773,9 @@ final class StatusBarController: NSObject {
 
     /// Close the popover and tear down every dismissal monitor/observer.
     private func dismissPopover() {
-        popover.performClose(nil)
-        popover.contentViewController = nil
+        popoverPanel?.orderOut(nil)
+        popoverHostingController?.view.removeFromSuperview()
+        popoverHostingController = nil
         stopPopoverDismissMonitors()
     }
 

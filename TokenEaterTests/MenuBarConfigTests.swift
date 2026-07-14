@@ -71,11 +71,13 @@ struct MenuBarConfigTests {
         #expect(decoded == PinnedMetricConfig(id: .sevenDay))
     }
 
-    @Test("menuBarPinnable excludes sessionReset")
+    @Test("menuBarPinnable excludes sessionReset, opus and cowork")
     func pinnableExcludesSessionReset() {
         #expect(!MetricID.menuBarPinnable.contains(.sessionReset))
+        #expect(!MetricID.menuBarPinnable.contains(.opus))
+        #expect(!MetricID.menuBarPinnable.contains(.cowork))
         #expect(MetricID.menuBarPinnable.contains(.fiveHour))
         #expect(MetricID.menuBarPinnable.contains(.serviceStatus))
-        #expect(MetricID.menuBarPinnable.count == MetricID.allCases.count - 1)
+        #expect(MetricID.menuBarPinnable.count == MetricID.allCases.count - 3)
     }
 }

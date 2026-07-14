@@ -53,6 +53,12 @@ final class SettingsStore: ObservableObject {
     var menuBarConfig: MenuBarConfig {
         get { display.menuBarConfig } set { display.menuBarConfig = newValue }
     }
+    /// Full popover configuration. Views should prefer
+    /// `settings.display.$popoverConfig` for bindings; this forward is for
+    /// non-binding call sites.
+    var popoverConfig: PopoverConfig {
+        get { display.popoverConfig } set { display.popoverConfig = newValue }
+    }
 
     @Published var hasCompletedOnboarding: Bool {
         didSet { UserDefaults.standard.set(hasCompletedOnboarding, forKey: "hasCompletedOnboarding") }

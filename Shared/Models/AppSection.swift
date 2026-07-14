@@ -33,12 +33,14 @@ enum SettingsSection: String, CaseIterable {
     case general
     case pacing
     case menuBar
+    case popover
     case notifications
 
     var labelKey: String {
         switch self {
         case .general:       "sidebar.general"
         case .menuBar:       "sidebar.display"
+        case .popover:       "sidebar.popover"
         case .pacing:        "sidebar.pacing"
         case .notifications: "sidebar.notifications"
         }
@@ -50,6 +52,7 @@ enum SettingsSection: String, CaseIterable {
         switch self {
         case .general:       "slider.horizontal.3"
         case .menuBar:       "menubar.rectangle"
+        case .popover:       "rectangle.inset.filled"
         case .pacing:        "speedometer"
         case .notifications: "bell.fill"
         }
