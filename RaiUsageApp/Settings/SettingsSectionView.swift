@@ -191,24 +191,43 @@ struct SettingsSectionView: View {
             && !newRemoteUser.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    /// New-instance form. Labels are hidden so the placeholders render inside
-    /// the fields (a macOS Form would otherwise pull each placeholder out as a
-    /// leading label and wrap the narrow "SSH user" one). Fields stack; Add
-    /// sits on its own trailing row next to any validation error.
+    /// New-instance form. `prompt:` renders the gray in-field placeholder (a
+    /// macOS Form otherwise pulls a plain placeholder out as a leading label);
+    /// `.labelsHidden()` drops the redundant label. The user/host pair sits on
+    /// one line with a literal `@` between, equal width, mirroring the actual
+    /// `ssh user@host` call. Nickname is its own optional row; Add is trailing.
     private var addRemoteInstanceRow: some View {
         VStack(alignment: .leading, spacing: 8) {
-            TextField(String(localized: "settings.remote.nickname.placeholder"), text: $newRemoteNickname)
-                .textFieldStyle(.roundedBorder)
-                .labelsHidden()
+            TextField(
+                String(localized: "settings.remote.nickname.label"),
+                text: $newRemoteNickname,
+                prompt: Text(String(localized: "settings.remote.nickname.placeholder"))
+            )
+            .textFieldStyle(.roundedBorder)
+            .labelsHidden()
 
             HStack(spacing: 8) {
-                TextField(String(localized: "settings.remote.host.placeholder"), text: $newRemoteHost)
-                    .textFieldStyle(.roundedBorder)
-                    .labelsHidden()
-                TextField(String(localized: "settings.remote.user.placeholder"), text: $newRemoteUser)
-                    .textFieldStyle(.roundedBorder)
-                    .labelsHidden()
-                    .frame(width: 150)
+                TextField(
+                    String(localized: "settings.remote.user.label"),
+                    text: $newRemoteUser,
+                    prompt: Text(String(localized: "settings.remote.user.placeholder"))
+                )
+                .textFieldStyle(.roundedBorder)
+                .labelsHidden()
+                .frame(maxWidth: .infinity)
+
+                Text(verbatim: "@")
+                    .font(.body.monospaced())
+                    .foregroundStyle(.secondary)
+
+                TextField(
+                    String(localized: "settings.remote.host.label"),
+                    text: $newRemoteHost,
+                    prompt: Text(String(localized: "settings.remote.host.placeholder"))
+                )
+                .textFieldStyle(.roundedBorder)
+                .labelsHidden()
+                .frame(maxWidth: .infinity)
             }
 
             HStack(spacing: 8) {

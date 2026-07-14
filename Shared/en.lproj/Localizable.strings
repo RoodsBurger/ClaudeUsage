@@ -430,10 +430,13 @@
 /* Remote sessions (SSH) settings */
 "settings.remote.title" = "Remote sessions (SSH)";
 "settings.remote.footer" = "RaiUsage connects over SSH with your existing key — the same as ssh ubuntu@10.63.7.150. Add the instances you run Claude Code on and it pulls their session logs (from ~/.claude) so History, activity, and cost include them. Key-based auth only — no passwords are stored or sent. The instance needs rsync (default on Ubuntu). A new host is trusted on first connect.";
-"settings.remote.hint" = "Add the host, the SSH user, and an optional nickname, then Add.";
+"settings.remote.hint" = "Like ssh ubuntu@10.63.7.150. A nickname is optional.";
 "settings.remote.nickname.placeholder" = "Nickname (optional)";
-"settings.remote.host.placeholder" = "Host or IP · 10.63.7.150";
-"settings.remote.user.placeholder" = "SSH user · ubuntu";
+"settings.remote.host.placeholder" = "host or IP";
+"settings.remote.user.placeholder" = "SSH user";
+"settings.remote.nickname.label" = "Nickname";
+"settings.remote.host.label" = "Host or IP";
+"settings.remote.user.label" = "SSH user";
 "settings.remote.add" = "Add";
 "settings.remote.invalid" = "Enter a valid host and user (letters, digits, dot, hyphen, colon; no spaces).";
 "settings.remote.syncNow" = "Sync now";
