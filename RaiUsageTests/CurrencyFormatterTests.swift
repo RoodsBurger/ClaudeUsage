@@ -80,4 +80,30 @@ struct CurrencyFormatterTests {
         #expect(limit == "$300")
         #expect(used == "$180")
     }
+
+    // MARK: - Estimated cost (major units, always 2 dp, sub-cent floor)
+
+    @Test func estimatedCostKeepsTwoDecimals() {
+        #expect(CurrencyFormatter.formatEstimatedCost(12.5, locale: usLocale) == "$12.50")
+        #expect(CurrencyFormatter.formatEstimatedCost(12, locale: usLocale) == "$12.00")
+        #expect(CurrencyFormatter.formatEstimatedCost(0, locale: usLocale) == "$0.00")
+    }
+
+    @Test func estimatedCostRoundsToTwoDecimals() {
+        #expect(CurrencyFormatter.formatEstimatedCost(1.239, locale: usLocale) == "$1.24")
+    }
+
+    @Test func estimatedCostSubCentShowsLessThanFloor() {
+        #expect(CurrencyFormatter.formatEstimatedCost(0.004, locale: usLocale) == "<$0.01")
+        #expect(CurrencyFormatter.formatEstimatedCost(0.0001, locale: usLocale) == "<$0.01")
+    }
+
+    @Test func estimatedCostExactlyOneCentIsShown() {
+        #expect(CurrencyFormatter.formatEstimatedCost(0.01, locale: usLocale) == "$0.01")
+    }
+
+    @Test func estimatedCostLargeAmountHasGrouping() {
+        let result = CurrencyFormatter.formatEstimatedCost(1234.5, locale: usLocale)
+        #expect(result == "$1,234.50")
+    }
 }

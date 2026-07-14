@@ -50,6 +50,12 @@ final class DisplaySettingsStore: ObservableObject {
     @Published var criticalThreshold: Int {
         didSet { UserDefaults.standard.set(criticalThreshold, forKey: "criticalThreshold") }
     }
+    /// Enterprise-only: show an estimated per-model + total cost in the History
+    /// view, derived from published list prices. Off by default; the settings
+    /// row that flips it only appears on the enterprise plan.
+    @Published var showCostEstimate: Bool {
+        didSet { UserDefaults.standard.set(showCostEstimate, forKey: "showCostEstimate") }
+    }
     @Published var sessionPacingDisplayMode: PacingDisplayMode {
         didSet { UserDefaults.standard.set(sessionPacingDisplayMode.rawValue, forKey: "sessionPacingDisplayMode") }
     }
@@ -85,6 +91,8 @@ final class DisplaySettingsStore: ObservableObject {
         self.resetDisplayFormat = ResetDisplayFormat(
             rawValue: UserDefaults.standard.string(forKey: "resetDisplayFormat") ?? "relative"
         ) ?? .relative
+
+        self.showCostEstimate = SettingsDefaults.bool(key: "showCostEstimate", default: false)
 
         // Default ON.
         self.smartColorEnabled = UserDefaults.standard.object(forKey: "smartColorEnabled") as? Bool ?? true

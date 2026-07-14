@@ -174,6 +174,41 @@ final class SessionHistoryService: SessionHistoryServiceProtocol {
             return nil
         }
 
+        let parsed = parse(content: content, projectFallback: decodedProject(from: url))
+        let bucketsByHour = parsed.bucketsByHour
+        let sessionIds = parsed.sessionIds
+
+        // Each file is a single session. The session-count contribution is 1
+        // per *distinct* session id we observed. In practice that's always 1
+        // for a JSONL file, but the format technically allows multiple ids
+        // (resumes), so count properly.
+        let sessions = max(1, sessionIds.count)
+        var output = bucketsByHour
+        // Distribute the file's session count across its earliest bucket so
+        // the daily aggregator can sum without double-counting.
+        if let earliest = output.keys.min() {
+            output[earliest]?.sessionsCount = sessions
+        }
+
+        return HistoryFileCacheEntry(
+            path: url.path,
+            mtime: mtime,
+            buckets: Array(output.values).sorted { $0.date < $1.date },
+            sessionIds: Array(sessionIds)
+        )
+    }
+
+    /// Parsed hourly buckets + distinct session ids for one JSONL body.
+    struct ParsedFile {
+        var bucketsByHour: [Date: HistoryBucket]
+        var sessionIds: Set<String>
+    }
+
+    /// Pure per-line aggregation of a JSONL body into hourly buckets. Splits
+    /// tokens per model (both the coarse `ModelKind` totals and the per raw
+    /// model id `TokenBreakdown` used for cost) in a single pass. `internal`
+    /// (not `private`) so it is directly unit-testable with a JSONL fixture.
+    static func parse(content: String, projectFallback: String) -> ParsedFile {
         var bucketsByHour: [Date: HistoryBucket] = [:]
         var sessionIds: Set<String> = []
 
@@ -203,7 +238,7 @@ final class SessionHistoryService: SessionHistoryServiceProtocol {
             if let cwd = obj["cwd"] as? String, !cwd.isEmpty {
                 projectPath = cwd
             } else {
-                projectPath = decodedProject(from: url)
+                projectPath = projectFallback
             }
 
             // Pull message + usage payload.
@@ -235,27 +270,14 @@ final class SessionHistoryService: SessionHistoryServiceProtocol {
             bucket.outputTokens += output
             bucket.cacheReadTokens += cacheRead
             bucket.cacheCreateTokens += cacheCreate
+            // Per raw model id split for cost. Keyed by the exact model string
+            // so pricing can distinguish versions (e.g. sonnet-5 vs sonnet-4-6).
+            bucket.tokensByRawModelDetailed[modelString, default: .zero] = bucket.tokensByRawModelDetailed[modelString, default: .zero]
+                + TokenBreakdown(input: input, output: output, cacheRead: cacheRead, cacheCreate: cacheCreate)
             bucketsByHour[bucketDate] = bucket
         }
 
-        // Each file is a single session. The session-count contribution is 1
-        // per *distinct* session id we observed. In practice that's always 1
-        // for a JSONL file, but the format technically allows multiple ids
-        // (resumes), so count properly.
-        let sessions = max(1, sessionIds.count)
-        var output = bucketsByHour
-        // Distribute the file's session count across its earliest bucket so
-        // the daily aggregator can sum without double-counting.
-        if let earliest = output.keys.min() {
-            output[earliest]?.sessionsCount = sessions
-        }
-
-        return HistoryFileCacheEntry(
-            path: url.path,
-            mtime: mtime,
-            buckets: Array(output.values).sorted { $0.date < $1.date },
-            sessionIds: Array(sessionIds)
-        )
+        return ParsedFile(bucketsByHour: bucketsByHour, sessionIds: sessionIds)
     }
 
     // MARK: - Aggregation across files

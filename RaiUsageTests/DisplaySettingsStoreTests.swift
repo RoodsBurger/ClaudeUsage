@@ -11,7 +11,7 @@ struct DisplaySettingsStoreTests {
         "smartColorEnabled", "smartColorProfile",
         "sessionPacingDisplayMode", "weeklyPacingDisplayMode",
         "menuBarConfig", "popoverConfig",
-        "warningThreshold", "criticalThreshold",
+        "warningThreshold", "criticalThreshold", "showCostEstimate",
     ]
     private func clean() { displayKeys.forEach { UserDefaults.standard.removeObject(forKey: $0) } }
 
@@ -32,6 +32,18 @@ struct DisplaySettingsStoreTests {
         #expect(store.thresholds == UsageThresholds(warningPercent: 60, criticalPercent: 85))
         #expect(store.menuBarConfig == MenuBarConfig())
         #expect(store.popoverConfig == PopoverConfig())
+        #expect(store.showCostEstimate == false)
+    }
+
+    @Test("showCostEstimate persists to UserDefaults")
+    func showCostEstimatePersists() {
+        clean(); defer { clean() }
+        let store = DisplaySettingsStore()
+        #expect(store.showCostEstimate == false)
+        store.showCostEstimate = true
+        #expect(UserDefaults.standard.bool(forKey: "showCostEstimate") == true)
+        // A fresh store re-reads the persisted value.
+        #expect(DisplaySettingsStore().showCostEstimate == true)
     }
 
     @Test("changing popoverConfig persists to UserDefaults as JSON")

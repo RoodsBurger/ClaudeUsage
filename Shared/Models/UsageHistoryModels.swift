@@ -135,6 +135,31 @@ enum HistoryFilter: Hashable, Sendable {
     var isAll: Bool { if case .all = self { true } else { false } }
 }
 
+// MARK: - Token breakdown
+
+/// Per-model split of the four billable token classes, used to price usage.
+/// Kept separate from the aggregate `HistoryBucket` counters so cost can be
+/// computed per raw model id (pricing differs by exact version, e.g.
+/// `sonnet-5` vs `sonnet-4-6`).
+struct TokenBreakdown: Codable, Sendable, Equatable, Hashable {
+    var input: Int
+    var output: Int
+    var cacheRead: Int
+    var cacheCreate: Int
+
+    static let zero = TokenBreakdown(input: 0, output: 0, cacheRead: 0, cacheCreate: 0)
+
+    /// Element-wise sum, used when merging buckets across files.
+    static func + (lhs: TokenBreakdown, rhs: TokenBreakdown) -> TokenBreakdown {
+        TokenBreakdown(
+            input: lhs.input + rhs.input,
+            output: lhs.output + rhs.output,
+            cacheRead: lhs.cacheRead + rhs.cacheRead,
+            cacheCreate: lhs.cacheCreate + rhs.cacheCreate
+        )
+    }
+}
+
 // MARK: - Aggregates
 
 /// Per-bucket aggregate produced by `SessionHistoryService`. The bucket can be
@@ -157,6 +182,13 @@ struct HistoryBucket: Identifiable, Codable, Sendable {
     var outputTokens: Int
     var cacheReadTokens: Int
     var cacheCreateTokens: Int
+    /// Per raw-model-id token split, keyed by the exact model string from the
+    /// JSONL so cost can price each version separately. Defaulted so the
+    /// synthesized memberwise init stays source-compatible with the existing
+    /// call sites; the cache version bump discards any pre-existing cache that
+    /// lacks the field. Only populated by the parser (empty in the summary /
+    /// filter paths that don't need it).
+    var tokensByRawModelDetailed: [String: TokenBreakdown] = [:]
 
     var id: Date { date }
 
@@ -188,6 +220,8 @@ struct HistoryBucket: Identifiable, Codable, Sendable {
         for (k, v) in rhs.tokensByModel { byModel[k, default: 0] += v }
         var byProject = lhs.tokensByProject
         for (k, v) in rhs.tokensByProject { byProject[k, default: 0] += v }
+        var byRaw = lhs.tokensByRawModelDetailed
+        for (k, v) in rhs.tokensByRawModelDetailed { byRaw[k, default: .zero] = byRaw[k, default: .zero] + v }
         return HistoryBucket(
             date: date,
             tokensByModel: byModel,
@@ -196,7 +230,8 @@ struct HistoryBucket: Identifiable, Codable, Sendable {
             inputTokens: lhs.inputTokens + rhs.inputTokens,
             outputTokens: lhs.outputTokens + rhs.outputTokens,
             cacheReadTokens: lhs.cacheReadTokens + rhs.cacheReadTokens,
-            cacheCreateTokens: lhs.cacheCreateTokens + rhs.cacheCreateTokens
+            cacheCreateTokens: lhs.cacheCreateTokens + rhs.cacheCreateTokens,
+            tokensByRawModelDetailed: byRaw
         )
     }
 }
@@ -266,9 +301,9 @@ struct HistoryCache: Codable, Sendable {
     var version: Int
     var entries: [String: HistoryFileCacheEntry]
 
-    /// v2: bumped so existing caches that bucketed `claude-fable-5` under
-    /// `.other` (before Fable had its own `ModelKind`) are discarded and
-    /// re-scanned, reclassifying Fable history immediately on update (#199).
-    static let currentVersion = 2
+    /// v3: bumped so existing caches (which predate the per-raw-model
+    /// `tokensByRawModelDetailed` field) are discarded and re-scanned, so the
+    /// cost estimate has its per-model token split from the first open.
+    static let currentVersion = 3
     static let empty = HistoryCache(version: currentVersion, entries: [:])
 }

@@ -38,10 +38,15 @@ final class HistoryStore: ObservableObject {
     // MARK: - Wiring
 
     private let service: SessionHistoryServiceProtocol
+    private let pricing: PricingServiceProtocol
     private var loadTask: Task<Void, Never>?
 
-    init(service: SessionHistoryServiceProtocol = SessionHistoryService()) {
+    init(
+        service: SessionHistoryServiceProtocol = SessionHistoryService(),
+        pricing: PricingServiceProtocol = PricingService()
+    ) {
         self.service = service
+        self.pricing = pricing
     }
 
     // MARK: - Public
@@ -50,6 +55,11 @@ final class HistoryStore: ObservableObject {
         loadTask?.cancel()
         let range = self.range
         let service = self.service
+        // Refresh the maintained price table in the background (throttled to
+        // 24h internally). Fire-and-forget: the cost UI reads the cached table
+        // synchronously and never waits on this.
+        let pricing = self.pricing
+        Task { await pricing.refresh() }
         isLoading = true
         loadTask = Task { [weak self] in
             guard let self else { return }
@@ -216,9 +226,10 @@ final class HistoryStore: ObservableObject {
     }
 
     /// Chart-facing filter: keeps every field intact and narrows only
-    /// `tokensByModel` to the selected family. Distinct from the private
-    /// `applyFilter` used by the summary, which additionally scales the
-    /// cache counters. Pure + static for unit tests.
+    /// `tokensByModel` (and the per raw-model cost breakdown) to the selected
+    /// family. Distinct from the private `applyFilter` used by the summary,
+    /// which additionally scales the cache counters. Pure + static for unit
+    /// tests.
     nonisolated static func bucketsForChart(_ buckets: [HistoryBucket], filter: HistoryFilter) -> [HistoryBucket] {
         switch filter {
         case .all:
@@ -227,6 +238,8 @@ final class HistoryStore: ObservableObject {
             return buckets.map { bucket in
                 var b = bucket
                 b.tokensByModel = bucket.tokensByModel.filter { $0.key.family == family }
+                b.tokensByRawModelDetailed = bucket.tokensByRawModelDetailed
+                    .filter { ModelKind(rawModel: $0.key).family == family }
                 return b
             }
         }
@@ -235,5 +248,41 @@ final class HistoryStore: ObservableObject {
     /// Instance accessor over the loaded buckets with the active filter applied.
     var filteredBuckets: [HistoryBucket] {
         Self.bucketsForChart(buckets, filter: filter)
+    }
+
+    // MARK: - Cost estimate
+
+    /// Merged per raw-model token breakdown across the given buckets. Pure +
+    /// static so cost derivation is unit-testable without a store instance.
+    nonisolated static func breakdownByRawModel(in buckets: [HistoryBucket]) -> [String: TokenBreakdown] {
+        var merged: [String: TokenBreakdown] = [:]
+        for bucket in buckets {
+            for (raw, bd) in bucket.tokensByRawModelDetailed {
+                merged[raw, default: .zero] = merged[raw, default: .zero] + bd
+            }
+        }
+        return merged
+    }
+
+    /// Estimated cost over the currently loaded buckets with the active filter
+    /// applied, priced with the best available table. The number is an estimate
+    /// from list prices; the view labels it as such.
+    var estimatedCost: CostEstimator.Estimate {
+        CostEstimator.estimate(
+            breakdownByRawModel: Self.breakdownByRawModel(in: filteredBuckets),
+            pricing: pricing.currentPricing()
+        )
+    }
+
+    /// Currency the cost estimate is quoted in (from the active price table).
+    var costCurrencyCode: String { pricing.currentPricing().currencyCode }
+
+    /// Estimated cost for a single bucket, priced per raw model id and folded
+    /// to `ModelKind`. Drives the per-model line in the hover tooltip.
+    func estimatedCost(for bucket: HistoryBucket) -> CostEstimator.Estimate {
+        CostEstimator.estimate(
+            breakdownByRawModel: bucket.tokensByRawModelDetailed,
+            pricing: pricing.currentPricing()
+        )
     }
 }

@@ -63,6 +63,8 @@
 "settings.general.replayOnboarding" = "Replay onboarding";
 "settings.general.replayOnboarding.hint" = "Restart the welcome flow from the beginning. Useful to reconnect, review notification permissions, or rediscover features.";
 "settings.general.replayOnboarding.action" = "Replay";
+"settings.general.showCost" = "Show estimated cost (History)";
+"settings.general.showCost.hint" = "Estimates model cost from published list prices — may differ from your actual bill.";
 
 /* Connect */
 "connect.oauth.success" = "Connected via Claude Code";
@@ -415,6 +417,10 @@
 /* Chart hover tooltip */
 "history.tooltip.tokens" = "tokens";
 "history.tooltip.sessions" = "%lld session(s)";
+
+/* Estimated cost (enterprise, opt-in) */
+"history.cost.est" = "est.";
+"history.cost.tooltip" = "Estimated from published list prices. Your actual enterprise bill may differ.";
 "sidebar.display" = "Menu bar";
 "sidebar.popover" = "Popover";
 "sidebar.pacing" = "Pacing";

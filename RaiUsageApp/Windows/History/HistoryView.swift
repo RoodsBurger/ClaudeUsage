@@ -13,9 +13,17 @@ struct HistoryView: View {
     /// Owned by `MainAppView` so the buckets survive navigation away
     /// and re-entries hit warm data.
     @ObservedObject var store: HistoryStore
+    @EnvironmentObject private var usageStore: UsageStore
+    @EnvironmentObject private var settingsStore: SettingsStore
     @State private var hoveredBucket: HistoryBucket?
     @State private var chartReveal: Double = 1.0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    /// Estimated cost is enterprise-only and opt-in. When false the view is
+    /// pixel-identical to the personal-plan layout (no cost anywhere).
+    private var costEnabled: Bool {
+        usageStore.planType == .enterprise && settingsStore.display.showCostEstimate
+    }
 
     /// Single source of truth for the page-level progress bar. Mirrors the
     /// roles of the two old in-place spinners (sessions badge + chart card
@@ -112,6 +120,9 @@ struct HistoryView: View {
                     .font(DS.Typography.micro)
                     .tracking(0.8)
                     .foregroundStyle(.tertiary)
+                if costEnabled {
+                    heroCostBadge
+                }
             }
 
             VStack(alignment: .leading, spacing: 6) {
@@ -139,6 +150,40 @@ struct HistoryView: View {
             RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
                 .stroke(DS.Pastel.border, lineWidth: 1)
         )
+    }
+
+    /// Estimated total cost for the visible range, sitting just under the hero
+    /// number. Prefixed with `~` and carrying an "est." badge whose tooltip
+    /// spells out the list-price basis. Enterprise + toggle gated by the caller.
+    private var heroCostBadge: some View {
+        HStack(spacing: 6) {
+            Text("~" + CurrencyFormatter.formatEstimatedCost(store.estimatedCost.total, currencyCode: store.costCurrencyCode))
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(DS.Pastel.green)
+                .monospacedDigit()
+                .contentTransition(.numericText())
+            estBadge
+        }
+        .padding(.top, 2)
+        .help(String(localized: "history.cost.tooltip"))
+    }
+
+    /// Small "est." pill flagging that a nearby number is a list-price estimate,
+    /// not a billed amount. Carries the same explanatory tooltip.
+    private var estBadge: some View {
+        Text(String(localized: "history.cost.est"))
+            .font(.system(size: 9, weight: .semibold))
+            .tracking(0.4)
+            .textCase(.lowercase)
+            .foregroundStyle(DS.Pastel.green)
+            .padding(.horizontal, 5)
+            .padding(.vertical, 1)
+            .background(
+                Capsule()
+                    .fill(DS.Pastel.green.opacity(0.14))
+                    .overlay(Capsule().stroke(DS.Pastel.green.opacity(0.35), lineWidth: 0.6))
+            )
+            .help(String(localized: "history.cost.tooltip"))
     }
 
     /// Right-anchored badge inside the hero card carrying the sessions
@@ -552,6 +597,7 @@ struct HistoryView: View {
     private func tooltipCard(for bucket: HistoryBucket, visibleKinds: [ModelKind]) -> some View {
         let kinds = visibleKinds.filter { (bucket.tokensByModel[$0] ?? 0) > 0 }
         let total = kinds.reduce(0) { $0 + (bucket.tokensByModel[$1] ?? 0) }
+        let costs = costEnabled ? store.estimatedCost(for: bucket) : .zero
 
         VStack(alignment: .leading, spacing: 8) {
             Text(formatTooltipDate(bucket.date))
@@ -568,6 +614,16 @@ struct HistoryView: View {
                 Text("history.tooltip.tokens")
                     .font(.system(size: 10))
                     .foregroundStyle(.tertiary)
+            }
+
+            if costEnabled {
+                HStack(spacing: 5) {
+                    Text("~" + CurrencyFormatter.formatEstimatedCost(costs.total, currencyCode: store.costCurrencyCode))
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(DS.Pastel.green)
+                        .monospacedDigit()
+                    estBadge
+                }
             }
 
             if !kinds.isEmpty {
@@ -590,6 +646,13 @@ struct HistoryView: View {
                                 .font(.system(size: 11, weight: .medium))
                                 .foregroundStyle(.primary)
                                 .monospacedDigit()
+                            if costEnabled {
+                                Text(CurrencyFormatter.formatEstimatedCost(costs.perModel[kind] ?? 0, currencyCode: store.costCurrencyCode))
+                                    .font(.system(size: 10, weight: .medium))
+                                    .foregroundStyle(DS.Pastel.green)
+                                    .monospacedDigit()
+                                    .frame(minWidth: 44, alignment: .trailing)
+                            }
                         }
                     }
                 }

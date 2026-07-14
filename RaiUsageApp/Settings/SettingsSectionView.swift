@@ -110,6 +110,16 @@ struct SettingsSectionView: View {
                 isOn: $settingsStore.display.launchInBackground
             )
 
+            // Estimated cost is an enterprise-only surface: the row only exists
+            // on the enterprise plan, so personal plans stay pixel-identical.
+            if usageStore.planType == .enterprise {
+                toggleRow(
+                    String(localized: "settings.general.showCost"),
+                    hint: String(localized: "settings.general.showCost.hint"),
+                    isOn: $settingsStore.display.showCostEstimate
+                )
+            }
+
             HStack(alignment: .center, spacing: 12) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(String(localized: "settings.general.replayOnboarding"))

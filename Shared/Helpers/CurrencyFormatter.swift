@@ -52,4 +52,40 @@ enum CurrencyFormatter {
         return formatter.string(from: NSNumber(value: majorValue))
             ?? "\(code) \(majorValue)"
     }
+
+    /// Formats an estimated cost given in **major units** (dollars, not cents)
+    /// for the History cost estimate. Always shows the currency's canonical
+    /// fraction digits (2 for USD), so `12.5` renders `$12.50`. A positive
+    /// amount that rounds below one cent collapses to `<$0.01` rather than
+    /// lying with `$0.00`. Zero renders as `$0.00`.
+    ///
+    /// - Parameters:
+    ///   - amount: cost in major units (e.g. `12.5` for twelve dollars fifty).
+    ///   - currencyCode: ISO 4217 code; falls back to `USD`.
+    ///   - locale: locale for grouping + symbol placement.
+    static func formatEstimatedCost(
+        _ amount: Double,
+        currencyCode: String? = "USD",
+        locale: Locale = .current
+    ) -> String {
+        let code = (currencyCode?.isEmpty == false) ? currencyCode! : "USD"
+
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = code
+        formatter.locale = locale
+
+        let fractionDigits = formatter.maximumFractionDigits
+        let epsilon = fractionDigits > 0 ? pow(10.0, -Double(fractionDigits)) : 1
+
+        // Sub-minor-unit but non-zero: don't round down to a misleading zero.
+        if amount > 0 && amount < epsilon {
+            let threshold = formatter.string(from: NSNumber(value: epsilon)) ?? "\(code) \(epsilon)"
+            return "<\(threshold)"
+        }
+
+        formatter.minimumFractionDigits = fractionDigits
+        formatter.maximumFractionDigits = fractionDigits
+        return formatter.string(from: NSNumber(value: amount)) ?? "\(code) \(amount)"
+    }
 }
