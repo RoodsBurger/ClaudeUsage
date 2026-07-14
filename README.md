@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="TokenEaterApp/Assets.xcassets/AppIcon.appiconset/icon_256x256.png" width="128" height="128" alt="TokenEater">
+  <img src="TokenEaterApp/Assets.xcassets/AppIcon.appiconset/icon_256x256.png" width="128" height="128" alt="RaiUsage">
 </p>
 
-<h1 align="center">TokenEater</h1>
+<h1 align="center">RaiUsage</h1>
 
 <p align="center">
   <strong>Monitor your Claude AI usage limits directly from your macOS desktop.</strong>
@@ -24,7 +24,7 @@
 
 > **Requires a Claude Pro, Max, or Team plan.** The free plan does not expose usage data.
 
-## What is TokenEater?
+## What is RaiUsage?
 
 A native macOS menu bar app + desktop widgets + floating overlay that tracks your Claude AI usage in real-time.
 
@@ -62,21 +62,21 @@ brew install --cask tokeneater
 
 **Prerequisites:** [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed and authenticated (`claude` then `/login`). Requires a **Pro, Max, or Team plan**.
 
-1. Open TokenEater — a guided setup walks you through connecting your account
-2. Right-click on desktop > **Edit Widgets** > search "TokenEater"
+1. Open RaiUsage — a guided setup walks you through connecting your account
+2. Right-click on desktop > **Edit Widgets** > search "RaiUsage"
 
 ## Update
 
-TokenEater checks for updates automatically. When a new version is available, a modal lets you download and install it in-app — macOS will ask for your admin password to replace the app in `/Applications`.
+RaiUsage checks for updates automatically. When a new version is available, a modal lets you download and install it in-app — macOS will ask for your admin password to replace the app in `/Applications`.
 
 If you installed via Homebrew: `brew update && brew upgrade --cask tokeneater`
 
 ## Uninstall
 
-Delete `TokenEater.app` from Applications, then optionally clean up shared data:
+Delete `RaiUsage.app` from Applications, then optionally clean up shared data:
 ```bash
-rm -rf /Applications/TokenEater.app
-rm -rf ~/Library/Application\ Support/com.tokeneater.shared
+rm -rf /Applications/RaiUsage.app
+rm -rf ~/Library/Application\ Support/com.raiusage.shared
 ```
 
 If installed via Homebrew: `brew uninstall --cask tokeneater`
@@ -91,7 +91,7 @@ cd TokenEater
 xcodegen generate
 xcodebuild -project TokenEater.xcodeproj -scheme TokenEaterApp \
   -configuration Release -derivedDataPath build build
-cp -R "build/Build/Products/Release/TokenEater.app" /Applications/
+cp -R "build/Build/Products/Release/RaiUsage.app" /Applications/
 ```
 
 ## Architecture
@@ -121,7 +121,7 @@ Returns `utilization` (0–100) and `resets_at` for each limit bucket.
 
 ## Security & Privacy
 
-TokenEater reads an **OAuth access token** from the Claude Code keychain entry - the same standard token that Claude Code itself uses. At first launch, macOS will prompt you to allow this access; this is normal macOS behavior for any app reading a keychain item it didn't create.
+RaiUsage reads an **OAuth access token** from the Claude Code keychain entry - the same standard token that Claude Code itself uses. At first launch, macOS will prompt you to allow this access; this is normal macOS behavior for any app reading a keychain item it didn't create.
 
 **What the app does with the token:**
 - Calls `GET /api/oauth/usage` (your current usage stats)
@@ -131,7 +131,7 @@ TokenEater reads an **OAuth access token** from the Claude Code keychain entry -
 
 The token never leaves your machine except for these two API calls to `api.anthropic.com`. The widget reads a local JSON file and has no network or keychain access at all.
 
-Anthropic does not currently offer a third-party OAuth flow or scoped API tokens - reading the existing token from the keychain is the only option. If scoped tokens become available, TokenEater will adopt them immediately. The entire codebase is open source and auditable: keychain access is in [`SecurityCLIReader.swift`](Shared/Services/SecurityCLIReader.swift) (primary) and [`TokenProvider.swift`](Shared/Services/TokenProvider.swift) (Security-framework fallback), API calls in [`APIClient.swift`](Shared/Services/APIClient.swift).
+Anthropic does not currently offer a third-party OAuth flow or scoped API tokens - reading the existing token from the keychain is the only option. If scoped tokens become available, RaiUsage will adopt them immediately. The entire codebase is open source and auditable: keychain access is in [`SecurityCLIReader.swift`](Shared/Services/SecurityCLIReader.swift) (primary) and [`TokenProvider.swift`](Shared/Services/TokenProvider.swift) (Security-framework fallback), API calls in [`APIClient.swift`](Shared/Services/APIClient.swift).
 
 ## Troubleshooting
 
@@ -139,7 +139,7 @@ Anthropic does not currently offer a third-party OAuth flow or scoped API tokens
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| "Rate limited" or "API unavailable" | Your OAuth token has hit its per-token request limit | Run `claude /login` in your terminal for a fresh token - TokenEater detects the change and recovers automatically within seconds |
+| "Rate limited" or "API unavailable" | Your OAuth token has hit its per-token request limit | Run `claude /login` in your terminal for a fresh token - RaiUsage detects the change and recovers automatically within seconds |
 | Keychain popup asking to access "Claude Code-credentials" | First run on a new install needs to authorize `/usr/bin/security` to read your Claude Code token | Click **Always Allow** once - it sticks across future app updates |
 
 ### Clean reset
@@ -148,24 +148,24 @@ If something is broken and you want to start fresh, run this in your terminal. I
 
 ```bash
 # 1. Kill processes
-killall TokenEater NotificationCenter cfprefsd 2>/dev/null; sleep 1
+killall RaiUsage NotificationCenter cfprefsd 2>/dev/null; sleep 1
 
 # 2. Wipe preferences
-defaults delete com.tokeneater.app 2>/dev/null
-rm -f ~/Library/Preferences/com.tokeneater.app.plist
+defaults delete com.raiusage.app 2>/dev/null
+rm -f ~/Library/Preferences/com.raiusage.app.plist
 
 # 3. Wipe sandbox containers
-for c in com.tokeneater.app; do
+for c in com.raiusage.app; do
     d="$HOME/Library/Containers/$c/Data"
     [ -d "$d" ] && rm -rf "$d/Library/Preferences/"* "$d/Library/Caches/"* "$d/Library/Application Support/"* "$d/tmp/"* 2>/dev/null
 done
 
 # 4. Wipe shared data and caches
-rm -rf ~/Library/Application\ Support/com.tokeneater.shared
-rm -rf ~/Library/Caches/com.tokeneater.app
+rm -rf ~/Library/Application\ Support/com.raiusage.shared
+rm -rf ~/Library/Caches/com.raiusage.app
 
 # 5. Remove the app
-rm -rf /Applications/TokenEater.app
+rm -rf /Applications/RaiUsage.app
 ```
 
 > Some `Operation not permitted` errors on container metadata files are normal - macOS protects those, but the actual data is cleaned.
@@ -178,7 +178,7 @@ Contributions are welcome! Bug reports, feature ideas and code PRs all help. See
 
 ## Support
 
-If TokenEater saves you from hitting your limits blindly, consider [buying me a coffee](https://buymeacoffee.com/athevon) ☕
+If RaiUsage saves you from hitting your limits blindly, consider [buying me a coffee](https://buymeacoffee.com/athevon) ☕
 
 ## License
 

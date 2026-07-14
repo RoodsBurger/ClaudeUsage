@@ -32,7 +32,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 @main
-struct TokenEaterApp: App {
+struct RaiUsageApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     private let usageStore: UsageStore

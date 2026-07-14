@@ -1,6 +1,6 @@
 #!/bin/bash
 # Enable App Group entitlements once the paid Developer Team cert is available
-# and `group.com.tokeneater` is registered in the Developer Portal.
+# and `group.com.raiusage` is registered in the Developer Portal.
 #
 # Usage:
 #   ./scripts/enable-app-groups.sh
@@ -14,7 +14,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APP_ENT="$ROOT/TokenEaterApp/TokenEaterApp.entitlements"
 WIDGET_ENT="$ROOT/TokenEaterWidget/TokenEaterWidget.entitlements"
 
-GROUP_ID="group.com.tokeneater"
+GROUP_ID="group.com.raiusage"
 
 # Insert the App Group entitlement into the main app. Also strip the "added by
 # script" placeholder comments for cleanliness.
@@ -40,7 +40,7 @@ echo "Removed temporary-exception from $WIDGET_ENT"
 
 echo ""
 echo "Done. Next steps:"
-echo "  1. Register 'group.com.tokeneater' App Group in Apple Developer Portal"
-echo "  2. Add it to the App IDs for com.tokeneater.app and com.tokeneater.app.widget"
+echo "  1. Register 'group.com.raiusage' App Group in Apple Developer Portal"
+echo "  2. Add it to the App IDs for com.raiusage.app and com.raiusage.app.widget"
 echo "  3. Run: xcodegen generate"
 echo "  4. Clean build + full local test (mega nuke + install)"

@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>TokenEater</string>
+	<string>RaiUsage</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -22,10 +22,10 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>com.tokeneater.app</string>
+			<string>com.raiusage.app</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>tokeneater</string>
+				<string>raiusage</string>
 			</array>
 		</dict>
 	</array>

@@ -226,7 +226,7 @@ final class ElectronDecryptionService: ElectronDecryptionServiceProtocol, @unche
         }
         return URL(fileURLWithPath: home)
             .appendingPathComponent("Library/Application Support")
-            .appendingPathComponent("com.tokeneater.shared")
+            .appendingPathComponent("com.raiusage.shared")
             .appendingPathComponent(keyFileName)
     }
 

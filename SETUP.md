@@ -1,4 +1,4 @@
-# TokenEater — Setup
+# RaiUsage — Setup
 
 Native macOS widget to display Claude usage (session, weekly all models, weekly Sonnet).
 
@@ -38,21 +38,21 @@ xcodebuild -project TokenEater.xcodeproj \
 ### Install
 
 ```bash
-cp -R "build/Build/Products/Release/TokenEater.app" /Applications/
+cp -R "build/Build/Products/Release/RaiUsage.app" /Applications/
 ```
 
 > **Note** - this section covers building from source for local development. The build above is signed with your Apple Development cert (or ad-hoc) and is **not notarized**, so Gatekeeper will block the first launch:
 >
-> 1. Double-click **TokenEater.app** in Applications - macOS will block it
-> 2. Open **System Settings -> Privacy & Security** -> scroll to the TokenEater entry -> click **Open Anyway**
+> 1. Double-click **RaiUsage.app** in Applications - macOS will block it
+> 2. Open **System Settings -> Privacy & Security** -> scroll to the RaiUsage entry -> click **Open Anyway**
 >
 > If you want a frictionless install, **download the official notarized DMG from [Releases](https://github.com/AThevon/TokenEater/releases/latest)** instead - it opens directly without any Gatekeeper prompt.
 
 ## Configuration
 
-1. Open **TokenEater.app** — the onboarding wizard guides you through setup
+1. Open **RaiUsage.app** — the onboarding wizard guides you through setup
 2. It reads the OAuth token from Claude Code's Keychain entry automatically
-3. Add the widget: **right-click desktop** > **Edit Widgets** > search "TokenEater"
+3. Add the widget: **right-click desktop** > **Edit Widgets** > search "RaiUsage"
 
 ## Structure
 

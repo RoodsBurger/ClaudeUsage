@@ -687,7 +687,7 @@ final class StatusBarController: NSObject {
         } else {
             window.minSize = Self.dashboardMinSize
             window.contentMinSize = Self.dashboardMinSize
-            window.setFrameAutosaveName("TokenEaterMain")
+            window.setFrameAutosaveName("RaiUsageMain")
         }
 
         window.makeKeyAndOrderFront(nil)
@@ -724,7 +724,7 @@ final class StatusBarController: NSObject {
         window.contentMaxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
         window.minSize = NSSize(width: 600, height: 440)
         window.isMovableByWindowBackground = false
-        window.setFrameAutosaveName("TokenEaterMain")
+        window.setFrameAutosaveName("RaiUsageMain")
         let mainSize = NSSize(width: 940, height: 700)
         window.setContentSize(mainSize)
         window.center()

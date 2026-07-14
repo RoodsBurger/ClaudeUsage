@@ -1,8 +1,8 @@
-# Contributing to TokenEater
+# Contributing to RaiUsage
 
 Hey, thanks for thinking about contributing ! Bug reports, feature ideas, code PRs, all of it helps a ton
 
-TokenEater is a side project so this guide is more "here's how things tend to work" than a strict ruleset
+RaiUsage is a side project so this guide is more "here's how things tend to work" than a strict ruleset
 
 Couple of small things to know:
 
@@ -14,10 +14,10 @@ Couple of small things to know:
 Use the **Bug report** template, it'll walk you through it. The more info you give, the easier the bug is to track down. The most useful stuff:
 
 - macOS version
-- TokenEater version (in *Settings -> About* or the menu bar tooltip)
+- RaiUsage version (in *Settings -> About* or the menu bar tooltip)
 - Repro steps if you have them
 - A screenshot or recording for anything visual
-- Console logs from `Console.app` (filter by `TokenEater`) for anything mysterious
+- Console logs from `Console.app` (filter by `RaiUsage`) for anything mysterious
 
 If you can't reproduce reliably that's fine, just say so
 

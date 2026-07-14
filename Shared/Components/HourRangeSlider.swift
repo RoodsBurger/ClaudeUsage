@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Dual-thumb range slider over a 0...24h track, in the TokenEaterSlider visual
+/// Dual-thumb range slider over a 0...24h track, in the RaiUsageSlider visual
 /// language (capsule track, tint-filled active span between the thumbs, white
 /// thumbs that scale + halo on hover/drag). Drives the "active hours" window for
 /// workweek pacing: the user sees and drags their work window directly instead

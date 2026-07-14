@@ -2,7 +2,7 @@ import Foundation
 import Security
 import os.log
 
-private let logger = Logger(subsystem: "com.tokeneater.app", category: "TokenProvider")
+private let logger = Logger(subsystem: "com.raiusage.app", category: "TokenProvider")
 
 final class TokenProvider: TokenProviderProtocol, @unchecked Sendable {
     private let securityCLIReader: SecurityCLIReaderProtocol
@@ -383,7 +383,7 @@ final class TokenProvider: TokenProviderProtocol, @unchecked Sendable {
         try? FileManager.default.removeItem(at: fileURL)
     }
 
-    /// `~/Library/Application Support/com.tokeneater.shared/oauth-import.json`,
+    /// `~/Library/Application Support/com.raiusage.shared/oauth-import.json`,
     /// resolved via the real home directory (`getpwuid`) rather than
     /// `FileManager.homeDirectoryForCurrentUser`, which returns the sandbox
     /// container path inside the widget - see `SharedFileService`.
@@ -396,7 +396,7 @@ final class TokenProvider: TokenProviderProtocol, @unchecked Sendable {
         }
         return URL(fileURLWithPath: home)
             .appendingPathComponent("Library/Application Support")
-            .appendingPathComponent("com.tokeneater.shared")
+            .appendingPathComponent("com.raiusage.shared")
             .appendingPathComponent("oauth-import.json")
     }
 

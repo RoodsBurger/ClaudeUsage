@@ -1,4 +1,4 @@
-# TokenEater Coloring System
+# RaiUsage Coloring System
 
 Reference doc for how colors are computed across the app. Three independent systems coexist, each answering a different question.
 

@@ -62,7 +62,7 @@ final class OAuthService: OAuthServiceProtocol {
     /// `isFinished`/`redirectURI`/`stopListener` fields run here. Injected seams
     /// (transport, browser, listener) and user completions are always invoked
     /// outside this queue to avoid reentrant deadlocks.
-    private let stateQueue = DispatchQueue(label: "com.tokeneater.oauth.state")
+    private let stateQueue = DispatchQueue(label: "com.raiusage.oauth.state")
 
     // MARK: - Init
 

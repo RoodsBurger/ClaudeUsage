@@ -1,5 +1,5 @@
 name: Feature request
-description: Suggest a new feature or improvement for TokenEater
+description: Suggest a new feature or improvement for RaiUsage
 title: "[Feature]: "
 labels: ["enhancement"]
 body:
@@ -21,7 +21,7 @@ body:
     id: proposed-solution
     attributes:
       label: Proposed solution (optional)
-      description: How would you imagine TokenEater solving this?
+      description: How would you imagine RaiUsage solving this?
 
   - type: textarea
     id: alternatives

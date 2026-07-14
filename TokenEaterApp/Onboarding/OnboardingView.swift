@@ -27,7 +27,7 @@ struct OnboardingView: View {
                 .frame(width: 22, height: 22)
                 .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
 
-            Text("TokenEater")
+            Text("RaiUsage")
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(.white.opacity(0.6))
 

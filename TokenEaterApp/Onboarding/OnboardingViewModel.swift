@@ -2,7 +2,7 @@ import SwiftUI
 import UserNotifications
 import os.log
 
-private let logger = Logger(subsystem: "com.tokeneater.app", category: "Onboarding")
+private let logger = Logger(subsystem: "com.raiusage.app", category: "Onboarding")
 
 enum ClaudeCodeStatus {
     case checking

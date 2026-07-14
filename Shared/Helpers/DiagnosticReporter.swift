@@ -1,6 +1,6 @@
 import Foundation
 
-/// Builds a Markdown diagnostic report from the current TokenEater state.
+/// Builds a Markdown diagnostic report from the current RaiUsage state.
 /// Used by the "Copy diagnostic" button in `PopoverErrorBanner`. The output
 /// is meant to be pasted into a GitHub issue, so it is English-only and
 /// never contains the OAuth bearer token, proxy credentials, organization
@@ -16,7 +16,7 @@ enum DiagnosticReporter {
         let apiError = apiErrorSection(usageStore.lastAPIError)
 
         return """
-        ## TokenEater diagnostic
+        ## RaiUsage diagnostic
 
         \(app)
 

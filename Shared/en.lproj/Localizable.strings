@@ -77,7 +77,7 @@
 "settings.redetect" = "Re-detect";
 "settings.general.title" = "General";
 "settings.launchAtLogin" = "Launch at login";
-"settings.launchAtLogin.hint" = "Open TokenEater automatically when you sign in to macOS. You can toggle this from System Settings → General → Login Items as well.";
+"settings.launchAtLogin.hint" = "Open RaiUsage automatically when you sign in to macOS. You can toggle this from System Settings → General → Login Items as well.";
 "settings.launchInBackground" = "Launch in background";
 "settings.launchInBackground.hint" = "Start in the menu bar only and skip opening the dashboard window. Open it any time from the menu bar (right-click the icon, then Open).";
 "settings.general.replayOnboarding" = "Replay onboarding";
@@ -117,7 +117,7 @@
 "guide.oauth.title" = "Claude Code";
 "guide.oauth.badge" = "Recommended";
 "guide.oauth.step1" = "Install **Claude Code** (Anthropic's CLI)";
-"guide.oauth.step2" = "Open TokenEater and click **Connect**";
+"guide.oauth.step2" = "Open RaiUsage and click **Connect**";
 "guide.oauth.step3" = "Done - token refreshes automatically";
 
 /* Errors - API */
@@ -138,8 +138,8 @@
 "error.banner.reauth.hint" = "Token expired and automatic recovery failed";
 "error.banner.reauth.button" = "Re-authorize";
 "error.banner.apiunavailable" = "Usage API throttled by Anthropic";
-"error.banner.apiunavailable.hint" = "This is a rate limit on Anthropic's usage API, not your token or setup. Nothing for you to fix - TokenEater keeps retrying and refreshes as soon as the limit clears (known issue: anthropics/claude-code#31637).";
-"error.banner.apiunavailable.settings" = "This is on Anthropic's side (their usage API), not your token or setup. TokenEater retries automatically and recovers when the limit clears.";
+"error.banner.apiunavailable.hint" = "This is a rate limit on Anthropic's usage API, not your token or setup. Nothing for you to fix - RaiUsage keeps retrying and refreshes as soon as the limit clears (known issue: anthropics/claude-code#31637).";
+"error.banner.apiunavailable.settings" = "This is on Anthropic's side (their usage API), not your token or setup. RaiUsage retries automatically and recovers when the limit clears.";
 "error.banner.apiunavailable.learnmore" = "Learn more";
 "error.banner.lastupdate" = "Last successful update: %@";
 "error.banner.retry.button" = "Retry now";
@@ -445,7 +445,7 @@
 "history.hero.cacheHit" = "cache hit";
 "history.empty.dash" = "—";
 "history.empty.title" = "No sessions yet";
-"history.empty.subtitle" = "Run Claude Code to populate your history. Each session writes a JSONL file under ~/.claude/projects/ which TokenEater aggregates here.";
+"history.empty.subtitle" = "Run Claude Code to populate your history. Each session writes a JSONL file under ~/.claude/projects/ which RaiUsage aggregates here.";
 "history.empty.filter.all" = "Nothing logged in the last %@";
 "history.empty.filter.model" = "No %@ usage in the last %@";
 "history.chip.cacheHit" = "Cache hit";
@@ -523,7 +523,7 @@
 
 /* Menu bar icon right-click menu */
 "contextmenu.refresh" = "Refresh now";
-"contextmenu.open" = "Open TokenEater...";
+"contextmenu.open" = "Open RaiUsage...";
 "contextmenu.settings" = "Settings";
 
 "pacing.session.label.short" = "Session";
@@ -533,7 +533,7 @@
 
 "onboarding.hero.label" = "SETUP";
 "onboarding.hero.title" = "Hey, you're here";
-"onboarding.hero.subtitle" = "Couple of permissions and TokenEater is live";
+"onboarding.hero.subtitle" = "Couple of permissions and RaiUsage is live";
 "onboarding.progress.label %lld %lld" = "%lld / %lld ready";
 "onboarding.finish" = "Finish";
 

@@ -1,6 +1,6 @@
 name: TokenEater
 options:
-  bundleIdPrefix: com.tokeneater
+  bundleIdPrefix: com.raiusage
   deploymentTarget:
     macOS: "14.0"
   xcodeVersion: "15.0"
@@ -26,8 +26,8 @@ targets:
       - path: Shared
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.tokeneater.app
-        PRODUCT_NAME: TokenEater
+        PRODUCT_BUNDLE_IDENTIFIER: com.raiusage.app
+        PRODUCT_NAME: RaiUsage
         CODE_SIGN_ENTITLEMENTS: TokenEaterApp/TokenEaterApp.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     info:
@@ -36,13 +36,13 @@ targets:
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         LSApplicationCategoryType: public.app-category.utilities
-        CFBundleDisplayName: TokenEater
+        CFBundleDisplayName: RaiUsage
         LSUIElement: true
         LSMultipleInstancesProhibited: true
         CFBundleURLTypes:
-          - CFBundleURLName: com.tokeneater.app
+          - CFBundleURLName: com.raiusage.app
             CFBundleURLSchemes:
-              - tokeneater
+              - raiusage
 
   TokenEaterTests:
     type: bundle.unit-test
@@ -53,7 +53,7 @@ targets:
       - path: TokenEaterApp/Onboarding/OnboardingViewModel.swift
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.tokeneater.tests
+        PRODUCT_BUNDLE_IDENTIFIER: com.raiusage.tests
         CODE_SIGN_IDENTITY: ""
         CODE_SIGNING_REQUIRED: "NO"
 

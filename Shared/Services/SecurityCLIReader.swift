@@ -1,7 +1,7 @@
 import Foundation
 import os.log
 
-private let logger = Logger(subsystem: "com.tokeneater.app", category: "SecurityCLIReader")
+private let logger = Logger(subsystem: "com.raiusage.app", category: "SecurityCLIReader")
 
 /// Shells out to `/usr/bin/security find-generic-password -s "Claude Code-credentials" -w`
 /// and extracts `claudeAiOauth.accessToken` from the JSON value Claude Code stores.
@@ -10,7 +10,7 @@ private let logger = Logger(subsystem: "com.tokeneater.app", category: "Security
 /// - The Keychain item ACL for "Claude Code-credentials" whitelists
 ///   `/usr/bin/security` (Apple-signed, stable identity). It does NOT
 ///   whitelist arbitrary third-party apps, even when correctly signed.
-/// - Direct `SecItemCopyMatching` from TokenEater would trip the ACL
+/// - Direct `SecItemCopyMatching` from RaiUsage would trip the ACL
 ///   denial prompt every time; routing through `security` via `Process`
 ///   sails through silently once the user clicked "Always Allow" once.
 /// - Requires the main app to be desandboxed (sandboxed apps cannot

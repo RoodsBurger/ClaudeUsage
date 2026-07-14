@@ -282,15 +282,14 @@ private struct PopoverHeaderRow: View {
                 Circle()
                     .fill(worstZone.color.opacity(0.15))
                     .frame(width: 32, height: 32)
-                Image(systemName: "gauge.high")
-                    .symbolRenderingMode(.hierarchical)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(worstZone.color)
-                    .symbolEffect(.pulse, isActive: usageStore.isLoading)
+                Image("Logo")
+                    .resizable()
+                    .interpolation(.high)
+                    .frame(width: 18, height: 18)
             }
 
             HStack(spacing: 6) {
-                Text("TokenEater")
+                Text("RaiUsage")
                     .font(.headline)
                     .foregroundStyle(.primary)
                 if usageStore.planType != .unknown {

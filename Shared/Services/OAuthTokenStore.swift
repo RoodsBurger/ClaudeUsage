@@ -16,7 +16,7 @@ enum OAuthTokenStoreError: Error, Equatable, CustomStringConvertible {
 final class OAuthTokenStore: OAuthTokenStoreProtocol {
     // MARK: - Constants
 
-    private static let service = "com.tokeneater.oauth"
+    private static let service = "com.raiusage.oauth"
     private static let account = "claude"
     private static let accessibleAttribute = kSecAttrAccessibleAfterFirstUnlock
 

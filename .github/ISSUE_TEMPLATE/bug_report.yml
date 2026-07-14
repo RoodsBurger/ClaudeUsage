@@ -1,5 +1,5 @@
 name: Bug report
-description: Something in TokenEater is broken or behaving unexpectedly
+description: Something in RaiUsage is broken or behaving unexpectedly
 title: "[Bug]: "
 labels: ["bug"]
 body:
@@ -28,14 +28,14 @@ body:
     attributes:
       label: Steps to reproduce (if you have them)
       placeholder: |
-        1. Open TokenEater
+        1. Open RaiUsage
         2. Click the menu bar icon
         3. ...
 
   - type: input
     id: tokeneater-version
     attributes:
-      label: TokenEater version
+      label: RaiUsage version
       description: Found in Settings -> About, or the menu bar tooltip.
       placeholder: e.g. 5.1.1
     validations:
@@ -52,7 +52,7 @@ body:
   - type: dropdown
     id: install-method
     attributes:
-      label: How did you install TokenEater? (optional)
+      label: How did you install RaiUsage? (optional)
       options:
         - DMG from GitHub Releases
         - Homebrew cask
@@ -74,7 +74,7 @@ body:
     attributes:
       label: Logs or console output (optional)
       description: |
-        Open `Console.app`, filter by `TokenEater`, reproduce the bug, and paste any relevant error lines here.
+        Open `Console.app`, filter by `RaiUsage`, reproduce the bug, and paste any relevant error lines here.
       render: shell
 
   - type: textarea

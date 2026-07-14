@@ -1,7 +1,7 @@
 import Foundation
 
 final class SharedFileService: SharedFileServiceProtocol, @unchecked Sendable {
-    private static let directoryName = "com.tokeneater.shared"
+    private static let directoryName = "com.raiusage.shared"
     private static let fileName = "shared.json"
 
     private var realHomeDirectory: String {
@@ -10,7 +10,7 @@ final class SharedFileService: SharedFileServiceProtocol, @unchecked Sendable {
     }
 
     /// Root directory for shared data. Always uses the home-relative
-    /// `~/Library/Application Support/com.tokeneater.shared/` path because :
+    /// `~/Library/Application Support/com.raiusage.shared/` path because :
     ///
     /// 1. The main app is desandboxed (post v5.0 Apple Dev migration), so
     ///    macOS happily returns a Group Container URL even without the

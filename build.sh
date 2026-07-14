@@ -10,7 +10,7 @@ GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-echo -e "${BLUE}=== TokenEater — Build ===${NC}"
+echo -e "${BLUE}=== RaiUsage — Build ===${NC}"
 
 # 1. Check Xcode
 if ! xcode-select -p | grep -q "Xcode.app"; then
@@ -39,7 +39,7 @@ xcodebuild \
     build 2>&1 | tail -20
 
 # 5. Find the built app
-APP_PATH=$(find build -name "TokenEater.app" -type d | head -1)
+APP_PATH=$(find build -name "RaiUsage.app" -type d | head -1)
 
 if [ -n "$APP_PATH" ]; then
     echo ""
@@ -48,7 +48,7 @@ if [ -n "$APP_PATH" ]; then
     echo ""
     echo "Pour installer:"
     echo "  cp -R \"$APP_PATH\" /Applications/"
-    echo "  open \"/Applications/TokenEater.app\""
+    echo "  open \"/Applications/RaiUsage.app\""
 else
     echo -e "${RED}Build echoue. Verifie les erreurs ci-dessus.${NC}"
     exit 1

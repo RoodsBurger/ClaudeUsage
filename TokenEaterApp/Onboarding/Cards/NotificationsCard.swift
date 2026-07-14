@@ -47,13 +47,13 @@ struct NotificationsCard: View {
 
     private var stackedNotifPreview: some View {
         ZStack(alignment: .center) {
-            notifPreview(title: "TokenEater", body: "Weekly limit at 78%", time: "2m")
+            notifPreview(title: "RaiUsage", body: "Weekly limit at 78%", time: "2m")
                 .opacity(0.55)
                 .scaleEffect(0.92)
                 .rotationEffect(.degrees(0.6))
                 .offset(y: -16)
 
-            notifPreview(title: "TokenEater", body: "5h limit warming up", time: "now")
+            notifPreview(title: "RaiUsage", body: "5h limit warming up", time: "now")
                 .rotationEffect(.degrees(-1.2))
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

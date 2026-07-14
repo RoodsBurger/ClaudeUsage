@@ -1,4 +1,4 @@
-# TokenEater -> Design System MASTER
+# RaiUsage -> Design System MASTER
 
 > Single source of truth for the **window app** design (scope B).
 > Does NOT cover the menu bar, the popover, or the widget (those keep their existing identity).
@@ -309,7 +309,7 @@ Variants: status (semantic colors) / count (`glassFill`).
 
 ---
 
-## 8. Pre-delivery checklist (TokenEater-specific)
+## 8. Pre-delivery checklist (RaiUsage-specific)
 
 Before merging a UI change:
 
@@ -319,7 +319,7 @@ Before merging a UI change:
 - [ ] No emoji as an icon -> SF Symbols only
 - [ ] Cards use `Shadow.subtle` at rest, never flat
 - [ ] Glass material: `.ultraThinMaterial` over `bgElevated`
-- [ ] Light mode -> not supported in v5.0 (TokenEater stays dark-only, consistent with the menu-bar identity)
+- [ ] Light mode -> not supported in v5.0 (RaiUsage stays dark-only, consistent with the menu-bar identity)
 
 ### Interaction
 - [ ] Every clickable element has a hover state (+ `springSnap`)

@@ -1,7 +1,7 @@
 import SwiftUI
 import AppKit
 
-/// TokenEater design tokens -> single source of truth for the window app chrome
+/// RaiUsage design tokens -> single source of truth for the window app chrome
 /// (sidebar, cards, panels, typo, spacing, motion).
 ///
 /// Scope : window app only. Does NOT apply to the menu bar or popover, which

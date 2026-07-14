@@ -1,6 +1,6 @@
 # AGENTS.md
 
-TokenEater is a native macOS menu bar app, plus WidgetKit widgets and a floating overlay, that tracks Claude AI usage limits in real time. This file is the guide for contributors and AI coding agents: how the repo is laid out, how data flows, the rules that are easy to break, and the commands that build, test, and ship it.
+RaiUsage is a native macOS menu bar app, plus WidgetKit widgets and a floating overlay, that tracks Claude AI usage limits in real time. This file is the guide for contributors and AI coding agents: how the repo is laid out, how data flows, the rules that are easy to break, and the commands that build, test, and ship it.
 
 It complements the other docs and deliberately does not duplicate them:
 
@@ -55,14 +55,14 @@ UsageStore                   drives refresh, owns usage state, schedules auto-re
 UsageRepository              APIClient calls the usage/profile API, then
    |                         SharedFileService writes the shared JSON cache
    v
-~/Library/Application Support/com.tokeneater.shared/shared.json
+~/Library/Application Support/com.raiusage.shared/shared.json
    ^
 TokenEaterWidgetExtension    sandboxed widget reads that JSON only (no network, no Keychain)
 ```
 
 `TokenFileMonitor` watches the credential files with a `DispatchSource` filesystem watcher (kqueue/vnode) and triggers an immediate refresh on change. The Agent Watchers overlay scans running Claude Code processes and tail-reads their JSONL logs.
 
-The menu bar is **AppKit `NSStatusItem`** managed by `StatusBarController`, not SwiftUI `MenuBarExtra`. The `App` body is `Settings { EmptyView() }`; the real UI is wired in the `AppDelegate` (`@NSApplicationDelegateAdaptor`) and hosted through `NSHostingController` / `NSHostingView`. That hosting root is where stores get injected with `.environmentObject(...)`. To add a store: construct it as a `private let` in `TokenEaterApp.init`, hand it to the `AppDelegate`, and inject it at the hosting roots in `StatusBarController` and `OverlayWindowController`.
+The menu bar is **AppKit `NSStatusItem`** managed by `StatusBarController`, not SwiftUI `MenuBarExtra`. The `App` body is `Settings { EmptyView() }`; the real UI is wired in the `AppDelegate` (`@NSApplicationDelegateAdaptor`) and hosted through `NSHostingController` / `NSHostingView`. That hosting root is where stores get injected with `.environmentObject(...)`. To add a store: construct it as a `private let` in `RaiUsageApp.init`, hand it to the `AppDelegate`, and inject it at the hosting roots in `StatusBarController` and `OverlayWindowController`.
 
 ### Token resolution (`TokenProvider`)
 
@@ -169,30 +169,30 @@ xcodegen generate && \
 xcodebuild -project TokenEater.xcodeproj -scheme TokenEaterApp -configuration Release -derivedDataPath build -allowProvisioningUpdates DEVELOPMENT_TEAM=S7B8M9JYF4 build 2>&1 | tail -3 && \
 \
 # Nuke: kill processes + caches
-killall TokenEater 2>/dev/null; killall NotificationCenter 2>/dev/null; \
-rm -rf ~/Library/Application\ Support/com.tokeneater.shared && \
-rm -rf ~/Library/Group\ Containers/S7B8M9JYF4.group.com.tokeneater && \
-rm -rf ~/Library/Group\ Containers/group.com.tokeneater && \
-rm -rf /private/var/folders/d6/*/C/com.tokeneater.app 2>/dev/null; \
+killall RaiUsage 2>/dev/null; killall NotificationCenter 2>/dev/null; \
+rm -rf ~/Library/Application\ Support/com.raiusage.shared && \
+rm -rf ~/Library/Group\ Containers/S7B8M9JYF4.group.com.raiusage && \
+rm -rf ~/Library/Group\ Containers/group.com.raiusage && \
+rm -rf /private/var/folders/d6/*/C/com.raiusage.app 2>/dev/null; \
 \
 # Install + register + launch
 sleep 2 && \
-rm -rf /Applications/TokenEater.app && \
-cp -R build/Build/Products/Release/TokenEater.app /Applications/ && \
-xattr -cr /Applications/TokenEater.app && \
-/System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister -f -R /Applications/TokenEater.app && \
+rm -rf /Applications/RaiUsage.app && \
+cp -R build/Build/Products/Release/RaiUsage.app /Applications/ && \
+xattr -cr /Applications/RaiUsage.app && \
+/System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister -f -R /Applications/RaiUsage.app && \
 sleep 2 && \
-open /Applications/TokenEater.app
+open /Applications/RaiUsage.app
 ```
 
 Why each nuke step is needed:
 
 | Step | Reason |
 |------|--------|
-| `killall TokenEater / NotificationCenter` | The app holds the old binary in memory. |
-| `rm -rf .../com.tokeneater.shared` | Removes the shared JSON (token + usage cache) to start clean. |
+| `killall RaiUsage / NotificationCenter` | The app holds the old binary in memory. |
+| `rm -rf .../com.raiusage.shared` | Removes the shared JSON (token + usage cache) to start clean. |
 | `rm -rf .../Group Containers/...` | Old group container (unused now, but can linger). |
-| `rm -rf /private/var/folders/.../com.tokeneater.app` | Application cache to ensure clean state. |
+| `rm -rf /private/var/folders/.../com.raiusage.app` | Application cache to ensure clean state. |
 | `lsregister -f -R` | Forces LaunchServices to re-scan the `.app` so it does not keep old version metadata. |
 
 The `xattr -cr` above is only for ad-hoc local builds. Official releases are Developer ID-signed and notarized in CI, so shipped DMGs are not quarantined.
@@ -204,7 +204,7 @@ To test a binary identical to what the Homebrew cask ships, build it in CI and d
 ```bash
 gh workflow run test-build.yml -f branch=<branch>
 # wait for it to finish, then:
-gh run download <run-id> -n TokenEater-test -D /tmp/tokeneater-test/
+gh run download <run-id> -n RaiUsage-test -D /tmp/raiusage-test/
 ```
 
 Installing that DMG cleanly requires a heavier reset than the local nuke (it also wipes `UserDefaults` and sandbox containers). See the clean-reset block in [`SETUP.md`](SETUP.md) / [`README.md`](README.md).
@@ -214,7 +214,7 @@ Installing that DMG cleanly requires a heavier reset than the local nuke (it als
 - **Local Release builds** use `CODE_SIGN_STYLE: Automatic` with the hardcoded team, so they are signed ad-hoc / with the local Apple Development identity and are not notarized. Gatekeeper blocks the first launch.
 - **CI release builds** are triggered by pushing a tag matching `v*` (manual `workflow_dispatch` also works). They sign with the Developer ID Application certificate (imported from the `APPLE_CERT_P12_BASE64` secret), enable hardened runtime, notarize via `notarytool`, and staple the ticket onto the DMG. Downloaded DMGs open with no Gatekeeper prompt on any account.
 - **Homebrew cask** (`AThevon/homebrew-tokeneater`) points at the same notarized DMG.
-- **In-app updater** fetches the appcast (`docs/appcast.xml` via `raw.githubusercontent.com`), downloads the DMG, runs a fail-closed EdDSA Sparkle signature check against the key in `TokenEaterApp/Resources/SparklePublicKey.txt`, then mounts and copies to `/Applications` via the `TokenEaterInstaller.app` applet (osacompiled from `TokenEaterApp/Resources/installer.applescript`) with a one-time admin prompt. It deliberately does not run `xattr -cr` on the installed app, since that would strip the stapled notarization ticket.
+- **In-app updater** fetches the appcast (`docs/appcast.xml` via `raw.githubusercontent.com`), downloads the DMG, runs a fail-closed EdDSA Sparkle signature check against the key in `TokenEaterApp/Resources/SparklePublicKey.txt`, then mounts and copies to `/Applications` via the `RaiUsageInstaller.app` applet (osacompiled from `TokenEaterApp/Resources/installer.applescript`) with a one-time admin prompt. It deliberately does not run `xattr -cr` on the installed app, since that would strip the stapled notarization ticket.
 
 Release secrets (documented inline in `.github/workflows/release.yml`): `APPLE_CERT_P12_BASE64`, `APPLE_CERT_PASSWORD`, `APPLE_TEAM_ID`, `APPLE_ID`, `APPLE_APP_PASSWORD`, plus `SPARKLE_PRIVATE_KEY` (the EdDSA private half of the embedded public key, used by `sign_update`) and `HOMEBREW_TAP_TOKEN` (for the cask bump).
 
@@ -227,7 +227,7 @@ The `release-swift` skill / the maintainer's release flow wraps version bump, PR
 
 ## Gotchas and known traps
 
-- **The App Group is not active.** `group.com.tokeneater` exists in code (`SharedFileService.appGroupID`), but `com.apple.security.application-groups` is deliberately omitted from both `.entitlements` files (with explicit comments). The live shared-state path is always the home-relative `~/Library/Application Support/com.tokeneater.shared/shared.json`: the desandboxed app writes it, and the sandboxed widget reads it via a `temporary-exception.files.home-relative-path.read-only` entitlement. `SharedFileService.init()` runs two one-shot migrations on first launch: rename from the old `com.claudeusagewidget.shared` product name, and a reverse migration that drains any data stranded in an old Group Container back to the home-relative path. App Group activation is a deferred follow-up (see `docs/v5.0.1-followup.md` and `scripts/enable-app-groups.sh`).
+- **The App Group is not active.** `group.com.raiusage` exists in code (`SharedFileService.appGroupID`), but `com.apple.security.application-groups` is deliberately omitted from both `.entitlements` files (with explicit comments). The live shared-state path is always the home-relative `~/Library/Application Support/com.raiusage.shared/shared.json`: the desandboxed app writes it, and the sandboxed widget reads it via a `temporary-exception.files.home-relative-path.read-only` entitlement. `SharedFileService.init()` runs two one-shot migrations on first launch: rename from the old `com.claudeusagewidget.shared` product name, and a reverse migration that drains any data stranded in an old Group Container back to the home-relative path. App Group activation is a deferred follow-up (see `docs/v5.0.1-followup.md` and `scripts/enable-app-groups.sh`).
 - **Real home directory in the sandbox.** `FileManager.homeDirectoryForCurrentUser` returns the sandbox container path inside the widget, not the real home. Use `getpwuid(getuid())` (as `SharedFileService`, `CredentialsFileReader`, `ClaudeConfigReader`, and others do).
 - **Widget caching.** macOS caches widget extensions hard. Any widget change needs the full nuke above to take effect.
 - **`DEVELOPMENT_TEAM` is hardcoded** in `project.yml` and will not work for external contributors (see the build note above).

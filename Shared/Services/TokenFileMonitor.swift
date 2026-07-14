@@ -7,7 +7,7 @@ final class TokenFileMonitor: TokenFileMonitorProtocol {
     private var fileDescriptors: [Int32] = []
     private let debounceInterval: TimeInterval
     private var lastEmit: Date = .distantPast
-    private let queue = DispatchQueue(label: "com.tokeneater.filemonitor", qos: .utility)
+    private let queue = DispatchQueue(label: "com.raiusage.filemonitor", qos: .utility)
     private let watchedDirectories: [String]
     private let watchedFilenames: [String: String] // directory -> filename
     private var lastModDates: [String: Date] = [:]
