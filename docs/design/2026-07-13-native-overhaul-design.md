@@ -185,9 +185,15 @@ onboarding).
     `symbolEffect(.pulse)` during refresh.
   - All numbers `.monospacedDigit()` to prevent menu bar width jitter; fixed-
     width rendering option to stop neighbor icons shifting.
-- **Popover (single layout, ~340pt wide).** Vertical stack with dividers:
+- **Popover (single layout, ~340pt wide).** One layout (the old 3-variant +
+  drag-editor system is gone). **Configurable (owner review, reversing the earlier
+  zero-config call):** a `PopoverConfig` — independent of the menu bar's
+  `MenuBarConfig` — lets the user choose/reorder which metric rows appear and
+  toggle sections (pacing chips, spend, timestamp), edited in a Settings → Popover
+  section with a live preview. A metric renders only if visible in the config AND
+  present in the API response. Vertical stack with dividers:
   1. Header: 32pt tinted status disc (pulsing hierarchical symbol) + app name in
-     `.rounded` + plan badge + account email `.caption .tertiary`.
+     default SF Pro + plan badge + account email `.caption .tertiary`.
   2. Vendor outage banner (orange-tint inline pattern) when active.
   3. Metric rows — one per bucket present in the response (session 5h, weekly
      all-model, per-model weekly): label, thin native gauge, `%` monospaced,
