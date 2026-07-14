@@ -462,21 +462,21 @@ private struct PopoverFooterToolbar: View {
     @EnvironmentObject private var usageStore: UsageStore
 
     var body: some View {
-        HStack(spacing: 0) {
+        HStack {
             toolbarButton(system: "arrow.clockwise", help: "contextmenu.refresh", disabled: usageStore.isLoading) {
                 Task { await usageStore.refresh(force: true) }
             }
             Spacer()
-            toolbarButton(system: "macwindow", help: "contextmenu.open") {
-                NotificationCenter.default.post(name: .openDashboard, object: nil)
-            }
-            Spacer()
-            toolbarButton(system: "gearshape.fill", help: "menubar.settings") {
-                NotificationCenter.default.post(name: .openDashboard, object: nil, userInfo: ["section": "settings"])
-            }
-            Spacer()
-            toolbarButton(system: "power", help: "menubar.quit") {
-                NSApplication.shared.terminate(nil)
+            HStack(spacing: 14) {
+                toolbarButton(system: "macwindow", help: "contextmenu.open") {
+                    NotificationCenter.default.post(name: .openDashboard, object: nil)
+                }
+                toolbarButton(system: "gearshape.fill", help: "menubar.settings") {
+                    NotificationCenter.default.post(name: .openDashboard, object: nil, userInfo: ["section": "settings"])
+                }
+                toolbarButton(system: "power", help: "menubar.quit") {
+                    NSApplication.shared.terminate(nil)
+                }
             }
         }
         .padding(.horizontal, 14)
