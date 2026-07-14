@@ -22,6 +22,9 @@ jobs:
       - name: Generate project
         run: xcodegen generate
 
+      # MARKETING_VERSION is stamped from the tag so the shipped app always
+      # reports the version it was released as (a stale project.yml value
+      # would otherwise make the in-app updater loop on "update available").
       - name: Build (Release, ad-hoc signed)
         run: |
           xcodebuild \
@@ -30,6 +33,7 @@ jobs:
             -configuration Release \
             -derivedDataPath build \
             -destination 'platform=macOS' \
+            MARKETING_VERSION="${GITHUB_REF_NAME#v}" \
             CODE_SIGN_IDENTITY="-" CODE_SIGN_STYLE=Manual CODE_SIGNING_REQUIRED=NO \
             build
 
