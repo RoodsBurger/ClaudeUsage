@@ -1,6 +1,6 @@
 import Foundation
 
-final class MockOAuthTokenStore: OAuthTokenStoreProtocol {
+final class MockOAuthTokenStore: OAuthTokenStoreProtocol, @unchecked Sendable {
     private var storedTokens: OAuthTokens?
 
     func load() -> OAuthTokens? {

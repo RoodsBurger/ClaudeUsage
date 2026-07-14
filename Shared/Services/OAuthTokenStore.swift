@@ -1,6 +1,18 @@
 import Foundation
 import Security
 
+enum OAuthTokenStoreError: Error, Equatable, CustomStringConvertible {
+    case encodeFailed
+    case keychainWriteFailed(OSStatus)
+
+    var description: String {
+        switch self {
+        case .encodeFailed: return "Failed to encode OAuth tokens"
+        case .keychainWriteFailed(let status): return "Keychain write failed (status \(status))"
+        }
+    }
+}
+
 final class OAuthTokenStore: OAuthTokenStoreProtocol {
     // MARK: - Constants
 
@@ -31,7 +43,7 @@ final class OAuthTokenStore: OAuthTokenStoreProtocol {
 
     func save(_ tokens: OAuthTokens) throws {
         guard let encodedData = try? Self.encode(tokens) else {
-            throw NSError(domain: "OAuthTokenStore", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to encode tokens"])
+            throw OAuthTokenStoreError.encodeFailed
         }
 
         let attributes: [String: Any] = [
@@ -56,10 +68,10 @@ final class OAuthTokenStore: OAuthTokenStoreProtocol {
             // Item doesn't exist; create it.
             let createStatus = SecItemAdd(attributes as CFDictionary, nil)
             guard createStatus == errSecSuccess else {
-                throw NSError(domain: "OAuthTokenStore", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to create Keychain item"])
+                throw OAuthTokenStoreError.keychainWriteFailed(createStatus)
             }
         } else if updateStatus != errSecSuccess {
-            throw NSError(domain: "OAuthTokenStore", code: 3, userInfo: [NSLocalizedDescriptionKey: "Failed to update Keychain item"])
+            throw OAuthTokenStoreError.keychainWriteFailed(updateStatus)
         }
     }
 
