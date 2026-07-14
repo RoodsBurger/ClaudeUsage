@@ -19,8 +19,8 @@ sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
 ## Build & Install (one script)
 
 ```bash
-git clone https://github.com/RoodsBurger/ClaudeUsage.git
-cd ClaudeUsage
+git clone https://github.com/RoodsBurger/RaiUsage.git
+cd RaiUsage
 ./build.sh
 ```
 

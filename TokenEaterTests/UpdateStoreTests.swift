@@ -26,8 +26,8 @@ struct UpdateStoreTests {
     private var sampleInfo: UpdateInfo {
         UpdateInfo(
             version: "9.9.9",
-            releaseURL: URL(string: "https://github.com/RoodsBurger/ClaudeUsage/releases/tag/v9.9.9")!,
-            dmgURL: URL(string: "https://github.com/RoodsBurger/ClaudeUsage/releases/download/v9.9.9/RaiUsage-v9.9.9.dmg")!
+            releaseURL: URL(string: "https://github.com/RoodsBurger/RaiUsage/releases/tag/v9.9.9")!,
+            dmgURL: URL(string: "https://github.com/RoodsBurger/RaiUsage/releases/download/v9.9.9/RaiUsage-v9.9.9.dmg")!
         )
     }
 

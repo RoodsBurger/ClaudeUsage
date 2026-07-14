@@ -10,18 +10,18 @@ struct UpdateCheckerTests {
     {
       "tag_name": "v9.9.9",
       "name": "RaiUsage v9.9.9",
-      "html_url": "https://github.com/RoodsBurger/ClaudeUsage/releases/tag/v9.9.9",
+      "html_url": "https://github.com/RoodsBurger/RaiUsage/releases/tag/v9.9.9",
       "prerelease": false,
       "assets": [
         {
           "name": "checksums.txt",
           "size": 128,
-          "browser_download_url": "https://github.com/RoodsBurger/ClaudeUsage/releases/download/v9.9.9/checksums.txt"
+          "browser_download_url": "https://github.com/RoodsBurger/RaiUsage/releases/download/v9.9.9/checksums.txt"
         },
         {
           "name": "RaiUsage-v9.9.9.dmg",
           "size": 4200000,
-          "browser_download_url": "https://github.com/RoodsBurger/ClaudeUsage/releases/download/v9.9.9/RaiUsage-v9.9.9.dmg"
+          "browser_download_url": "https://github.com/RoodsBurger/RaiUsage/releases/download/v9.9.9/RaiUsage-v9.9.9.dmg"
         }
       ]
     }
@@ -34,8 +34,8 @@ struct UpdateCheckerTests {
         let info = try UpdateChecker.updateInfo(from: fixture, currentVersion: "5.8.0")
         #expect(info != nil)
         #expect(info?.version == "9.9.9")
-        #expect(info?.releaseURL.absoluteString == "https://github.com/RoodsBurger/ClaudeUsage/releases/tag/v9.9.9")
-        #expect(info?.dmgURL.absoluteString == "https://github.com/RoodsBurger/ClaudeUsage/releases/download/v9.9.9/RaiUsage-v9.9.9.dmg")
+        #expect(info?.releaseURL.absoluteString == "https://github.com/RoodsBurger/RaiUsage/releases/tag/v9.9.9")
+        #expect(info?.dmgURL.absoluteString == "https://github.com/RoodsBurger/RaiUsage/releases/download/v9.9.9/RaiUsage-v9.9.9.dmg")
     }
 
     @Test("the .dmg asset is picked even when it is not first")
@@ -61,7 +61,7 @@ struct UpdateCheckerTests {
         let json = """
         {
           "tag_name": "v9.9.9",
-          "html_url": "https://github.com/RoodsBurger/ClaudeUsage/releases/tag/v9.9.9",
+          "html_url": "https://github.com/RoodsBurger/RaiUsage/releases/tag/v9.9.9",
           "assets": [
             { "name": "checksums.txt", "browser_download_url": "https://example.com/checksums.txt" }
           ]
@@ -82,6 +82,6 @@ struct UpdateCheckerTests {
     @Test("the latest-release endpoint pins the owner repo over HTTPS")
     func endpointIsPinned() {
         #expect(UpdateChecker.latestReleaseURL.absoluteString
-            == "https://api.github.com/repos/RoodsBurger/ClaudeUsage/releases/latest")
+            == "https://api.github.com/repos/RoodsBurger/RaiUsage/releases/latest")
     }
 }

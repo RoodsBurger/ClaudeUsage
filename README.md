@@ -38,7 +38,7 @@ RaiUsage is based on [TokenEater](https://github.com/AThevon/TokenEater) — cle
 
 ### Download DMG (no Xcode needed)
 
-Grab the latest `RaiUsage-vX.Y.Z.dmg` from [Releases](https://github.com/RoodsBurger/ClaudeUsage/releases/latest), open it, and drag RaiUsage to Applications.
+Grab the latest `RaiUsage-vX.Y.Z.dmg` from [Releases](https://github.com/RoodsBurger/RaiUsage/releases/latest), open it, and drag RaiUsage to Applications.
 
 The DMG is ad-hoc signed and **not notarized** (no paid Apple Developer account), so the first launch shows *"Apple could not verify RaiUsage is free of malware"*. Click **Done** (not "Move to Trash"), then **System Settings > Privacy & Security >** scroll to Security **> Open Anyway**, launch again and confirm. Once per machine. If Open Anyway doesn't appear (managed Macs), run `xattr -cr /Applications/RaiUsage.app` in Terminal instead.
 
@@ -47,8 +47,8 @@ The DMG is ad-hoc signed and **not notarized** (no paid Apple Developer account)
 **Requirements:** macOS 14+, [Xcode](https://apps.apple.com/app/xcode/id497799835) (App Store, opened once), and [Homebrew](https://brew.sh).
 
 ```bash
-git clone https://github.com/RoodsBurger/ClaudeUsage.git
-cd ClaudeUsage
+git clone https://github.com/RoodsBurger/RaiUsage.git
+cd RaiUsage
 ./build.sh
 ```
 
@@ -63,10 +63,10 @@ Requires a **Pro, Max, or Team plan**.
 
 ## Update
 
-DMG installs: download the newer DMG from [Releases](https://github.com/RoodsBurger/ClaudeUsage/releases/latest) and replace the app. From source:
+DMG installs: download the newer DMG from [Releases](https://github.com/RoodsBurger/RaiUsage/releases/latest) and replace the app. From source:
 
 ```bash
-cd ClaudeUsage
+cd RaiUsage
 git pull
 ./build.sh
 ```

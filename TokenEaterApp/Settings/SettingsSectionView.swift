@@ -324,7 +324,7 @@ struct SettingsSectionView: View {
                 icon: "chevron.left.forwardslash.chevron.right",
                 title: String(localized: "settings.about.repository"),
                 subtitle: String(localized: "settings.about.repository.hint"),
-                url: URL(string: "https://github.com/RoodsBurger/ClaudeUsage")!
+                url: URL(string: "https://github.com/RoodsBurger/RaiUsage")!
             )
         } header: {
             Text(String(localized: "settings.about.title"))

@@ -3,7 +3,7 @@ import Foundation
 /// GitHub Releases update check.
 ///
 /// Trust model: the check and the download both target the pinned
-/// RoodsBurger/ClaudeUsage repository over HTTPS (api.github.com). Releases
+/// RoodsBurger/RaiUsage repository over HTTPS (api.github.com). Releases
 /// are ad-hoc-signed DMGs with no notarization and no signature feed, so TLS
 /// plus the hardcoded owner/repo is the whole chain of trust - acceptable
 /// for a personal fork, not for broad distribution.
@@ -11,7 +11,7 @@ final class UpdateChecker: UpdateCheckerProtocol, @unchecked Sendable {
     /// GitHub REST "get latest release" for the pinned repo. Unauthenticated;
     /// `UpdateStore`'s 24h auto-check throttle keeps usage far below the
     /// anonymous rate limit.
-    static let latestReleaseURL = URL(string: "https://api.github.com/repos/RoodsBurger/ClaudeUsage/releases/latest")!
+    static let latestReleaseURL = URL(string: "https://api.github.com/repos/RoodsBurger/RaiUsage/releases/latest")!
 
     private let currentVersion: String
 

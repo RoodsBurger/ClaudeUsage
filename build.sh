@@ -19,7 +19,7 @@ if ! xcode-select -p 2>/dev/null | grep -q "Xcode.app"; then
   echo "  sudo xcode-select -s /Applications/Xcode.app/Contents/Developer" >&2
   echo "" >&2
   echo "No Xcode? Download the prebuilt DMG instead:" >&2
-  echo "  https://github.com/RoodsBurger/ClaudeUsage/releases/latest" >&2
+  echo "  https://github.com/RoodsBurger/RaiUsage/releases/latest" >&2
   exit 1
 fi
 
