@@ -299,12 +299,14 @@ struct SettingsSectionView: View {
 
     private var refreshSection: some View {
         Section {
-            Stepper(value: $settingsStore.refreshInterval, in: 180...900, step: 60) {
-                LabeledContent(
-                    String(localized: "settings.refresh.interval"),
-                    value: formatInterval(settingsStore.refreshInterval)
-                )
+            Picker(selection: $settingsStore.refreshInterval) {
+                ForEach(intervalOptions([180, 300, 600, 900], current: settingsStore.refreshInterval), id: \.self) {
+                    Text(formatInterval($0)).tag($0)
+                }
+            } label: {
+                Text(String(localized: "settings.refresh.interval"))
             }
+            .pickerStyle(.menu)
 
             if settingsStore.refreshInterval < 300 {
                 Label {
@@ -327,12 +329,14 @@ struct SettingsSectionView: View {
             Toggle(String(localized: "settings.status.master"), isOn: $settingsStore.outageMonitoringEnabled)
                 .tint(DS.Pastel.green)
             if settingsStore.outageMonitoringEnabled {
-                Stepper(value: $settingsStore.statusPollInterval, in: 60...1800, step: 60) {
-                    LabeledContent(
-                        String(localized: "settings.status.interval.label"),
-                        value: formatInterval(settingsStore.statusPollInterval)
-                    )
+                Picker(selection: $settingsStore.statusPollInterval) {
+                    ForEach(intervalOptions([60, 120, 300, 600, 900, 1800], current: settingsStore.statusPollInterval), id: \.self) {
+                        Text(formatInterval($0)).tag($0)
+                    }
+                } label: {
+                    Text(String(localized: "settings.status.interval.label"))
                 }
+                .pickerStyle(.menu)
                 Toggle(String(localized: "settings.status.badge"), isOn: $settingsStore.statusShowMenuBarBadge)
                     .tint(DS.Pastel.green)
             }
@@ -362,9 +366,12 @@ struct SettingsSectionView: View {
                 Button {
                     Task { await updateStore.checkNow() }
                 } label: {
-                    Label(String(localized: "settings.updates.check"), systemImage: "arrow.triangle.2.circlepath")
+                    Label(String(localized: "settings.updates.check"), systemImage: "arrow.clockwise")
+                        .font(.callout)
                 }
                 .buttonStyle(.bordered)
+                .tint(DS.Pastel.blue)
+                .controlSize(.small)
                 .disabled(updateCheckDisabled)
             }
             .padding(.vertical, 2)
@@ -496,6 +503,12 @@ struct SettingsSectionView: View {
     private func formatInterval(_ seconds: Int) -> String {
         let minutes = seconds / 60
         return "\(minutes) min"
+    }
+
+    /// Preset interval choices for a menu Picker, keeping any previously-saved
+    /// off-grid value selectable so the picker never shows a blank selection.
+    private func intervalOptions(_ presets: [Int], current: Int) -> [Int] {
+        (presets.contains(current) ? presets : presets + [current]).sorted()
     }
 
     private func connectAutoDetect() {
