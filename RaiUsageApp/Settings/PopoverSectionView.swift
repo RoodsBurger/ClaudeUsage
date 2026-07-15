@@ -174,9 +174,10 @@ struct PopoverSectionView: View {
 
 /// Faithful, static mockup of the real popover: reuses `PopoverMetricRow` /
 /// `PopoverMetricRowView` for the configurable rows (so they're pixel-identical
-/// to the real popover), with small self-contained header/spend/timestamp/footer
-/// mockups instead of the live-store-bound `PopoverView` subviews - a settings
-/// preview shouldn't host a live "Quit" button or read the real account's data.
+/// to the real popover), with small self-contained header/spend/footer mockups
+/// (the timestamp lives in the footer, mirroring `PopoverFooterToolbar`) instead
+/// of the live-store-bound `PopoverView` subviews - a settings preview shouldn't
+/// host a live "Quit" button or read the real account's data.
 private struct PopoverPreviewCard: View {
     @EnvironmentObject private var settingsStore: SettingsStore
     @EnvironmentObject private var usageStore: UsageStore
@@ -216,14 +217,6 @@ private struct PopoverPreviewCard: View {
                 Divider()
                 spendMock
             }
-            if config.showTimestamp {
-                Divider()
-                Text(String(localized: "settings.popover.preview.timestamp"))
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
-            }
 
             Divider()
             footerMock
@@ -251,14 +244,20 @@ private struct PopoverPreviewCard: View {
                     .interpolation(.high)
                     .frame(width: 18, height: 18)
             }
-            Text("RaiUsage")
-                .font(.headline)
-                .foregroundStyle(.primary)
+            HStack(spacing: 6) {
+                Text("RaiUsage")
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                if usageStore.planType != .unknown {
+                    Text(usageStore.planType.displayLabel)
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(DS.Pastel.blue)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(DS.Pastel.blue.opacity(0.12)))
+                }
+            }
             Spacer(minLength: 8)
-            Image(systemName: "arrow.clockwise")
-                .font(.system(size: 11, weight: .semibold))
-                .frame(width: 20, height: 20)
-                .foregroundStyle(.secondary)
         }
         .padding(.horizontal, 14)
         .padding(.top, 12)
@@ -293,16 +292,35 @@ private struct PopoverPreviewCard: View {
         .padding(.vertical, 10)
     }
 
+    // Mirrors the real `PopoverFooterToolbar`: leading refresh (+ timestamp when
+    // enabled), then a trailing utility group with a hairline before quit.
     private var footerMock: some View {
-        HStack(spacing: 0) {
-            ForEach(["arrow.clockwise", "macwindow", "gearshape.fill", "power"], id: \.self) { symbol in
-                Image(systemName: symbol)
-                    .font(.system(size: 11, weight: .medium))
-                    .frame(maxWidth: .infinity)
-                    .foregroundStyle(.secondary)
+        HStack {
+            footerIcon("arrow.clockwise")
+            if config.showTimestamp {
+                Text(String(localized: "settings.popover.preview.timestamp"))
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .padding(.leading, 2)
+            }
+            Spacer()
+            HStack(spacing: 12) {
+                footerIcon("macwindow")
+                footerIcon("gearshape.fill")
+                Rectangle()
+                    .fill(DS.Pastel.border)
+                    .frame(width: 1, height: 16)
+                footerIcon("power")
             }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
+    }
+
+    private func footerIcon(_ system: String) -> some View {
+        Image(systemName: system)
+            .font(.system(size: 11, weight: .medium))
+            .frame(width: 20, height: 20)
+            .foregroundStyle(.secondary)
     }
 }
