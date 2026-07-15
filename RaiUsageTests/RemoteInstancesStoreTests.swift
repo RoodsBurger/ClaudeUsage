@@ -106,4 +106,19 @@ struct RemoteInstancesStoreTests {
 
         #expect(store.status[id]?.state == .failed("Connection timed out"))
     }
+
+    @Test("a failed sync stays graceful: no syncGeneration bump, so no reload")
+    func failureDoesNotBumpGeneration() async {
+        defer { UserDefaults.standard.removeObject(forKey: Self.key) }
+        let mock = MockRemoteLogSyncService(outcome: .failed("Connection timed out"))
+        let store = makeStore(mock: mock)
+        store.addInstance(host: "10.0.0.9", user: "ubuntu", nickname: nil)
+        let before = store.syncGeneration
+
+        store.syncNow(store.instances[0].id)
+        await Task.yield()
+        try? await Task.sleep(nanoseconds: 50_000_000)
+
+        #expect(store.syncGeneration == before)
+    }
 }

@@ -350,6 +350,9 @@ final class StatusBarController: NSObject {
         vendorStatusStore.healthyPollInterval = TimeInterval(settingsStore.statusPollInterval)
         usageStore.reloadConfig(thresholds: settingsStore.thresholds)
         usageStore.startAutoRefresh(thresholds: settingsStore.thresholds)
+        // Pull remote SSH instances on the same cadence; failures stay silent
+        // (Settings status line only) and never block the usage refresh.
+        remoteInstancesStore.startAutoSync(interval: TimeInterval(settingsStore.refreshInterval))
 
         // Monitor token files (credentials + config.json) for changes
         tokenFileMonitor.startMonitoring()
