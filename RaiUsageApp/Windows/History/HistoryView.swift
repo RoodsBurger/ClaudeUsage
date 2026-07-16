@@ -859,110 +859,38 @@ struct HistoryView: View {
 
     private var footerChips: some View {
         HStack(alignment: .top, spacing: 8) {
-            chipCard(
+            HistoryFooterChip(
                 label: "history.chip.cacheHit",
                 value: formatPercent(store.summary.cacheHitRate * 100),
                 sub: String(format: String(localized: "history.chip.cacheHit.sub"), TokenFormatter.compact(store.summary.totalCached)),
-                rows: cacheHitRows
+                rows: cacheHitRows, expanded: chipsExpanded, onToggle: toggleChips
             )
-            chipCard(
+            HistoryFooterChip(
                 label: "history.chip.heaviest",
-                value: heaviestLabel,
-                sub: heaviestSub,
-                rows: heaviestRows
+                value: heaviestLabel, sub: heaviestSub,
+                rows: heaviestRows, expanded: chipsExpanded, onToggle: toggleChips
             )
-            chipCard(
+            HistoryFooterChip(
                 label: "history.chip.topProject",
-                value: topProjectLabel,
-                sub: topProjectSub,
-                rows: topProjectRows
+                value: topProjectLabel, sub: topProjectSub,
+                rows: topProjectRows, expanded: chipsExpanded, onToggle: toggleChips
             )
-            chipCard(
+            HistoryFooterChip(
                 label: "history.chip.topModel",
-                value: topModelLabel,
-                sub: topModelSub,
-                rows: topModelRows
+                value: topModelLabel, sub: topModelSub,
+                rows: topModelRows, expanded: chipsExpanded, onToggle: toggleChips
             )
-            chipCard(
+            HistoryFooterChip(
                 label: "history.chip.avgPerSession",
                 value: TokenFormatter.compact(store.summary.averagePerSession),
                 sub: String(format: String(localized: "history.chip.avgPerSession.sub"), store.summary.sessionsCount),
-                rows: avgRows
+                rows: avgRows, expanded: chipsExpanded, onToggle: toggleChips
             )
         }
     }
 
-    /// One footer chip. Collapsed shows label + headline value + sub. Tapping
-    /// any chip toggles `chipsExpanded` for the whole row; expanded, the sub is
-    /// replaced by up to a 5-row ranked list (`rows`).
-    private func chipCard(label: String.LocalizationValue, value: String, sub: String, rows: [(name: String, value: String)]) -> some View {
-        Button {
-            withAnimation(.easeInOut(duration: 0.15)) { chipsExpanded.toggle() }
-        } label: {
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 4) {
-                    Text(String(localized: label))
-                        .font(DS.Typography.micro)
-                        .tracking(0.8)
-                        .foregroundStyle(.tertiary)
-                    Spacer(minLength: 2)
-                    Image(systemName: chipsExpanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 7, weight: .semibold))
-                        .foregroundStyle(.quaternary)
-                }
-                Text(value)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(.primary)
-                    .monospacedDigit()
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                if chipsExpanded {
-                    if rows.isEmpty {
-                        Text(String(localized: "history.empty.dash"))
-                            .font(.system(size: 10))
-                            .foregroundStyle(.tertiary)
-                    } else {
-                        VStack(alignment: .leading, spacing: 2) {
-                            ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
-                                HStack(spacing: 6) {
-                                    Text(row.name)
-                                        .foregroundStyle(.secondary)
-                                        .lineLimit(1)
-                                        .truncationMode(.middle)
-                                    Spacer(minLength: 4)
-                                    Text(row.value)
-                                        .foregroundStyle(.tertiary)
-                                        .monospacedDigit()
-                                }
-                                .font(.system(size: 10))
-                            }
-                        }
-                        .padding(.top, 1)
-                    }
-                } else {
-                    Text(sub)
-                        .font(.system(size: 10))
-                        .foregroundStyle(.tertiary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                }
-            }
-            .padding(DS.Spacing.sm)
-            // Stretch to the tallest chip so expanded rows (2 vs 5 items) all
-            // share one height. The ScrollView gives intrinsic sizing, so this
-            // matches the tallest sibling rather than ballooning.
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .background(
-                RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
-                    .fill(DS.Pastel.card)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
-                    .stroke(DS.Pastel.border, lineWidth: 1)
-            )
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
+    private func toggleChips() {
+        withAnimation(.easeInOut(duration: 0.15)) { chipsExpanded.toggle() }
     }
 
     // MARK: - Expanded chip row data (top 5)
@@ -1125,6 +1053,94 @@ private struct LoadingProgressBar: View {
             withAnimation(.linear(duration: cycle).repeatForever(autoreverses: false)) {
                 phase = 1
             }
+        }
+    }
+}
+
+/// One History footer chip. Collapsed shows label + headline value + sub;
+/// tapping toggles the whole row's expansion into a top-5 ranked list. Carries
+/// the same press/hover glow as the Monitoring tiles, tinted a neutral gray
+/// since the chips are colorless.
+private struct HistoryFooterChip: View {
+    let label: String.LocalizationValue
+    let value: String
+    let sub: String
+    let rows: [(name: String, value: String)]
+    let expanded: Bool
+    let onToggle: () -> Void
+
+    @State private var isHovered = false
+
+    private var borderColor: Color { isHovered ? Color.secondary.opacity(0.5) : DS.Pastel.border }
+
+    var body: some View {
+        Button(action: onToggle) {
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 4) {
+                    Text(String(localized: label))
+                        .font(DS.Typography.micro)
+                        .tracking(0.8)
+                        .foregroundStyle(.tertiary)
+                    Spacer(minLength: 2)
+                    Image(systemName: expanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 7, weight: .semibold))
+                        .foregroundStyle(.quaternary)
+                }
+                Text(value)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(.primary)
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                if expanded {
+                    if rows.isEmpty {
+                        Text(String(localized: "history.empty.dash"))
+                            .font(.system(size: 10))
+                            .foregroundStyle(.tertiary)
+                    } else {
+                        VStack(alignment: .leading, spacing: 2) {
+                            ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
+                                HStack(spacing: 6) {
+                                    Text(row.name)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                        .truncationMode(.middle)
+                                    Spacer(minLength: 4)
+                                    Text(row.value)
+                                        .foregroundStyle(.tertiary)
+                                        .monospacedDigit()
+                                }
+                                .font(.system(size: 10))
+                            }
+                        }
+                        .padding(.top, 1)
+                    }
+                } else {
+                    Text(sub)
+                        .font(.system(size: 10))
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+            }
+            .padding(DS.Spacing.sm)
+            // Stretch to the tallest chip so expanded rows (2 vs 5 items) all
+            // share one height. The ScrollView gives intrinsic sizing, so this
+            // matches the tallest sibling rather than ballooning.
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .background(
+                RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
+                    .fill(DS.Pastel.card)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
+                    .stroke(borderColor, lineWidth: 1)
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(CardPressStyle(isHovered: isHovered, accent: Color.secondary, cornerRadius: DS.Radius.card))
+        .onHover { hovering in
+            withAnimation(DS.Motion.springSnap) { isHovered = hovering }
         }
     }
 }

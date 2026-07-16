@@ -36,16 +36,22 @@ struct ActivityTile: View {
     var expanded: Bool = false
     var onToggle: (() -> Void)? = nil
 
+    @State private var isHovered = false
+
     /// Value + sparkline accent. A raw activity count carries no risk zone, so
     /// it never borrows the gauge's green/amber/coral ladder; a model tile uses
     /// its own identity tint.
     private var accent: Color { descriptor.tint ?? DS.Pastel.blue }
     private var canExpand: Bool { descriptor.sparkline != nil }
+    private var borderColor: Color { isHovered ? accent.opacity(0.4) : DS.Pastel.border }
 
     var body: some View {
         if canExpand, let onToggle {
             Button(action: onToggle) { card }
-                .buttonStyle(.plain)
+                .buttonStyle(CardPressStyle(isHovered: isHovered, accent: accent, cornerRadius: DS.Radius.card))
+                .onHover { hovering in
+                    withAnimation(DS.Motion.springSnap) { isHovered = hovering }
+                }
         } else {
             card
         }
@@ -149,7 +155,7 @@ struct ActivityTile: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: DS.Radius.card, style: .continuous)
-                .stroke(DS.Pastel.border, lineWidth: 1)
+                .stroke(borderColor, lineWidth: 1)
         )
         .contentShape(Rectangle())
     }
