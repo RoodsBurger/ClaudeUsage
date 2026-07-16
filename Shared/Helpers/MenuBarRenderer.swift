@@ -773,19 +773,18 @@ enum MenuBarRenderer {
         data: RenderData
     ) -> NSAttributedString {
         let str = NSMutableAttributedString()
-        // Same dot logic as a percent metric's `RiskZone`, mapped through
-        // `PacingZone`. Always appended (never conditioned on `hasData`) so
-        // the pin's width doesn't change once real pacing data arrives -
-        // falls back to the adaptive text color when there's no zone yet.
-        if data.menuBarConfig.colorMode == .risk {
-            let dotColor = hasData ? zone.dotColor(menuBarIsDark: data.menuBarIsDark) : textColor(data)
-            appendDot(dotColor, to: str)
-        }
         appendPrefix(pin, to: str, data: data)
 
+        // The pacing glyph is itself the zone indicator: colored by the pacing
+        // zone in risk mode (green/amber/coral), not a bare white circle. Falls
+        // back to the adaptive text color in monochrome mode or before data
+        // arrives. Always present, so the pin's width stays stable.
+        let glyphColor: NSColor = (data.menuBarConfig.colorMode == .risk && hasData)
+            ? zone.dotColor(menuBarIsDark: data.menuBarIsDark)
+            : textColor(data)
         let dotAttrs: [NSAttributedString.Key: Any] = [
             .font: NSFont.systemFont(ofSize: 11, weight: .bold),
-            .foregroundColor: textColor(data),
+            .foregroundColor: glyphColor,
         ]
         let deltaAttrs: [NSAttributedString.Key: Any] = [
             .font: NSFont.monospacedDigitSystemFont(ofSize: 10, weight: .bold),
