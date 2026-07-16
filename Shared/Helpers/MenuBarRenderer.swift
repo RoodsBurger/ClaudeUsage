@@ -117,6 +117,15 @@ enum MenuBarRenderer {
         /// appearance - see `StatusBarController`.
         let menuBarIsDark: Bool
 
+        /// Maximum width, in points, that the `.all`-mode line may occupy before
+        /// it must collapse. Set to the usable right-of-notch strip on a notched
+        /// display so `pinsThatFit` drops low-priority pins instead of running
+        /// under the notch (which makes macOS hide the whole status item). nil
+        /// on non-notched screens and external displays - no cap, unchanged
+        /// behavior. Only `.all` mode consults it; single-pin modes are already
+        /// narrow. Part of `Equatable`, so a screen change re-renders naturally.
+        let maxContentWidth: CGFloat?
+
         /// Fixed sample usage data for the settings live preview: every
         /// availability flag is true so no configured pin ever vanishes, and
         /// the percentages span the ok/warning/critical zones so risk
@@ -194,7 +203,8 @@ enum MenuBarRenderer {
                 outageActive: false,
                 outageHealth: .healthy,
                 nextPollSeconds: nil,
-                menuBarIsDark: menuBarIsDark
+                menuBarIsDark: menuBarIsDark,
+                maxContentWidth: nil
             )
         }
     }
@@ -423,7 +433,11 @@ enum MenuBarRenderer {
 
         switch data.menuBarConfig.displayMode {
         case .all:
-            return buildAllLine(visible, data: data)
+            // On a notched display the line is capped to the right-of-notch
+            // width: drop the lowest-priority pins until it fits rather than
+            // let macOS hide the whole item. Uncapped (nil) elsewhere.
+            let pins = data.maxContentWidth.map { pinsThatFit(visible, data: data, maxWidth: $0) } ?? visible
+            return buildAllLine(pins, data: data)
         case .highestRisk:
             guard let pin = highestRiskPin(visible, data: data) else { return NSAttributedString() }
             return buildSingle(pin, data: data, worstCase: false)
@@ -443,10 +457,41 @@ enum MenuBarRenderer {
         guard !visible.isEmpty else { return 0 }
         switch data.menuBarConfig.displayMode {
         case .all:
-            return ceil(buildAllLine(visible, data: data, worstCase: true).size().width)
+            // Pad the fitted (collapsed) set, not the full worst case, so the
+            // fixedWidth slot can't re-introduce the overflow the cap removed.
+            let pins = data.maxContentWidth.map { pinsThatFit(visible, data: data, maxWidth: $0) } ?? visible
+            return ceil(buildAllLine(pins, data: data, worstCase: true).size().width)
         case .highestRisk, .rotate:
             return visible.map { ceil(buildSingle($0, data: data, worstCase: true).size().width) }.max() ?? 0
         }
+    }
+
+    /// The subset of `pins` whose `.all`-mode line fits within `maxWidth`.
+    /// Starting from all `pins`, while the measured line is wider than
+    /// `maxWidth` and more than one pin remains, drops the pin with the lowest
+    /// `riskScore` (on a tie, the one later in config order, so earlier /
+    /// higher-priority pins survive). Config order is preserved among the
+    /// survivors - pins are only removed, never reordered - and at least one
+    /// pin is always kept, so the status item never vanishes under the notch.
+    /// Pure and measurement-only; no imaging.
+    static func pinsThatFit(_ pins: [PinnedMetricConfig], data: RenderData, maxWidth: CGFloat) -> [PinnedMetricConfig] {
+        guard pins.count > 1 else { return pins }
+        var survivors = pins
+        while survivors.count > 1, buildAllLine(survivors, data: data).size().width > maxWidth {
+            var dropIndex = 0
+            var lowestScore = riskScore(survivors[0], data: data)
+            for i in 1..<survivors.count {
+                let score = riskScore(survivors[i], data: data)
+                // `<=` so a tie advances the drop to the later pin, keeping the
+                // earlier (higher-priority) one when scores are equal.
+                if score <= lowestScore {
+                    lowestScore = score
+                    dropIndex = i
+                }
+            }
+            survivors.remove(at: dropIndex)
+        }
+        return survivors
     }
 
     private static func buildAllLine(_ pins: [PinnedMetricConfig], data: RenderData, worstCase: Bool = false) -> NSAttributedString {

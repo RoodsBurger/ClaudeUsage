@@ -176,7 +176,8 @@ private func makeRenderData(
     outageActive: Bool = false,
     outageHealth: VendorHealth = .healthy,
     nextPollSeconds: Int? = nil,
-    menuBarIsDark: Bool = true
+    menuBarIsDark: Bool = true,
+    maxContentWidth: CGFloat? = nil
 ) -> MenuBarRenderer.RenderData {
     MenuBarRenderer.RenderData(
         menuBarConfig: MenuBarConfig(
@@ -241,7 +242,8 @@ private func makeRenderData(
         outageActive: outageActive,
         outageHealth: outageHealth,
         nextPollSeconds: nextPollSeconds,
-        menuBarIsDark: menuBarIsDark
+        menuBarIsDark: menuBarIsDark,
+        maxContentWidth: maxContentWidth
     )
 }
 
@@ -1024,5 +1026,135 @@ struct MenuBarMonthlyPacingPinTests {
             monthlyPacingDisplayMode: .delta
         )
         #expect(MenuBarRenderer.buildLine(data: data).string == "1mP +30%")
+    }
+}
+
+/// Notch-aware collapse: on a notched display the `.all` line is capped to the
+/// right-of-notch width, dropping the lowest-priority pins so the status item
+/// never runs under the notch and vanishes. `pinsThatFit` is the pure core.
+@Suite("MenuBarRenderer.pinsThatFit (notch-aware collapse)")
+struct MenuBarPinsThatFitTests {
+
+    // Four pins in config order with distinct riskScores under threshold mode
+    // (warning 60, critical 85): fiveHour 95 -> critical(2), sevenDay 20 ->
+    // ok(0), sonnet 70 -> warning(1), design 40 -> ok(0). Distinct percentages
+    // keep every rendered value unique so survivors are identifiable by string.
+    private let pins: [PinnedMetricConfig] = [
+        .init(id: .fiveHour, prefix: .none, value: .percentUsed),
+        .init(id: .sevenDay, prefix: .none, value: .percentUsed),
+        .init(id: .sonnet, prefix: .none, value: .percentUsed),
+        .init(id: .design, prefix: .none, value: .percentUsed),
+    ]
+
+    private func data(_ pinned: [PinnedMetricConfig], maxContentWidth: CGFloat? = nil) -> MenuBarRenderer.RenderData {
+        makeRenderData(
+            pinned: pinned,
+            displayMode: .all,
+            colorMode: .monochrome,
+            fiveHourPct: 95,
+            sevenDayPct: 20,
+            sonnetPct: 70,
+            designPct: 40,
+            maxContentWidth: maxContentWidth
+        )
+    }
+
+    /// Natural `.all`-mode width of an arbitrary pin subset (a nil cap renders
+    /// the full subset), so caps are expressed relative to real measurements
+    /// instead of hard-coded, font-dependent point values.
+    private func width(_ pinned: [PinnedMetricConfig]) -> CGFloat {
+        MenuBarRenderer.buildLine(data: data(pinned)).size().width
+    }
+
+    private func ids(_ result: [PinnedMetricConfig]) -> [MetricID] { result.map(\.id) }
+
+    @Test("no cap (nil) renders every pin - collapse never engages")
+    func nilCapUntouched() {
+        let d = data(pins, maxContentWidth: nil)
+        #expect(MenuBarRenderer.buildLine(data: d).string == "95% | 20% | 70% | 40%")
+    }
+
+    @Test("a generous cap keeps every pin")
+    func generousCapKeepsAll() {
+        let result = MenuBarRenderer.pinsThatFit(pins, data: data(pins), maxWidth: .greatestFiniteMagnitude)
+        #expect(ids(result) == [.fiveHour, .sevenDay, .sonnet, .design])
+    }
+
+    @Test("a tight cap drops the lowest-riskScore pins first, keeping the highest")
+    func tightCapDropsLowestFirst() {
+        // Cap to the width of [fiveHour, sonnet]: the two ok(0) pins drop
+        // (design later-in-order first, then sevenDay), leaving critical
+        // fiveHour and warning sonnet.
+        let cap = width([pins[0], pins[2]])
+        let result = MenuBarRenderer.pinsThatFit(pins, data: data(pins), maxWidth: cap)
+        #expect(ids(result) == [.fiveHour, .sonnet])
+    }
+
+    @Test("a tie on the lowest score drops the later pin, keeping the earlier one")
+    func tieDropsLaterPin() {
+        // Cap to [fiveHour, sevenDay, sonnet]: exactly one drop. sevenDay (idx1)
+        // and design (idx3) are both ok(0); the later one, design, is dropped.
+        let cap = width([pins[0], pins[1], pins[2]])
+        let result = MenuBarRenderer.pinsThatFit(pins, data: data(pins), maxWidth: cap)
+        #expect(ids(result) == [.fiveHour, .sevenDay, .sonnet])
+    }
+
+    @Test("an impossibly small cap still returns exactly one pin (never empty)")
+    func impossiblySmallCapKeepsOne() {
+        let result = MenuBarRenderer.pinsThatFit(pins, data: data(pins), maxWidth: 0)
+        #expect(result.count == 1)
+        // The sole survivor is the highest-riskScore pin (critical fiveHour).
+        #expect(ids(result) == [.fiveHour])
+    }
+
+    @Test("a single pin is returned unchanged regardless of cap")
+    func singlePinNeverDropped() {
+        let one: [PinnedMetricConfig] = [.init(id: .fiveHour, prefix: .none, value: .percentUsed)]
+        #expect(ids(MenuBarRenderer.pinsThatFit(one, data: data(one), maxWidth: 0)) == [.fiveHour])
+    }
+
+    @Test("survivors preserve config order, not risk order")
+    func survivorsPreserveConfigOrder() {
+        // Config order deliberately unsorted by risk: design ok(0), fiveHour
+        // critical(2), sevenDay ok(0), sonnet warning(1). Keep three -> the
+        // later ok pin (sevenDay) drops before design; survivors stay in config
+        // order (design first) rather than any risk-sorted order.
+        let scrambled: [PinnedMetricConfig] = [
+            .init(id: .design, prefix: .none, value: .percentUsed),
+            .init(id: .fiveHour, prefix: .none, value: .percentUsed),
+            .init(id: .sevenDay, prefix: .none, value: .percentUsed),
+            .init(id: .sonnet, prefix: .none, value: .percentUsed),
+        ]
+        let cap = width([scrambled[0], scrambled[1], scrambled[3]])
+        let result = MenuBarRenderer.pinsThatFit(scrambled, data: data(scrambled), maxWidth: cap)
+        #expect(ids(result) == [.design, .fiveHour, .sonnet])
+    }
+
+    @Test("buildLine collapses in .all mode when maxContentWidth is set")
+    func buildLineHonorsCap() {
+        // End-to-end: a cap on RenderData drops the line to the two
+        // highest-priority pins (critical fiveHour, warning sonnet).
+        let cap = width([pins[0], pins[2]])
+        let capped = data(pins, maxContentWidth: cap)
+        #expect(MenuBarRenderer.buildLine(data: capped).string == "95% | 70%")
+    }
+
+    @Test("fixedWidth measurement pads the fitted set, not the full worst case")
+    func fixedWidthRespectsCap() {
+        // With a cap that keeps two pins, the fixedWidth worst-case measurement
+        // must not exceed the uncapped four-pin worst case - the cap governs.
+        let cap = width([pins[0], pins[2]])
+        let capped = makeRenderData(
+            pinned: pins, displayMode: .all, colorMode: .monochrome, fixedWidth: true,
+            fiveHourPct: 95, sevenDayPct: 20, sonnetPct: 70, designPct: 40,
+            maxContentWidth: cap
+        )
+        let uncapped = makeRenderData(
+            pinned: pins, displayMode: .all, colorMode: .monochrome, fixedWidth: true,
+            fiveHourPct: 95, sevenDayPct: 20, sonnetPct: 70, designPct: 40,
+            maxContentWidth: nil
+        )
+        #expect(MenuBarRenderer.fixedWidthMeasurement(data: capped)
+            < MenuBarRenderer.fixedWidthMeasurement(data: uncapped))
     }
 }

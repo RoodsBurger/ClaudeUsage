@@ -10,6 +10,18 @@ final class StatusBarController: NSObject {
     /// `windowWillResize`'s hard clamp so both stay in sync.
     static let dashboardMinSize = NSSize(width: 760, height: 480)
 
+    /// Heuristic headroom reserved on a notched display for the always-present
+    /// right-side system menu extras (clock, Control Center, battery, Wi-Fi,
+    /// Spotlight, ...) that share the right-of-notch strip with our status
+    /// item. Subtracted from the usable right-of-notch width to get the
+    /// collapse budget passed as `RenderData.maxContentWidth`. Purely a tuning
+    /// knob: raise it if the item still crowds the system extras, lower it to
+    /// let more pins survive.
+    static let reservedSystemMenuWidth: CGFloat = 220
+    /// Floor for the collapse budget: never cap below one pin's worth of width,
+    /// so a single pin is always shown even on a very crowded notched bar.
+    static let minPinWidth: CGFloat = 44
+
     private var statusItem: NSStatusItem
     /// Borderless, non-activating panel that replaces `NSPopover` for the
     /// quick-glance dropdown - no arrow, RaiDrive-style. Backed by an
@@ -117,6 +129,22 @@ final class StatusBarController: NSObject {
     private var menuBarIsDark: Bool {
         guard let button = statusItem.button else { return true }
         return button.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+    }
+
+    /// Width budget (points) for `.all`-mode collapse, or nil when no cap
+    /// applies. On a notched Mac the menu bar can't push our status item left
+    /// past the notch: once the line reaches under the notch, macOS hides the
+    /// whole item. We detect the notch via `auxiliaryTopRightArea` (non-nil
+    /// only on a display with a camera housing, macOS 12+) and cap the line to
+    /// that usable right-of-notch strip minus `reservedSystemMenuWidth` for the
+    /// system extras, so `MenuBarRenderer` drops low-priority pins instead of
+    /// vanishing. Non-notched screens and external displays flow items leftward
+    /// and have room, so they stay uncapped (nil). Recomputed on every render,
+    /// so moving the app's screen or unplugging a display is picked up.
+    private var menuBarContentBudget: CGFloat? {
+        let screen = statusItem.button?.window?.screen ?? NSScreen.main
+        guard let rightArea = screen?.auxiliaryTopRightArea else { return nil }
+        return max(Self.minPinWidth, rightArea.width - Self.reservedSystemMenuWidth)
     }
 
     /// Borderless, `.nonactivatingPanel` panel anchored under the status item.
@@ -522,7 +550,8 @@ final class StatusBarController: NSObject {
             outageActive: settingsStore.statusShowMenuBarBadge && vendorStatusStore.isDegraded,
             outageHealth: vendorStatusStore.worstHealth,
             nextPollSeconds: vendorStatusStore.nextPollDate.map { max(0, Int(ceil($0.timeIntervalSinceNow))) },
-            menuBarIsDark: menuBarIsDark
+            menuBarIsDark: menuBarIsDark,
+            maxContentWidth: menuBarContentBudget
         ))
         statusItem.button?.image = image
     }
