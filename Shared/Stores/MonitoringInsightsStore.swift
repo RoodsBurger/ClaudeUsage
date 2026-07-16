@@ -37,6 +37,13 @@ final class MonitoringInsightsStore: ObservableObject {
         lastLoaded = nil
     }
 
+    /// Drops the freshness gate so the next `warmIfStale` reloads immediately -
+    /// used right after a remote sync pulls new instance logs, so the model
+    /// tiles pick them up without waiting out the 60s stale window.
+    func invalidate() {
+        lastLoaded = nil
+    }
+
     /// Kicks a background load if no data has been loaded yet, or if the
     /// last load is older than 60s. No-op if a load is already in flight
     /// for the same window.

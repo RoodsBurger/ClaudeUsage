@@ -91,7 +91,9 @@ struct MonitoringView: View {
             insightsStore.warmIfStale()
         }
         // A completed remote sync refreshes the model tiles + activity totals.
+        // Force it past the stale gate so newly-pulled instance logs show now.
         .onChange(of: remoteInstancesStore.syncGeneration) { _, _ in
+            insightsStore.invalidate()
             insightsStore.warmIfStale()
             warmActivityIfEnterprise()
         }
