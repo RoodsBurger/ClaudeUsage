@@ -742,6 +742,15 @@ final class StatusBarController: NSObject {
         NSApp.activate(ignoringOtherApps: true)
         startPopoverDismissMonitors()
 
+        // A freshly-installed hosting view's `fittingSize` is often measured
+        // before SwiftUI's first layout pass settles, oversizing the panel (an
+        // empty band below the footer on the first open). Re-measure once the
+        // layout settles so the first open is correct without a second click;
+        // `resizePopoverPanelIfNeeded` keeps the top-right corner anchored and
+        // is idempotent, so the short second pass just catches slower settles.
+        DispatchQueue.main.async { [weak self] in self?.resizePopoverPanelIfNeeded() }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in self?.resizePopoverPanelIfNeeded() }
+
         // Native selected tint while the popover is open (matches system menu
         // bar apps). Deferred one runloop turn: the click's own mouse-up event
         // would immediately clear a highlight set synchronously here.
